@@ -28,8 +28,9 @@ from icecube import dataclasses, dataio  # type: ignore[import]  # pylint: disab
 # local imports
 from rest_tools.client import RestClient  # type: ignore[import]
 
-
 # types
+
+
 class RestClientArgs(TypedDict):
     """TypedDict for RestClient parameters."""
 
