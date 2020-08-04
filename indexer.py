@@ -18,7 +18,7 @@ from concurrent.futures import Future, ProcessPoolExecutor
 from datetime import date
 from enum import Enum
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 import requests
 import xmltodict  # type: ignore[import]
@@ -27,6 +27,24 @@ from icecube import dataclasses, dataio  # type: ignore[import]  # pylint: disab
 
 # local imports
 from rest_tools.client import RestClient  # type: ignore[import]
+
+
+# types
+class RestClientArgs(TypedDict):
+    """TypedDict for RestClient parameters."""
+
+    url: str
+    token: str
+    timeout: int
+    retries: int
+
+
+class IndexerFlags(TypedDict):
+    """TypedDict for Indexer bool parameters."""
+
+    basic_only: bool
+    no_patch: bool
+
 
 ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
 
@@ -113,7 +131,11 @@ class ProcessingLevel(Enum):
 
 
 class BasicFileMetadata:
-    """Metadata for basic files."""
+    """The bare minimum metadata for a file.
+
+    The metadata collected is a subset of the 'Core Metadata' documented
+    in the schema: https://docs.google.com/document/d/14SanUWiYEbgarElt0YXSn_2We-rwT-ePO5Fg7rrM9lw/
+    """
 
     def __init__(self, file: FileInfo, site: str):
         self.file = file
@@ -891,7 +913,11 @@ def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
 
 
 def process_work(
-    paths: List[str], args: argparse.Namespace, blacklist: List[str]
+    paths: List[str],
+    blacklist: List[str],
+    rest_client_args: RestClientArgs,
+    site: str,
+    indexer_flags: IndexerFlags,
 ) -> List[str]:
     """Wrap async function, `process_paths`.
 
@@ -907,11 +933,14 @@ def process_work(
 
     # Process Paths
     fc_rc = RestClient(
-        args.url, token=args.token, timeout=args.timeout, retries=args.retries
+        rest_client_args["url"],
+        token=rest_client_args["token"],
+        timeout=rest_client_args["timeout"],
+        retries=rest_client_args["retries"],
     )
-    manager = MetadataManager(args.site, args.basic_only)
+    manager = MetadataManager(site, indexer_flags["basic_only"])
     sub_files = asyncio.get_event_loop().run_until_complete(
-        process_paths(paths, manager, fc_rc, args.no_patch)
+        process_paths(paths, manager, fc_rc, indexer_flags["no_patch"])
     )
 
     fc_rc.close()
@@ -928,8 +957,13 @@ def check_path(path: str) -> None:
     raise Exception(f"Invalid path ({message}).")
 
 
-def gather_file_info(
-    starting_paths: List[str], blacklist: List[str], args: argparse.Namespace
+def gather_file_info(  # pylint: disable=R0913
+    starting_paths: List[str],
+    blacklist: List[str],
+    rest_client_args: RestClientArgs,
+    site: str,
+    indexer_flags: IndexerFlags,
+    processes: int,
 ) -> None:
     """Gather and post metadata from files rooted at `starting_paths`.
 
@@ -944,18 +978,27 @@ def gather_file_info(
     futures = []  # type: List[Future]  # type: ignore[type-arg]
     with ProcessPoolExecutor() as pool:
         queue = starting_paths
-        split = math.ceil(len(queue) / args.processes)
+        split = math.ceil(len(queue) / processes)
         while futures or queue:
             logging.debug(f"Queue: {len(queue)}.")
             # Divvy up queue among available worker(s). Each worker gets 1/nth of the queue.
             if queue:
                 queue = sorted_unique_filepaths(list_of_filepaths=queue)
-                while args.processes != len(futures):
+                while processes != len(futures):
                     paths, queue = queue[:split], queue[split:]
                     logging.debug(
-                        f"Worker Assigned: {len(futures)+1}/{args.processes} ({len(paths)} paths)."
+                        f"Worker Assigned: {len(futures)+1}/{processes} ({len(paths)} paths)."
                     )
-                    futures.append(pool.submit(process_work, paths, args, blacklist))
+                    futures.append(
+                        pool.submit(
+                            process_work,
+                            paths,
+                            blacklist,
+                            rest_client_args,
+                            site,
+                            indexer_flags,
+                        )
+                    )
             logging.debug(f"Workers: {len(futures)} {futures}.")
             # Extend the queue
             # concurrent.futures.wait(FIRST_COMPLETED) is slower
@@ -965,7 +1008,7 @@ def gather_file_info(
             result = future.result()
             if result:
                 queue.extend(result)
-                split = math.ceil(len(queue) / args.processes)
+                split = math.ceil(len(queue) / processes)
             logging.debug(f"Worker finished: {future} (enqueued {len(result)}).")
 
 
@@ -990,7 +1033,7 @@ def main() -> None:
         "--processes",
         type=int,
         default=1,
-        help="number of process for multi-processing",
+        help="number of processes for multi-processing",
     )
     parser.add_argument(
         "-u",
@@ -1046,7 +1089,22 @@ def main() -> None:
     # Read blacklisted paths
     blacklist = sorted_unique_filepaths(file_of_filepaths=args.blacklist_file)
 
-    gather_file_info(paths, blacklist, args)
+    # Grab and pack args
+    rest_client_args = {
+        "url": args.url,
+        "token": args.token,
+        "timeout": args.timeout,
+        "retries": args.retries,
+    }  # type: RestClientArgs
+    indexer_flags = {
+        "basic_only": args.basic_only,
+        "no_patch": args.no_patch,
+    }  # type: IndexerFlags
+
+    # Go!
+    gather_file_info(
+        paths, blacklist, rest_client_args, args.site, indexer_flags, args.processes
+    )
 
 
 if __name__ == "__main__":
