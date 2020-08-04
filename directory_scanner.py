@@ -4,23 +4,30 @@ import argparse
 import logging
 import os
 import stat
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
+from typing import List, Tuple
 
 
-def process_dir(path):
+def process_dir(path: str) -> Tuple[List[str], int]:
     """Print out file paths and return sub-directories."""
     try:
         scan = os.scandir(path)
     except (PermissionError, FileNotFoundError):
-        scan = []
+        scan = []  # type: ignore[assignment]
     dirs = []
 
     all_file_count = 0
     for dir_entry in scan:
         try:
             mode = os.lstat(dir_entry.path).st_mode
-            if stat.S_ISLNK(mode) or stat.S_ISSOCK(mode) or stat.S_ISFIFO(mode) or stat.S_ISBLK(mode) or stat.S_ISCHR(mode):
+            if (
+                stat.S_ISLNK(mode)
+                or stat.S_ISSOCK(mode)
+                or stat.S_ISFIFO(mode)
+                or stat.S_ISBLK(mode)
+                or stat.S_ISCHR(mode)
+            ):
                 logging.info(f"Non-processable file: {dir_entry.path}")
                 continue
         except PermissionError:
@@ -37,29 +44,37 @@ def process_dir(path):
                 try:
                     print(dir_entry.path)
                 except UnicodeEncodeError:
-                    logging.info(f"Invalid file name in: {os.path.dirname(dir_entry.path)}")
+                    logging.info(
+                        f"Invalid file name in: {os.path.dirname(dir_entry.path)}"
+                    )
 
     return dirs, all_file_count
 
 
-def main():
-    """Main."""
-    parser = argparse.ArgumentParser(description='Find directories under PATH(s)',
-                                     epilog='Notes: (1) symbolic links are never followed.',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('path', metavar='PATH', nargs='+', help='path(s) to scan.')
-    parser.add_argument('--workers', type=int, help='max number of workers', required=True)
+def main() -> None:
+    """Recursively scan directory paths and print all file paths."""
+    parser = argparse.ArgumentParser(
+        description="Find directories under PATH(s)",
+        epilog="Notes: (1) symbolic links are never followed.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("path", metavar="PATH", nargs="+", help="path(s) to scan.")
+    parser.add_argument(
+        "--workers", type=int, help="max number of workers", required=True
+    )
     args = parser.parse_args()
 
     dirs = [os.path.abspath(p) for p in args.path]
-    futures = []
+    futures = []  # type: List[Future]  # type: ignore[type-arg]
     all_file_count = 0
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         while futures or dirs:
-            for d in dirs:
-                futures.append(pool.submit(process_dir, d))
+            # submit process job
+            futures.extend(pool.submit(process_dir, d) for d in dirs)
+            # wait
             while not futures[0].done():
                 sleep(0.1)
+            # cleanup and prep for next job
             future = futures.pop(0)
             dirs, result_all_file_count = future.result()
             all_file_count = all_file_count + result_all_file_count
@@ -67,6 +82,6 @@ def main():
     logging.info(f"File Count: {all_file_count}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     main()
