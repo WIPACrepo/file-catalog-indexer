@@ -3,50 +3,57 @@
 import pathlib
 
 import pytest
-from indexer import ACCEPTED_ROOTS, check_path, path_in_blacklist, sorted_unique_filepaths
+
+from ..indexer import (
+    ACCEPTED_ROOTS,
+    check_path,
+    path_in_blacklist,
+    sorted_unique_filepaths,
+)
 
 
-def test_accepted_roots():
+def test_accepted_roots() -> None:
     """Test contents of ACCEPTED_ROOTS."""
-    assert '/data' in ACCEPTED_ROOTS
+    assert "/data" in ACCEPTED_ROOTS
 
 
-def test_check_path():
+def test_check_path() -> None:
     """Test filepath white-listing."""
-    check_path('/data/foo')
-    check_path('/data/foo/bar')
-    check_path('/data/')
-    check_path('/data')
+    check_path("/data/foo")
+    check_path("/data/foo/bar")
+    check_path("/data/")
+    check_path("/data")
 
     with pytest.raises(Exception):
-        check_path('foo')
+        check_path("foo")
     with pytest.raises(Exception):
-        check_path('/data2')
+        check_path("/data2")
     with pytest.raises(Exception):
-        check_path('~/data')
+        check_path("~/data")
     with pytest.raises(Exception):
-        check_path('data/')
+        check_path("data/")
 
 
-def test_blacklist():
+def test_blacklist() -> None:
     """Test filepath black-listing."""
-    blacklist = ['/foo/bar', '/foo/baz']
+    blacklist = ["/foo/bar", "/foo/baz"]
 
-    assert path_in_blacklist('/foo/bar', blacklist)
-    assert path_in_blacklist('/foo/baz', blacklist)
-    assert path_in_blacklist('/foo/baz/foobar', blacklist)
+    assert path_in_blacklist("/foo/bar", blacklist)
+    assert path_in_blacklist("/foo/baz", blacklist)
+    assert path_in_blacklist("/foo/baz/foobar", blacklist)
 
-    assert not path_in_blacklist('/foo/baz2', blacklist)
-    assert not path_in_blacklist('/foo/baz2/foobar', blacklist)
-    assert not path_in_blacklist('/foo', blacklist)
+    assert not path_in_blacklist("/foo/baz2", blacklist)
+    assert not path_in_blacklist("/foo/baz2/foobar", blacklist)
+    assert not path_in_blacklist("/foo", blacklist)
 
 
-def test_sorted_unique_filepaths():
-    """Test sorting, removing duplicate, and checking for illegal characters in filepaths."""
-    filepaths = ['foo/bar/baz.txt', 'foo/bar/baz.txt', 'baz/FOO.txt']
+def test_sorted_unique_filepaths() -> None:
+    """Test sorting, removing duplicates, and detecting illegal characters."""
+    filepaths = ["foo/bar/baz.txt", "foo/bar/baz.txt", "baz/FOO.txt"]
 
     this_dir = pathlib.Path(__file__).parent.absolute()
-    result = sorted_unique_filepaths(file_of_filepaths=f'{this_dir}/illegal_filepaths',
-                                     list_of_filepaths=filepaths)
-    expected = ['/bar/baz.py', 'baz/FOO.txt', 'foo/bar/baz.txt']
+    result = sorted_unique_filepaths(
+        file_of_filepaths=f"{this_dir}/illegal_filepaths", list_of_filepaths=filepaths
+    )
+    expected = ["/bar/baz.py", "baz/FOO.txt", "foo/bar/baz.txt"]
     assert result == expected
