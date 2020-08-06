@@ -23,7 +23,10 @@ from typing import Any, Dict, List, Optional, Tuple, TypedDict
 import requests
 import xmltodict  # type: ignore[import]
 import yaml
-from icecube import dataclasses, dataio  # type: ignore[import]  # pylint: disable=E0401
+from icecube import (  # type: ignore[import]  # pylint: disable=E0401
+    dataclasses,
+    dataio,
+)
 
 # local imports
 from rest_tools.client import RestClient  # type: ignore[import]
