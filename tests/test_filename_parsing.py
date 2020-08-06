@@ -4,7 +4,8 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
-from ..indexer import (
+# local imports
+from indexer import (
     fix_known_filepath_issues,
     I3FileMetadata,
     L2FileMetadata,

@@ -4,7 +4,8 @@ import pathlib
 
 import pytest
 
-from ..indexer import (
+# local imports
+from indexer import (
     ACCEPTED_ROOTS,
     check_path,
     path_in_blacklist,
