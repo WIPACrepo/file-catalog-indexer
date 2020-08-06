@@ -9,7 +9,6 @@ click==7.1.2
 coverage==5.0.3
 cryptography==3.0
 distro==1.5.0
-distro-info==0.0.0
 docutils==0.16
 fasteners==0.15
 httplib2==0.18.1
