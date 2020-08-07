@@ -5,8 +5,8 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import pytest
 
 # local imports
-from indexer import (
-    fix_known_filepath_issues,
+from indexer import fix_known_filepath_issues
+from metadata import (
     I3FileMetadata,
     L2FileMetadata,
     PFDSTFileMetadata,
