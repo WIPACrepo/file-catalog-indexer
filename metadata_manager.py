@@ -12,6 +12,17 @@ from typing import Any, Dict
 import xmltodict  # type: ignore[import]
 import yaml
 
+# local imports
+from metadata import (
+    BasicFileMetadata,
+    FileInfo,
+    I3FileMetadata,
+    L2FileMetadata,
+    PFDSTFileMetadata,
+    PFFiltFileMetadata,
+    PFRawFileMetadata,
+)
+
 
 class MetadataManager:  # pylint: disable=R0903
     """Commander class for handling metadata for different file types."""

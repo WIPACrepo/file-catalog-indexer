@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 import requests
 
 # local imports
+from metadata_manager import MetadataManager
 from rest_tools.client import RestClient  # type: ignore[import]
 
 # Types --------------------------------------------------------------------------------
