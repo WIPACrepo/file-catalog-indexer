@@ -8,9 +8,9 @@ import subprocess
 
 def make_condor_scratch_dir(paths_root: str) -> str:
     """Make the condor scratch directory."""
-    scratch = os.path.join(
-        "/scratch/", getpass.getuser(), f"all-paths-{paths_root.replace('/','-')}"
-    )
+    name = paths_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
+
+    scratch = os.path.join("/scratch/", getpass.getuser(), f"all-paths-{name}")
     if not os.path.exists(scratch):
         os.makedirs(scratch)
 
