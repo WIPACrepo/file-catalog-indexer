@@ -3,11 +3,11 @@ version: 2.1
 jobs:
   unit:
     docker:
-      - image: rikorose/gcc-cmake
+      - image: icecube/icetray:latest
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run: time ./resources/icecube_combo.sh && pip install -r requirements.txt && pytest tests
+      - run: /usr/local/icetray/env-shell.sh && pip install -r requirements.txt && pytest tests
 
 workflows:
   build_and_test:
