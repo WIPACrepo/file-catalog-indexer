@@ -6,7 +6,7 @@ jobs:
       - image: icecube/icetray:latest
     steps:
       - checkout
-      - run: /usr/local/icetray/env-shell.sh && pip install -r requirements.txt && pytest tests
+      - run: pwd && /usr/local/icetray/env-shell.sh && pip install -r requirements.txt && pytest tests
 
 workflows:
   build_and_test:
