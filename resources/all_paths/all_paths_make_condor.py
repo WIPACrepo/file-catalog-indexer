@@ -32,7 +32,7 @@ def make_condor_file(
 
         # write
         file.write(
-            f"""executable = {os.path.abspath('indexer_env.sh')}
+            f"""executable = {os.path.abspath('../indexer_env.sh')}
 arguments = python all_paths.py {paths_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg}
 output = {scratch}/all_paths.out
 error = {scratch}/all_paths.err
