@@ -6,7 +6,7 @@ jobs:
       - image: icecube/icetray:combo-stable-devel
     steps:
       - checkout
-      - run: pip3 install -r requirements.txt && pytest tests
+      - run: python3 -V && pip3 install -r requirements.txt && pytest tests
 
 workflows:
   build_and_test:
