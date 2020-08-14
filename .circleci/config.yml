@@ -6,7 +6,7 @@ jobs:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run: time ./resources/icecube_combo.sh && pip install -r requirements.txt && pytest
+      - run: time ./resources/icecube_combo.sh && pip install -r requirements.txt && pytest tests
 
 workflows:
   build_and_test:
