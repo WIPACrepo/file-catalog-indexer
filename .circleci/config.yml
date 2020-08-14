@@ -3,8 +3,8 @@ version: 2.1
 jobs:
   unit:
     docker:
-      - image: icecube/icetray:latest
       - image: circleci/python:3.8
+      - image: icecube/icetray:latest
     steps:
       - checkout
       - run: /usr/local/icetray/env-shell.sh && pip install -r requirements.txt && pytest tests
