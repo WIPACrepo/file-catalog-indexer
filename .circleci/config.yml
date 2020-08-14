@@ -3,6 +3,7 @@ version: 2.1
 jobs:
   unit:
     docker:
+      - image: rikorose/gcc-cmake
       - image: circleci/python:3.8
     steps:
       - checkout
