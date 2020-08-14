@@ -1,4 +1,5 @@
 #!/bin/bash
+sudo apt-get -y install cmake
 mkdir combo
 cd combo
 svn co http://code.icecube.wisc.edu/svn/meta-projects/combo/stable/ src --username=icecube --password=skua --no-auth-cache
