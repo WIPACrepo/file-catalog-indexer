@@ -11,6 +11,17 @@ from datetime import datetime as dt
 from typing import List, Union
 
 
+def _full_path(path: str) -> str:
+    if not path:
+        return path
+
+    full_path = os.path.abspath(path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(full_path)
+
+    return full_path
+
+
 def check_call_print(
     cmd: Union[List[str], str], cwd: str = ".", shell: bool = False
 ) -> None:
@@ -84,19 +95,19 @@ def main() -> None:
     parser.add_argument(
         "paths_root",
         help="root directory to recursively scan for files.",
-        type=os.path.abspath,
+        type=_full_path,
     )
     parser.add_argument(
         "--staging-dir",
         dest="staging_dir",
-        type=os.path.abspath,
+        type=_full_path,
         required=True,
         help="the base directory to store files for jobs, eg: /data/user/eevans/",
     )
     parser.add_argument(
         "--previous-all-paths",
         dest="previous_all_paths",
-        type=os.path.abspath,
+        type=_full_path,
         help="prior file with file paths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
         " These files will be skipped.",
     )
@@ -105,7 +116,7 @@ def main() -> None:
         "-e",
         nargs="*",
         default=[],
-        type=os.path.abspath,
+        type=_full_path,
         help='directories/paths to exclude from the traverse -- keep it short, this is "all paths" after all.',
     )
     parser.add_argument(
@@ -122,11 +133,6 @@ def main() -> None:
 
     for arg, val in vars(args).items():
         print(f"{arg}: {val}")
-
-    # check paths in args
-    for path in [args.paths_root, args.previous_all_paths] + args.exclude:
-        if path and not os.path.exists(path):
-            raise FileNotFoundError(path)
 
     write_all_filepaths_to_files(
         args.staging_dir,
