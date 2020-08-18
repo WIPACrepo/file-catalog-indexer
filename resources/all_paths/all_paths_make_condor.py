@@ -6,9 +6,11 @@ import os
 import subprocess
 
 
-def make_condor_scratch_dir() -> str:
+def make_condor_scratch_dir(paths_root: str) -> str:
     """Make the condor scratch directory."""
-    scratch = os.path.join("/scratch/", getpass.getuser(), "all-paths")
+    name = paths_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
+
+    scratch = os.path.join("/scratch/", getpass.getuser(), f"all-paths-{name}")
     if not os.path.exists(scratch):
         os.makedirs(scratch)
 
@@ -30,7 +32,7 @@ def make_condor_file(
 
         # write
         file.write(
-            f"""executable = {os.path.abspath('indexer_env.sh')}
+            f"""executable = {os.path.abspath('../indexer_env.sh')}
 arguments = python all_paths.py {paths_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg}
 output = {scratch}/all_paths.out
 error = {scratch}/all_paths.err
@@ -56,8 +58,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Make Condor script for all_paths.py: "
         "recursively find all filepaths in `paths_root`, "
-        "place all_paths.py's output files in /data/user/$USER/, and "
-        "Condor log files in /scratch/$USER/all-paths/."
+        "place all_paths.py's output files in /data/user/{user}/, and "
+        "Condor log files in /scratch/{user}/all-paths-{paths_root_w_dashes}/."
     )
     parser.add_argument(
         "paths_root", help="root directory to recursively scan for files."
@@ -87,7 +89,7 @@ def main() -> None:
             raise FileNotFoundError(path)
 
     # make condor scratch directory
-    scratch = make_condor_scratch_dir()
+    scratch = make_condor_scratch_dir(args.paths_root)
 
     # make condor file
     condorpath = make_condor_file(
