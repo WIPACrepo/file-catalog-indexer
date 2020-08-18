@@ -4,6 +4,7 @@ import argparse
 import getpass
 import os
 import subprocess
+from typing import List
 
 
 def make_condor_scratch_dir(paths_root: str) -> str:
@@ -17,8 +18,13 @@ def make_condor_scratch_dir(paths_root: str) -> str:
     return scratch
 
 
-def make_condor_file(
-    scratch: str, previous_all_paths: str, paths_root: str, cpus: int, memory: str
+def make_condor_file(  # pylint: disable=R0913
+    scratch: str,
+    previous_all_paths: str,
+    paths_root: str,
+    cpus: int,
+    memory: str,
+    exclude: List[str],
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -29,11 +35,14 @@ def make_condor_file(
             previous_arg = f"--previous-all-paths {previous_all_paths}"
         staging_dir = os.path.join("/data/user/", getpass.getuser())
         transfer_input_files = ["all_paths.py", "directory_scanner.py"]
+        exculdes_args = ""
+        if exclude:
+            exculdes_args = " ".join(exclude)
 
         # write
         file.write(
             f"""executable = {os.path.abspath('../indexer_env.sh')}
-arguments = python all_paths.py {paths_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg}
+arguments = python all_paths.py {paths_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args}
 output = {scratch}/all_paths.out
 error = {scratch}/all_paths.err
 log = {scratch}/all_paths.log
@@ -62,13 +71,24 @@ def main() -> None:
         "Condor log files in /scratch/{user}/all-paths-{paths_root_w_dashes}/."
     )
     parser.add_argument(
-        "paths_root", help="root directory to recursively scan for files."
+        "paths_root",
+        help="root directory to recursively scan for files.",
+        type=os.path.abspath,
     )
     parser.add_argument(
         "--previous-all-paths",
         dest="previous_all_paths",
+        type=os.path.abspath,
         help="prior file with file paths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
         " These files will be skipped.",
+    )
+    parser.add_argument(
+        "--exclude",
+        "-e",
+        nargs="*",
+        default=[],
+        type=os.path.abspath,
+        help='directories/paths to exclude from the traverse -- keep it short, this is "all paths" after all.',
     )
     parser.add_argument(
         "--dryrun",
@@ -84,7 +104,7 @@ def main() -> None:
         print(f"{arg}: {val}")
 
     # check paths in args
-    for path in [args.paths_root, args.previous_all_paths]:
+    for path in [args.paths_root, args.previous_all_paths] + args.exclude:
         if path and not os.path.exists(path):
             raise FileNotFoundError(path)
 
@@ -93,7 +113,12 @@ def main() -> None:
 
     # make condor file
     condorpath = make_condor_file(
-        scratch, args.previous_all_paths, args.paths_root, args.cpus, args.memory
+        scratch,
+        args.previous_all_paths,
+        args.paths_root,
+        args.cpus,
+        args.memory,
+        args.exclude,
     )
 
     # Execute

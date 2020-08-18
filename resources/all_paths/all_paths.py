@@ -21,8 +21,13 @@ def check_call_print(
     subprocess.check_call(cmd, cwd=cwd, shell=shell)
 
 
-def write_all_filepaths_to_files(
-    staging_dir: str, paths_root: str, workers: int, previous: str, paths_per_file: int
+def write_all_filepaths_to_files(  # pylint: disable=R0913
+    staging_dir: str,
+    paths_root: str,
+    workers: int,
+    previous: str,
+    paths_per_file: int,
+    exclude: List[str],
 ) -> None:
     """Write all filepaths (rooted from `paths_root`) to multiple files."""
     name = paths_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
@@ -77,19 +82,31 @@ def main() -> None:
         description="Run this script via all_paths_make_condor.py."
     )
     parser.add_argument(
-        "paths_root", help="root directory to recursively scan for files."
+        "paths_root",
+        help="root directory to recursively scan for files.",
+        type=os.path.abspath,
     )
     parser.add_argument(
         "--staging-dir",
         dest="staging_dir",
+        type=os.path.abspath,
         required=True,
         help="the base directory to store files for jobs, eg: /data/user/eevans/",
     )
     parser.add_argument(
         "--previous-all-paths",
         dest="previous_all_paths",
+        type=os.path.abspath,
         help="prior file with file paths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
         " These files will be skipped.",
+    )
+    parser.add_argument(
+        "--exclude",
+        "-e",
+        nargs="*",
+        default=[],
+        type=os.path.abspath,
+        help='directories/paths to exclude from the traverse -- keep it short, this is "all paths" after all.',
     )
     parser.add_argument(
         "--workers", type=int, help="max number of workers", required=True
@@ -107,7 +124,7 @@ def main() -> None:
         print(f"{arg}: {val}")
 
     # check paths in args
-    for path in [args.paths_root, args.previous_all_paths]:
+    for path in [args.paths_root, args.previous_all_paths] + args.exclude:
         if path and not os.path.exists(path):
             raise FileNotFoundError(path)
 
@@ -117,6 +134,7 @@ def main() -> None:
         args.workers,
         args.previous_all_paths,
         args.paths_per_file,
+        args.exclude,
     )
 
 
