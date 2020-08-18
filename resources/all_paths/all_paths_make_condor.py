@@ -2,6 +2,7 @@
 
 import argparse
 import getpass
+import logging
 import os
 import subprocess
 from typing import List
@@ -115,7 +116,7 @@ def main() -> None:
     args = parser.parse_args()
 
     for arg, val in vars(args).items():
-        print(f"{arg}: {val}")
+        logging.info(f"{arg}: {val}")
 
     # make condor scratch directory
     scratch = make_condor_scratch_dir(args.paths_root, bool(args.exclude))
@@ -130,12 +131,14 @@ def main() -> None:
         args.exclude,
     )
 
+    logging.debug(f"See {condorpath}.")
+
     # Execute
     if args.dryrun:
-        print("Script Aborted: Condor job not submitted.")
+        logging.critical("Script Aborted: Condor job not submitted.")
     else:
         cmd = f"condor_submit {condorpath}"
-        print(cmd)
+        logging.warning(cmd)
         subprocess.check_call(cmd.split(), cwd=scratch)
 
 
