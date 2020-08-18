@@ -132,7 +132,7 @@ def main() -> None:
 
     # Execute
     if args.dryrun:
-        print("Script Aborted: Condor job not submitted.")
+        print(f"Script Aborted: Condor job not submitted ({condorpath}).")
     else:
         cmd = f"condor_submit {condorpath}"
         print(cmd)
