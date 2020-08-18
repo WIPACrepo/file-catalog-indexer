@@ -18,11 +18,14 @@ def _full_path(path: str) -> str:
     return full_path
 
 
-def make_condor_scratch_dir(paths_root: str) -> str:
+def make_condor_scratch_dir(paths_root: str, with_exclusions: bool = False) -> str:
     """Make the condor scratch directory."""
     name = paths_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
+    dir_name = f"all-paths-{name}"
+    if with_exclusions:
+        dir_name += "-W-EXCLS"
 
-    scratch = os.path.join("/scratch/", getpass.getuser(), f"all-paths-{name}")
+    scratch = os.path.join("/scratch/", getpass.getuser(), dir_name)
     if not os.path.exists(scratch):
         os.makedirs(scratch)
 
@@ -115,7 +118,7 @@ def main() -> None:
         print(f"{arg}: {val}")
 
     # make condor scratch directory
-    scratch = make_condor_scratch_dir(args.paths_root)
+    scratch = make_condor_scratch_dir(args.paths_root, bool(args.exclude))
 
     # make condor file
     condorpath = make_condor_file(

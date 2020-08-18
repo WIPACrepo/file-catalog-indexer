@@ -42,8 +42,11 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 ) -> None:
     """Write all filepaths (rooted from `paths_root`) to multiple files."""
     name = paths_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
+    root_dir_name = f"indexer-{name}/"
+    if exclude:
+        root_dir_name += "-W-EXCLS"
 
-    output_root = os.path.join(staging_dir, f"indexer-{name}/")
+    output_root = os.path.join(staging_dir, root_dir_name)
     file_orig = os.path.join(output_root, "paths.orig")
     file_log = os.path.join(output_root, "paths.log")
     file_sort = os.path.join(output_root, "paths.sort")
