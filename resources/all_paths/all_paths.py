@@ -57,7 +57,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
         # Get all file-paths in paths_root and sort the list
         exculdes_args = ""
         if exclude:
-            exculdes_args = " ".join(exclude)
+            exculdes_args = "--exclude " + " ".join(exclude)
         check_call_print(
             f"python directory_scanner.py {paths_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
             shell=True,
