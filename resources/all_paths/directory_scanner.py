@@ -21,11 +21,11 @@ def _full_path(path: str) -> str:
 
 
 def exclude_path(path: str, exclude: List[str]) -> bool:
-    """Return `True` if `path` is in `exclude`.
+    """Return `True` if `path` should be excluded.
 
     Either:
-    - `path` is in `blacklist`, or
-    - `path` has a parent path in `blacklist`.
+    - `path` is in `exclude`, or
+    - `path` has a parent path in `exclude`.
     """
     for bad_path in exclude:
         if (path == bad_path) or (os.path.commonpath([path, bad_path]) == bad_path):
