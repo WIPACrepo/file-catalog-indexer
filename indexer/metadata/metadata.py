@@ -16,7 +16,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple
 
 import xmltodict  # type: ignore[import]
 
-from .utils import types
+from ..utils import types
 
 # Utility-Classes ----------------------------------------------------------------------
 

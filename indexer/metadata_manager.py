@@ -12,7 +12,7 @@ from typing import Any, Dict
 import xmltodict  # type: ignore[import]
 import yaml
 
-from .metadata import (
+from .metadata.metadata import (
     BasicFileMetadata,
     FileInfo,
     I3FileMetadata,

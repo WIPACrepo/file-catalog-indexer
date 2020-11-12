@@ -9,7 +9,7 @@ sys.path.append(".")
 from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
     fix_known_filepath_issues,
 )
-from indexer.metadata import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer.metadata.metadata import (  # isort:skip # noqa # pylint: disable=C0413
     I3FileMetadata,
     L2FileMetadata,
     PFDSTFileMetadata,
