@@ -10,13 +10,15 @@ import stat
 import string
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import List, Optional, TypedDict
 
 import requests
 
 # local imports
-from metadata_manager import MetadataManager
 from rest_tools.client import RestClient  # type: ignore[import]
+
+from .metadata_manager import MetadataManager
+from .utils import types
 
 # Types --------------------------------------------------------------------------------
 
@@ -37,7 +39,13 @@ class IndexerFlags(TypedDict):
     no_patch: bool
 
 
+# Constants ----------------------------------------------------------------------------
+
+
 ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
+
+
+# Utilities ----------------------------------------------------------------------------
 
 
 def is_processable_path(path: str) -> bool:
@@ -114,7 +122,7 @@ def sorted_unique_filepaths(
 
 
 async def request_post_patch(
-    fc_rc: RestClient, metadata: Dict[str, Any], dont_patch: bool = False
+    fc_rc: RestClient, metadata: types.Metadata, dont_patch: bool = False
 ) -> RestClient:
     """POST metadata, and PATCH if file is already in the file catalog."""
     try:
@@ -168,7 +176,7 @@ async def process_paths(
     paths: List[str], manager: MetadataManager, fc_rc: RestClient, no_patch: bool
 ) -> List[str]:
     """POST metadata of files given by paths, and return any directories."""
-    sub_files = []  # type: List[str]
+    sub_files: List[str] = []
 
     for p in paths:
         try:
@@ -280,7 +288,7 @@ def gather_file_info(  # pylint: disable=R0913
         check_path(p)
 
     # Traverse paths and process files
-    futures = []  # type: List[Future]  # type: ignore[type-arg]
+    futures: List[Future] = []  # type: ignore[type-arg]
     with ProcessPoolExecutor() as pool:
         queue = starting_paths
         split = math.ceil(len(queue) / processes)
@@ -395,16 +403,16 @@ def main() -> None:
     blacklist = sorted_unique_filepaths(file_of_filepaths=args.blacklist_file)
 
     # Grab and pack args
-    rest_client_args = {
+    rest_client_args: RestClientArgs = {
         "url": args.url,
         "token": args.token,
         "timeout": args.timeout,
         "retries": args.retries,
-    }  # type: RestClientArgs
-    indexer_flags = {
+    }
+    indexer_flags: IndexerFlags = {
         "basic_only": args.basic_only,
         "no_patch": args.no_patch,
-    }  # type: IndexerFlags
+    }
 
     # Go!
     gather_file_info(

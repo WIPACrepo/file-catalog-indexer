@@ -6,7 +6,10 @@ jobs:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run: pip install -r requirements.txt && pytest
+      - run:
+          command: |
+            pip install -r requirements.txt --use-feature=2020-resolver
+            pytest --mypy --flake8 -vvvvv --ignore=src
 
 workflows:
   build_and_test:

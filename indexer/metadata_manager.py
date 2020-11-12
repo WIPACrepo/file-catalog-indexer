@@ -12,8 +12,7 @@ from typing import Any, Dict
 import xmltodict  # type: ignore[import]
 import yaml
 
-# local imports
-from metadata import (
+from .metadata import (
     BasicFileMetadata,
     FileInfo,
     I3FileMetadata,
@@ -31,7 +30,7 @@ class MetadataManager:  # pylint: disable=R0903
         self.dir_path = ""
         self.site = site
         self.basic_only = basic_only
-        self.l2_dir_metadata = {}  # type: Dict[str, Dict[str, Any]]
+        self.l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
 
     def _prep_l2_dir_metadata(self) -> None:
         """Get metadata files for later processing with individual i3 files."""
@@ -65,7 +64,10 @@ class MetadataManager:  # pylint: disable=R0903
                 try:
                     with tarfile.open(dir_entry.path) as tar:
                         for tar_obj in tar:
-                            file_dict = yaml.safe_load(tar.extractfile(tar_obj))  # type: ignore[arg-type]
+                            # pylint: disable=C0325
+                            if not (iobytes := tar.extractfile(tar_obj)):
+                                continue
+                            file_dict = yaml.safe_load(iobytes)
                             # Ex. Level2_IC86.2017_data_Run00130484_Subrun00000000_00000188_gaps.txt
                             no_extension = tar_obj.name.split("_gaps.txt")[0]
                             gaps_files[no_extension] = file_dict

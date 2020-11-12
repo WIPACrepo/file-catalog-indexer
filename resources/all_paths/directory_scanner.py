@@ -108,7 +108,7 @@ def main() -> None:
     args = parser.parse_args()
 
     dirs = args.paths
-    futures = []  # type: List[Future]  # type: ignore[type-arg]
+    futures: List[Future] = []  # type: ignore[type-arg]
     all_file_count = 0
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         while futures or dirs:
