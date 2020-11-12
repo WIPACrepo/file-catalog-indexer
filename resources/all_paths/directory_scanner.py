@@ -14,7 +14,7 @@ def process_dir(path: str) -> Tuple[List[str], int]:
     try:
         scan = os.scandir(path)
     except (PermissionError, FileNotFoundError):
-        scan = []
+        scan = []  # type: ignore[assignment]
     dirs = []
 
     all_file_count = 0
