@@ -15,7 +15,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import xmltodict  # type: ignore[import]
-from icecube import dataclasses, dataio  # type: ignore[import]  # pylint: disable=E0401
 
 # Utility-Classes ----------------------------------------------------------------------
 
@@ -317,6 +316,8 @@ class I3FileMetadata(BasicFileMetadata):
         count = 0
         status = "good"
 
+        from icecube import dataio  # type: ignore[import] # pylint: disable=C0415,E0401
+
         try:
             for frame in dataio.I3File(self.file.path):
                 if "I3EventHeader" in frame:
@@ -422,6 +423,8 @@ class L2FileMetadata(I3FileMetadata):
         livetime = float(self.gaps_dict["File Livetime"])  # Ex: 0.92
         if livetime < 0:  # corrupted value, don't read any more values
             return None, None, None, None
+
+        from icecube import dataclasses  # pylint: disable=E0401,C0415
 
         try:
             # Ex: '53162019 2018 206130762188498'
