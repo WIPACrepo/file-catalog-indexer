@@ -234,13 +234,13 @@ def main() -> None:
     scratch = make_condor_scratch_dir(args.dir_of_paths_files, args.level)
 
     # make condor file
-    indexer_args = {
+    indexer_args: IndexerArgs = {
         "blacklist": args.blacklist,
         "token": args.token,
         "timeout": args.timeout,
         "retries": args.retries,
         "cpus": args.cpus,
-    }  # type: IndexerArgs
+    }
     make_condor_file(
         scratch, args.dir_of_paths_files, args.level, args.memory, indexer_args
     )

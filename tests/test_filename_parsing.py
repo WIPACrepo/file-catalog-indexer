@@ -90,7 +90,7 @@ def _test_bad_valid_filenames_parsing(
 
 def test_L2() -> None:  # pylint: disable=C0103
     """Run L2 filename parsing."""
-    filenames_and_values = {
+    filenames_and_values: Dict[str, Tuple[Optional[int], int, int, int]] = {
         "Level2_IC86.2017_data_Run00130567_Subrun00000000_00000280.i3.zst": (
             2017,
             130567,
@@ -166,7 +166,7 @@ def test_L2() -> None:  # pylint: disable=C0103
             1,
         ),
         "MoonEvents_Level2_All_Run00111887_part2.i3.gz": (None, 111887, 0, 2),
-    }  # type: Dict[str, Tuple[Optional[int], int, int, int]]
+    }
 
     _test_valid_filenames(filenames_and_values.keys(), L2FileMetadata.is_valid_filename)
     _test_filenames_parsing(filenames_and_values, L2FileMetadata.FILENAME_PATTERNS)
@@ -196,7 +196,7 @@ def test_bad_L2() -> None:  # pylint: disable=C0103
 
 def test_PFFilt() -> None:  # pylint: disable=C0103
     """Run PFFilt filename parsing."""
-    filenames_and_values = {
+    filenames_and_values: Dict[str, Tuple[Optional[int], int, int, int]] = {
         "PFFilt_PhysicsFiltering_Run00131989_Subrun00000000_00000295.tar.bz2": (
             None,
             131989,
@@ -222,7 +222,7 @@ def test_PFFilt() -> None:  # pylint: disable=C0103
             180,
         ),
         "PFFilt_PhysicsTrig_RandomFilt_Run86885_006.tar.gz": (None, 86885, 0, 6),
-    }  # type: Dict[str, Tuple[Optional[int], int, int, int]]
+    }
 
     _test_valid_filenames(
         filenames_and_values.keys(), PFFiltFileMetadata.is_valid_filename
@@ -232,7 +232,7 @@ def test_PFFilt() -> None:  # pylint: disable=C0103
 
 def test_PFDST() -> None:  # pylint: disable=C0103
     """Run PFDST filename parsing."""
-    filenames_and_values = {
+    filenames_and_values: Dict[str, Tuple[Optional[int], int, int, int]] = {
         "ukey_fa818e64-f6d2-4cc1-9b34-e50bfd036bf3_PFDST_PhysicsFiltering_Run00131437_Subrun00000000_00000066.tar.gz": (
             None,
             131437,
@@ -287,7 +287,7 @@ def test_PFDST() -> None:  # pylint: disable=C0103
             0,
             9,
         ),
-    }  # type: Dict[str, Tuple[Optional[int], int, int, int]]
+    }
 
     _test_valid_filenames(
         filenames_and_values.keys(), PFDSTFileMetadata.is_valid_filename
@@ -305,7 +305,7 @@ def test_bad_PFDST() -> None:  # pylint: disable=C0103
 
 def test_PFRaw() -> None:  # pylint: disable=C0103
     """Run PFRaw filename parsing."""
-    filenames_and_values = {
+    filenames_and_values: Dict[str, Tuple[Optional[int], int, int, int]] = {
         "key_31445930_PFRaw_PhysicsFiltering_Run00128000_Subrun00000000_00000156.tar.gz": (
             None,
             128000,
@@ -373,7 +373,7 @@ def test_PFRaw() -> None:  # pylint: disable=C0103
         ),
         "EvtMonPFRaw_PhysicsTrig_RandomFilt_Run86510.tar.gz": (None, 86510, 0, 0),
         "EvtMonPFRaw_PhysicsTrig_PhysicsFilt_Run00089012.tar.gz": (None, 89012, 0, 0),
-    }  # type: Dict[str, Tuple[Optional[int], int, int, int]]
+    }
 
     _test_valid_filenames(
         filenames_and_values.keys(), PFRawFileMetadata.is_valid_filename

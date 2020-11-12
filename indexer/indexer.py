@@ -176,7 +176,7 @@ async def process_paths(
     paths: List[str], manager: MetadataManager, fc_rc: RestClient, no_patch: bool
 ) -> List[str]:
     """POST metadata of files given by paths, and return any directories."""
-    sub_files = []  # type: List[str]
+    sub_files: List[str] = []
 
     for p in paths:
         try:
@@ -403,16 +403,16 @@ def main() -> None:
     blacklist = sorted_unique_filepaths(file_of_filepaths=args.blacklist_file)
 
     # Grab and pack args
-    rest_client_args = {
+    rest_client_args: RestClientArgs = {
         "url": args.url,
         "token": args.token,
         "timeout": args.timeout,
         "retries": args.retries,
-    }  # type: RestClientArgs
-    indexer_flags = {
+    }
+    indexer_flags: IndexerFlags = {
         "basic_only": args.basic_only,
         "no_patch": args.no_patch,
-    }  # type: IndexerFlags
+    }
 
     # Go!
     gather_file_info(

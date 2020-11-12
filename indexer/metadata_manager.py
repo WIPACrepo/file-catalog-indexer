@@ -30,7 +30,7 @@ class MetadataManager:  # pylint: disable=R0903
         self.dir_path = ""
         self.site = site
         self.basic_only = basic_only
-        self.l2_dir_metadata = {}  # type: Dict[str, Dict[str, Any]]
+        self.l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
 
     def _prep_l2_dir_metadata(self) -> None:
         """Get metadata files for later processing with individual i3 files."""

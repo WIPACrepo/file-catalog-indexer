@@ -36,7 +36,7 @@ class FileInfo:  # pylint: disable=R0903
 class IceCubeSeason:
     """Wrapper static class encapsulating season-name - season-year mapping logic."""
 
-    SEASONS = {
+    SEASONS: Dict[int, str] = {
         2005: "ICstring9",
         2006: "IC9",
         2007: "IC22",
@@ -53,7 +53,7 @@ class IceCubeSeason:
         2018: "IC86-8",
         2019: "IC86-9",
         2020: "IC86-10",
-    }  # type: Dict[int, str]
+    }
 
     @staticmethod
     def name_to_year(name: Optional[str]) -> Optional[int]:
@@ -136,7 +136,7 @@ class I3FileMetadata(BasicFileMetadata):
     ):
         super().__init__(file, site)
         self.processing_level = processing_level
-        self.meta_xml = {}  # type: Dict[str,Any]
+        self.meta_xml: Dict[str, Any] = {}
         try:
             (
                 self.season_year,
