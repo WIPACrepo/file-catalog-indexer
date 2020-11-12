@@ -14,7 +14,7 @@ def process_dir(path: str) -> Tuple[List[str], int]:
     try:
         scan = os.scandir(path)
     except (PermissionError, FileNotFoundError):
-        scan = []  # type: ignore[assignment]
+        scan = []
     dirs = []
 
     all_file_count = 0
@@ -65,7 +65,7 @@ def main() -> None:
     args = parser.parse_args()
 
     dirs = [os.path.abspath(p) for p in args.path]
-    futures = []  # type: List[Future]  # type: ignore[type-arg]
+    futures = []  # type: List[Future]
     all_file_count = 0
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         while futures or dirs:

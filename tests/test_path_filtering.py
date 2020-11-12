@@ -1,11 +1,12 @@
 """Test indexer filename parsing."""
 
 import pathlib
+import sys
 
 import pytest
 
-# local imports
-from indexer import (
+sys.path.append(".")
+from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
     ACCEPTED_ROOTS,
     check_path,
     path_in_blacklist,

@@ -1,12 +1,15 @@
 """Test indexer filename parsing."""
 
+import sys
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import pytest
 
-# local imports
-from indexer import fix_known_filepath_issues
-from metadata import (
+sys.path.append(".")
+from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
+    fix_known_filepath_issues,
+)
+from indexer.metadata import (  # isort:skip # noqa # pylint: disable=C0413
     I3FileMetadata,
     L2FileMetadata,
     PFDSTFileMetadata,

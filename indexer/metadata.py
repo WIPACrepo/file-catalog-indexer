@@ -12,9 +12,11 @@ import xml
 import zlib
 from datetime import date
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple
 
 import xmltodict  # type: ignore[import]
+
+from .utils import types
 
 # Utility-Classes ----------------------------------------------------------------------
 
@@ -99,13 +101,13 @@ class BasicFileMetadata:
         self.file = file
         self.site = site
 
-    def generate(self) -> Dict[str, Any]:
+    def generate(self) -> types.Metadata:
         """Gather the file's metadata."""
-        metadata = {}
+        metadata: types.Metadata = {}
         metadata["logical_name"] = self.file.path
-        metadata["checksum"] = {"sha512": self.sha512sum()}  # type: ignore[assignment]
-        metadata["file_size"] = self.file.stat().st_size  # type: ignore[no-untyped-call]
-        metadata["locations"] = [{"site": self.site, "path": self.file.path}]  # type: ignore[assignment]
+        metadata["checksum"] = {"sha512": self.sha512sum()}
+        metadata["file_size"] = cast(int, self.file.stat().st_size)  # type: ignore[no-untyped-call]
+        metadata["locations"] = [{"site": self.site, "path": self.file.path}]
         iso_date = date.fromtimestamp(os.path.getctime(self.file.path)).isoformat()
         metadata["create_date"] = iso_date
         return metadata
@@ -149,7 +151,7 @@ class I3FileMetadata(BasicFileMetadata):
                 f"Filename not in a known {self.processing_level.value} file format, {file.name}."
             )
 
-    def generate(self) -> Dict[str, Any]:
+    def generate(self) -> types.Metadata:
         """Gather the file's metadata."""
         metadata = super().generate()
 
@@ -245,7 +247,7 @@ class I3FileMetadata(BasicFileMetadata):
 
     def _parse_xml(
         self,
-    ) -> Tuple[Optional[str], Optional[str], str, Optional[List[Dict[str, Any]]]]:
+    ) -> Tuple[Optional[str], Optional[str], str, Optional[List[types.SoftwareEntry]]]:
         """Return data points from `self.meta_xml` dict."""
         start_dt = None
         end_dt = None
@@ -276,11 +278,11 @@ class I3FileMetadata(BasicFileMetadata):
 
         return start_dt, end_dt, create_date, software
 
-    def _get_software(self) -> List[Dict[str, Any]]:
+    def _get_software(self) -> List[types.SoftwareEntry]:
         """Return software metadata from `self.meta_xml`."""
 
-        def parse_project(project: Dict[str, Any]) -> Dict[str, Any]:
-            software = {}
+        def parse_project(project: Dict[str, Any]) -> types.SoftwareEntry:
+            software: types.SoftwareEntry = {}
             if "Name" in project:
                 software["name"] = str(project["Name"])
             if "Version" in project:
@@ -411,10 +413,10 @@ class L2FileMetadata(I3FileMetadata):
     def _parse_gaps_dict(
         self,
     ) -> Tuple[
-        Optional[List[Dict[str, Any]]],
+        Optional[List[types.GapEntry]],
         Optional[float],
-        Optional[Dict[str, Any]],
-        Optional[Dict[str, Any]],
+        Optional[types.Event],
+        Optional[types.Event],
     ]:
         """Return formatted data points from `self.gaps_dict`."""
         if not self.gaps_dict:
@@ -439,7 +441,7 @@ class L2FileMetadata(I3FileMetadata):
             last_id = int(last[0])
             last_dt = dataclasses.I3Time(int(last[1]), int(last[2])).date_time
 
-            gaps = [
+            gaps: List[types.GapEntry] = [
                 {
                     "start_event_id": first_id,
                     "stop_event_id": last_id,
@@ -449,15 +451,21 @@ class L2FileMetadata(I3FileMetadata):
                 }
             ]
 
-            first_event_dict = {"event_id": first_id, "datetime": first_dt.isoformat()}
-            last_event_dict = {"event_id": last_id, "datetime": last_dt.isoformat()}
+            first_event_dict: types.Event = {
+                "event_id": first_id,
+                "datetime": first_dt.isoformat(),
+            }
+            last_event_dict: types.Event = {
+                "event_id": last_id,
+                "datetime": last_dt.isoformat(),
+            }
 
             return gaps, livetime, first_event_dict, last_event_dict
 
         except KeyError:
             return None, livetime, None, None
 
-    def generate(self) -> Dict[str, Any]:
+    def generate(self) -> types.Metadata:
         """Gather the file's metadata."""
         metadata = super().generate()
         gaps, livetime, first_event_dict, last_event_dict = self._parse_gaps_dict()
