@@ -7,6 +7,7 @@ indexer_make_dag.py jobs.
 import argparse
 import os
 import subprocess
+import sys
 from datetime import datetime as dt
 from typing import List, Union
 
@@ -46,6 +47,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
         name += "-W-EXCLS"
 
     output_root = os.path.join(staging_dir, f"indexer-{name}/")
+    file_argv = os.path.join(output_root, "argv.txt")
     file_orig = os.path.join(output_root, "paths.orig")
     file_log = os.path.join(output_root, "paths.log")
     file_sort = os.path.join(output_root, "paths.sort")
@@ -53,6 +55,10 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 
     if not os.path.exists(output_root):
         check_call_print(f"mkdir {output_root}".split())
+
+        # output argv to a file
+        with open(file_argv, "w") as f:
+            f.write(" ".join(sys.argv))
 
         # Get all file-paths in paths_root and sort the list
         exculdes_args = ""
@@ -77,6 +83,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 
         # split the file into n files
         check_call_print(f"mkdir {dir_split}".split())
+        # TODO - split by quota
         check_call_print(
             f"split -l{paths_per_file} {file_sort} paths_file_".split(), cwd=dir_split
         )

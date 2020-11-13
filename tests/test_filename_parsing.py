@@ -11,10 +11,7 @@ from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
 )
 from indexer.metadata import (  # isort:skip # noqa # pylint: disable=C0413
     I3FileMetadata,
-    L2FileMetadata,
-    PFDSTFileMetadata,
-    PFFiltFileMetadata,
-    PFRawFileMetadata,
+    real,
 )
 
 
@@ -168,8 +165,10 @@ def test_L2() -> None:  # pylint: disable=C0103
         "MoonEvents_Level2_All_Run00111887_part2.i3.gz": (None, 111887, 0, 2),
     }
 
-    _test_valid_filenames(filenames_and_values.keys(), L2FileMetadata.is_valid_filename)
-    _test_filenames_parsing(filenames_and_values, L2FileMetadata.FILENAME_PATTERNS)
+    _test_valid_filenames(
+        filenames_and_values.keys(), real.L2FileMetadata.is_valid_filename
+    )
+    _test_filenames_parsing(filenames_and_values, real.L2FileMetadata.FILENAME_PATTERNS)
 
 
 def test_bad_L2() -> None:  # pylint: disable=C0103
@@ -190,8 +189,8 @@ def test_bad_L2() -> None:  # pylint: disable=C0103
         "IC59_MoonEvents_Level2_IC59_data_Run00114554.i3.gz",
     ]
 
-    _test_bad_valid_filenames_parsing(filenames, L2FileMetadata.is_valid_filename)
-    _test_bad_filenames_parsing(filenames, L2FileMetadata.FILENAME_PATTERNS)
+    _test_bad_valid_filenames_parsing(filenames, real.L2FileMetadata.is_valid_filename)
+    _test_bad_filenames_parsing(filenames, real.L2FileMetadata.FILENAME_PATTERNS)
 
 
 def test_PFFilt() -> None:  # pylint: disable=C0103
@@ -225,9 +224,11 @@ def test_PFFilt() -> None:  # pylint: disable=C0103
     }
 
     _test_valid_filenames(
-        filenames_and_values.keys(), PFFiltFileMetadata.is_valid_filename
+        filenames_and_values.keys(), real.PFFiltFileMetadata.is_valid_filename
     )
-    _test_filenames_parsing(filenames_and_values, PFFiltFileMetadata.FILENAME_PATTERNS)
+    _test_filenames_parsing(
+        filenames_and_values, real.PFFiltFileMetadata.FILENAME_PATTERNS
+    )
 
 
 def test_PFDST() -> None:  # pylint: disable=C0103
@@ -290,17 +291,21 @@ def test_PFDST() -> None:  # pylint: disable=C0103
     }
 
     _test_valid_filenames(
-        filenames_and_values.keys(), PFDSTFileMetadata.is_valid_filename
+        filenames_and_values.keys(), real.PFDSTFileMetadata.is_valid_filename
     )
-    _test_filenames_parsing(filenames_and_values, PFDSTFileMetadata.FILENAME_PATTERNS)
+    _test_filenames_parsing(
+        filenames_and_values, real.PFDSTFileMetadata.FILENAME_PATTERNS
+    )
 
 
 def test_bad_PFDST() -> None:  # pylint: disable=C0103
     """Run bad PFDST filename parsing."""
     filenames = ["logfiles_PFDST_2011.tar.gz", "logfiles_PFDST_2010.tar.gz"]
 
-    _test_bad_valid_filenames_parsing(filenames, PFDSTFileMetadata.is_valid_filename)
-    _test_bad_filenames_parsing(filenames, PFDSTFileMetadata.FILENAME_PATTERNS)
+    _test_bad_valid_filenames_parsing(
+        filenames, real.PFDSTFileMetadata.is_valid_filename
+    )
+    _test_bad_filenames_parsing(filenames, real.PFDSTFileMetadata.FILENAME_PATTERNS)
 
 
 def test_PFRaw() -> None:  # pylint: disable=C0103
@@ -376,9 +381,11 @@ def test_PFRaw() -> None:  # pylint: disable=C0103
     }
 
     _test_valid_filenames(
-        filenames_and_values.keys(), PFRawFileMetadata.is_valid_filename
+        filenames_and_values.keys(), real.PFRawFileMetadata.is_valid_filename
     )
-    _test_filenames_parsing(filenames_and_values, PFRawFileMetadata.FILENAME_PATTERNS)
+    _test_filenames_parsing(
+        filenames_and_values, real.PFRawFileMetadata.FILENAME_PATTERNS
+    )
 
 
 def test_bad_PFRaw() -> None:  # pylint: disable=C0103
@@ -388,8 +395,10 @@ def test_bad_PFRaw() -> None:  # pylint: disable=C0103
         "DebugData_PFRaw_Run_115244_v5.tar.gz",
     ]
 
-    _test_bad_valid_filenames_parsing(filenames, PFRawFileMetadata.is_valid_filename)
-    _test_bad_filenames_parsing(filenames, PFRawFileMetadata.FILENAME_PATTERNS)
+    _test_bad_valid_filenames_parsing(
+        filenames, real.PFRawFileMetadata.is_valid_filename
+    )
+    _test_bad_filenames_parsing(filenames, real.PFRawFileMetadata.FILENAME_PATTERNS)
 
 
 def test_bad_patterns() -> None:
