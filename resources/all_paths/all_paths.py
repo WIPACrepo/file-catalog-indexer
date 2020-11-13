@@ -33,6 +33,62 @@ def check_call_print(
     subprocess.check_call(cmd, cwd=cwd, shell=shell)
 
 
+def _full_traverse(
+    exclude: List[str], paths_root: str, workers: int, output_root: str,
+) -> str:
+    """Get all file-paths in paths_root and sort the list."""
+    file_orig = os.path.join(output_root, "paths.orig")
+    file_sort = os.path.join(output_root, "paths.sort")
+    file_log = os.path.join(output_root, "paths.log")
+
+    exculdes_args = ""
+    if exclude:
+        exculdes_args = "--exclude " + " ".join(exclude)
+    check_call_print(
+        f"python directory_scanner.py {paths_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
+        shell=True,
+    )
+    check_call_print(
+        f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True
+    )  # remove blanks
+    check_call_print(f"sort -T {output_root} {file_orig} > {file_sort}", shell=True)
+    check_call_print(f"rm {file_orig}".split())  # Cleanup
+
+    return file_sort
+
+
+def _remove_already_collected_files(previous: str, file_sort: str) -> None:
+    """Get lines(filepaths) unique to this scan versus the previous file."""
+    if previous:
+        check_call_print(
+            f"comm -1 -3 {previous} {file_sort} > {file_sort}.unique", shell=True
+        )
+        check_call_print(f"mv {file_sort}.unique {file_sort}".split())
+
+
+def _split(output_root: str, paths_per_file: int, file_sort: str) -> None:
+    """Split the file into n files."""
+    dir_split = os.path.join(output_root, "paths/")
+
+    check_call_print(f"mkdir {dir_split}".split())
+    # TODO - split by quota
+    check_call_print(
+        f"split -l{paths_per_file} {file_sort} paths_file_".split(), cwd=dir_split
+    )
+
+
+def _archive(staging_dir: str, name: str, file_sort: str) -> None:
+    """Copy/Archive traverse into a file.
+
+    Example:
+    /data/user/eevans/data-exp-2020-03-10T15:11:42
+    """
+    time = dt.now().isoformat(timespec="seconds")
+    file_archive = os.path.join(staging_dir, f"{name}-{time}")
+    check_call_print(f"mv {file_sort} {file_archive}".split())
+    print(f"Archive File: at {file_archive}")
+
+
 def write_all_filepaths_to_files(  # pylint: disable=R0913
     staging_dir: str,
     paths_root: str,
@@ -47,53 +103,18 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
         name += "-W-EXCLS"
 
     output_root = os.path.join(staging_dir, f"indexer-{name}/")
-    file_argv = os.path.join(output_root, "argv.txt")
-    file_orig = os.path.join(output_root, "paths.orig")
-    file_log = os.path.join(output_root, "paths.log")
-    file_sort = os.path.join(output_root, "paths.sort")
-    dir_split = os.path.join(output_root, "paths/")
 
     if not os.path.exists(output_root):
         check_call_print(f"mkdir {output_root}".split())
 
         # output argv to a file
-        with open(file_argv, "w") as f:
+        with open(os.path.join(output_root, "argv.txt"), "w") as f:
             f.write(" ".join(sys.argv))
 
-        # Get all file-paths in paths_root and sort the list
-        exculdes_args = ""
-        if exclude:
-            exculdes_args = "--exclude " + " ".join(exclude)
-        check_call_print(
-            f"python directory_scanner.py {paths_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
-            shell=True,
-        )
-        check_call_print(
-            f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True
-        )  # remove blanks
-        check_call_print(f"sort -T {output_root} {file_orig} > {file_sort}", shell=True)
-        check_call_print(f"rm {file_orig}".split())  # Cleanup
-
-        # Get lines(filepaths) unique to this scan versus the previous file
-        if previous:
-            check_call_print(
-                f"comm -1 -3 {previous} {file_sort} > {file_sort}.unique", shell=True
-            )
-            check_call_print(f"mv {file_sort}.unique {file_sort}".split())
-
-        # split the file into n files
-        check_call_print(f"mkdir {dir_split}".split())
-        # TODO - split by quota
-        check_call_print(
-            f"split -l{paths_per_file} {file_sort} paths_file_".split(), cwd=dir_split
-        )
-
-        # Copy/Archive
-        # Ex: /data/user/eevans/data-exp-2020-03-10T15:11:42
-        time = dt.now().isoformat(timespec="seconds")
-        file_archive = os.path.join(staging_dir, f"{name}-{time}")
-        check_call_print(f"mv {file_sort} {file_archive}".split())
-        print(f"Archive File: at {file_archive}")
+        file_sort = _full_traverse(exclude, paths_root, workers, output_root)
+        _remove_already_collected_files(previous, file_sort)
+        _split(output_root, paths_per_file, file_sort)
+        _archive(staging_dir, name, file_sort)
 
     else:
         print(f"Writing Bypassed: {output_root} already exists. Use preexisting files.")
