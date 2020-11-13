@@ -11,6 +11,10 @@ import sys
 from datetime import datetime as dt
 from typing import List, Union
 
+import bitmath  # type: ignore[import]
+
+MINIMUM_CHUNK_SIZE = int(bitmath.parse_string("1MB").to_Byte())
+
 
 def _full_path(path: str) -> str:
     if not path:
@@ -72,15 +76,53 @@ def _remove_already_collected_files(prev_traverse: str, traverse_file: str) -> N
         check_call_print(f"mv {traverse_file}.unique {traverse_file}".split())
 
 
-def _split(traverse_staging_dir: str, paths_per_file: int, traverse_file: str) -> None:
-    """Split the file into n files."""
-    dir_split = os.path.join(traverse_staging_dir, "paths/")
+def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> None:
+    """Chunk the traverse file up by approx equal aggregate file size.
 
-    check_call_print(f"mkdir {dir_split}".split())
-    # TODO - split by quota
-    check_call_print(
-        f"split -l{paths_per_file} {traverse_file} paths_file_".split(), cwd=dir_split
+    Assumes: `chunk_size` >> any one file's size
+
+    Chunks are guaranteed to be equal to or barely greater than
+    `chunk_size`. If `chunk_size` is too small (< `MINIMUM_CHUNK_SIZE`),
+    only one chunk is made ("chunk-0"), a copy of `traverse_file`.
+
+    Example:
+    `traverse_staging_dir/paths/chunk-f01c`
+    """
+    dir_ = os.path.join(traverse_staging_dir, "paths/")
+
+    check_call_print(f"mkdir {dir_}".split())
+
+    if chunk_size < MINIMUM_CHUNK_SIZE:
+        print(
+            f"Chunking bypassed, --chunk-size is too small:"
+            f" {bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
+            f" < {bitmath.best_prefix(MINIMUM_CHUNK_SIZE).format('{value:.2f} {unit}')}"
+        )
+        check_call_print(f"cp {traverse_file} {dir_}/chunk-0".split())
+        return
+
+    i = 1
+    aggregate, chunk_lines = 0, []
+    with open(traverse_file, "r") as traverse_f:
+        for path in traverse_f:
+            chunk_lines.append(path + "\n")
+            aggregate += int(os.stat(path).st_size)
+            # time to chunk?
+            if aggregate >= chunk_size:
+                # chunk!
+                with open(f"chunk-{hex(i)[2:].upper()}", "w") as chunk_f:
+                    chunk_f.writelines(chunk_lines)
+                # reset & increment
+                aggregate, chunk_lines = 0, []
+                i += 1
+
+    print(
+        f"Chunked traverse into {i} files"
+        f" ~{bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
+        f" ({chunk_size} bytes) each @ {dir_}"
     )
+
+    # check_call_print(f"split -l{paths_per_file} {traverse_file} paths_file_".split(), cwd=dir_split)
 
 
 def _archive(staging_dir: str, name: str, traverse_file: str) -> None:
@@ -100,7 +142,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     traverse_root: str,
     workers: int,
     prev_traverse: str,
-    paths_per_file: int,
+    chunk_size: int,
     excluded_paths: List[str],
 ) -> None:
     """Write all filepaths (rooted from `traverse_root`) to multiple files."""
@@ -121,7 +163,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
             traverse_staging_dir, traverse_root, excluded_paths, workers
         )
         _remove_already_collected_files(prev_traverse, traverse_file)
-        _split(traverse_staging_dir, paths_per_file, traverse_file)
+        _chunk(traverse_staging_dir, chunk_size, traverse_file)
         _archive(staging_dir, name, traverse_file)
 
     else:
@@ -164,11 +206,11 @@ def main() -> None:
         "--workers", type=int, help="max number of workers", required=True
     )
     parser.add_argument(
-        "--paths-per-file",
-        dest="paths_per_file",
+        "--chunk-size",
+        dest="chunk_size",
         type=int,
-        default=1000,
-        help="number of paths per file/job",
+        default=0,
+        help="aggregate file-size limit per chunk/job (bytes); by default, one chunk is made.",
     )
     args = parser.parse_args()
 
@@ -180,7 +222,7 @@ def main() -> None:
         args.traverse_root,
         args.workers,
         args.prev_traverse,
-        args.paths_per_file,
+        args.chunk_size,
         args.exclude,
     )
 

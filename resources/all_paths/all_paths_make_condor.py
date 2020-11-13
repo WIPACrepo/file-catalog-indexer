@@ -4,7 +4,13 @@ import argparse
 import getpass
 import os
 import subprocess
-from typing import List
+from typing import List, Optional
+
+import bitmath  # type: ignore[import]
+
+
+def _parse_to_bytes(size: str) -> int:
+    return int(bitmath.parse_string_unsafe(size).to_Byte())
 
 
 def _full_path(path: str) -> str:
@@ -38,25 +44,24 @@ def make_condor_file(  # pylint: disable=R0913
     traverse_root: str,
     cpus: int,
     memory: str,
+    chunk_size: Optional[int],
     excluded_paths: List[str],
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
     with open(condorpath, "w") as file:
         # args
-        previous_arg = ""
-        if prev_traverse:
-            previous_arg = f"--previous-traverse {prev_traverse}"
         staging_dir = os.path.join("/data/user/", getpass.getuser())
         transfer_input_files = ["all_paths.py", "traverser.py"]
-        exculdes_args = ""
-        if excluded_paths:
-            exculdes_args = " ".join(excluded_paths)
+        # optional args
+        previous_arg = f"--previous-traverse {prev_traverse}" if prev_traverse else ""
+        exculdes_args = " ".join(excluded_paths) if excluded_paths else ""
+        chunk_size_arg = f"--chunk-size {chunk_size}" if chunk_size else ""
 
         # write
         file.write(
             f"""executable = {os.path.abspath('../indexer_env.sh')}
-arguments = python all_paths.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args}
+arguments = python all_paths.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg}
 output = {scratch}/all_paths.out
 error = {scratch}/all_paths.err
 log = {scratch}/all_paths.log
@@ -112,6 +117,13 @@ def main() -> None:
     )
     parser.add_argument("--cpus", type=int, help="number of CPUs", default=8)
     parser.add_argument("--memory", help="amount of memory", default="20GB")
+    parser.add_argument(
+        "--chunk-size",
+        dest="chunk_size",
+        type=_parse_to_bytes,
+        default=None,
+        help="aggregate file-size limit per chunk/job (bytes, KB, MB, ...), by default, one chunk is made.",
+    )
     args = parser.parse_args()
 
     for arg, val in vars(args).items():
@@ -127,6 +139,7 @@ def main() -> None:
         args.traverse_root,
         args.cpus,
         args.memory,
+        args.chunk_size,
         args.exclude,
     )
 
