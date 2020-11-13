@@ -1,4 +1,4 @@
-"""Recursively get all filepaths in given directory and split into chunks.
+"""Traverse given directory for all filepaths, and split list into chunks.
 
 These chunks are outputted files, which are used as input in
 indexer_make_dag.py jobs.
@@ -34,50 +34,56 @@ def check_call_print(
 
 
 def _full_traverse(
-    exclude: List[str], paths_root: str, workers: int, output_root: str,
+    traverse_staging_dir: str,
+    traverse_root: str,
+    excluded_paths: List[str],
+    workers: int,
 ) -> str:
-    """Get all file-paths in paths_root and sort the list."""
-    file_orig = os.path.join(output_root, "paths.orig")
-    file_sort = os.path.join(output_root, "paths.sort")
-    file_log = os.path.join(output_root, "paths.log")
+    """Get all filepaths in traverse_root and sort the list."""
+    file_orig = os.path.join(traverse_staging_dir, "paths.orig")
+    traverse_file = os.path.join(traverse_staging_dir, "paths.sort")
+    file_log = os.path.join(traverse_staging_dir, "paths.log")
 
     exculdes_args = ""
-    if exclude:
-        exculdes_args = "--exclude " + " ".join(exclude)
+    if excluded_paths:
+        exculdes_args = "--exclude " + " ".join(excluded_paths)
     check_call_print(
-        f"python directory_scanner.py {paths_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
+        f"python traverser.py {traverse_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
         shell=True,
     )
     check_call_print(
         f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True
     )  # remove blanks
-    check_call_print(f"sort -T {output_root} {file_orig} > {file_sort}", shell=True)
+    check_call_print(
+        f"sort -T {traverse_staging_dir} {file_orig} > {traverse_file}", shell=True
+    )
     check_call_print(f"rm {file_orig}".split())  # Cleanup
 
-    return file_sort
+    return traverse_file
 
 
-def _remove_already_collected_files(previous: str, file_sort: str) -> None:
-    """Get lines(filepaths) unique to this scan versus the previous file."""
-    if previous:
+def _remove_already_collected_files(prev_traverse: str, traverse_file: str) -> None:
+    """Get lines(filepaths) unique to this traverse versus the previous."""
+    if prev_traverse:
         check_call_print(
-            f"comm -1 -3 {previous} {file_sort} > {file_sort}.unique", shell=True
+            f"comm -1 -3 {prev_traverse} {traverse_file} > {traverse_file}.unique",
+            shell=True,
         )
-        check_call_print(f"mv {file_sort}.unique {file_sort}".split())
+        check_call_print(f"mv {traverse_file}.unique {traverse_file}".split())
 
 
-def _split(output_root: str, paths_per_file: int, file_sort: str) -> None:
+def _split(traverse_staging_dir: str, paths_per_file: int, traverse_file: str) -> None:
     """Split the file into n files."""
-    dir_split = os.path.join(output_root, "paths/")
+    dir_split = os.path.join(traverse_staging_dir, "paths/")
 
     check_call_print(f"mkdir {dir_split}".split())
     # TODO - split by quota
     check_call_print(
-        f"split -l{paths_per_file} {file_sort} paths_file_".split(), cwd=dir_split
+        f"split -l{paths_per_file} {traverse_file} paths_file_".split(), cwd=dir_split
     )
 
 
-def _archive(staging_dir: str, name: str, file_sort: str) -> None:
+def _archive(staging_dir: str, name: str, traverse_file: str) -> None:
     """Copy/Archive traverse into a file.
 
     Example:
@@ -85,39 +91,43 @@ def _archive(staging_dir: str, name: str, file_sort: str) -> None:
     """
     time = dt.now().isoformat(timespec="seconds")
     file_archive = os.path.join(staging_dir, f"{name}-{time}")
-    check_call_print(f"mv {file_sort} {file_archive}".split())
+    check_call_print(f"mv {traverse_file} {file_archive}".split())
     print(f"Archive File: at {file_archive}")
 
 
 def write_all_filepaths_to_files(  # pylint: disable=R0913
     staging_dir: str,
-    paths_root: str,
+    traverse_root: str,
     workers: int,
-    previous: str,
+    prev_traverse: str,
     paths_per_file: int,
-    exclude: List[str],
+    excluded_paths: List[str],
 ) -> None:
-    """Write all filepaths (rooted from `paths_root`) to multiple files."""
-    name = paths_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
-    if exclude:
+    """Write all filepaths (rooted from `traverse_root`) to multiple files."""
+    name = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
+    if excluded_paths:
         name += "-W-EXCLS"
 
-    output_root = os.path.join(staging_dir, f"indexer-{name}/")
+    traverse_staging_dir = os.path.join(staging_dir, f"indexer-{name}/")
 
-    if not os.path.exists(output_root):
-        check_call_print(f"mkdir {output_root}".split())
+    if not os.path.exists(traverse_staging_dir):
+        check_call_print(f"mkdir {traverse_staging_dir}".split())
 
         # output argv to a file
-        with open(os.path.join(output_root, "argv.txt"), "w") as f:
+        with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
             f.write(" ".join(sys.argv))
 
-        file_sort = _full_traverse(exclude, paths_root, workers, output_root)
-        _remove_already_collected_files(previous, file_sort)
-        _split(output_root, paths_per_file, file_sort)
-        _archive(staging_dir, name, file_sort)
+        traverse_file = _full_traverse(
+            traverse_staging_dir, traverse_root, excluded_paths, workers
+        )
+        _remove_already_collected_files(prev_traverse, traverse_file)
+        _split(traverse_staging_dir, paths_per_file, traverse_file)
+        _archive(staging_dir, name, traverse_file)
 
     else:
-        print(f"Writing Bypassed: {output_root} already exists. Use preexisting files.")
+        print(
+            f"Writing Bypassed: {traverse_staging_dir} already exists. Use preexisting files."
+        )
 
 
 def main() -> None:
@@ -126,9 +136,7 @@ def main() -> None:
         description="Run this script via all_paths_make_condor.py."
     )
     parser.add_argument(
-        "paths_root",
-        help="root directory to recursively scan for files.",
-        type=_full_path,
+        "traverse_root", help="root directory to traverse for files.", type=_full_path,
     )
     parser.add_argument(
         "--staging-dir",
@@ -138,10 +146,10 @@ def main() -> None:
         help="the base directory to store files for jobs, eg: /data/user/eevans/",
     )
     parser.add_argument(
-        "--previous-all-paths",
-        dest="previous_all_paths",
+        "--previous-traverse",
+        dest="prev_traverse",
         type=_full_path,
-        help="prior file with file paths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
+        help="prior file with filepaths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
         " These files will be skipped.",
     )
     parser.add_argument(
@@ -169,9 +177,9 @@ def main() -> None:
 
     write_all_filepaths_to_files(
         args.staging_dir,
-        args.paths_root,
+        args.traverse_root,
         args.workers,
-        args.previous_all_paths,
+        args.prev_traverse,
         args.paths_per_file,
         args.exclude,
     )
