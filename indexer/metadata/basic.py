@@ -1,23 +1,12 @@
-"""Classes for collecting metadata, on various types of files."""
+"""Class for collecting basic file metadata."""
 
 
-import collections
 import hashlib
-import logging
 import os
-import re
-import tarfile
-import typing
-import xml
-import zlib
 from datetime import date
-from enum import Enum
-from typing import Any, cast, Dict, Final, List, Optional, Tuple
+from typing import cast
 
-import xmltodict  # type: ignore[import]
-
-from ..utils import types
-from . import filename_patterns
+from ..utils import types, utils
 
 
 class BasicFileMetadata:
@@ -27,7 +16,7 @@ class BasicFileMetadata:
     in the schema: https://docs.google.com/document/d/14SanUWiYEbgarElt0YXSn_2We-rwT-ePO5Fg7rrM9lw/
     """
 
-    def __init__(self, file: FileInfo, site: str):
+    def __init__(self, file: utils.FileInfo, site: str):
         self.file = file
         self.site = site
 

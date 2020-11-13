@@ -1,8 +1,7 @@
-"""Classes for collecting metadata, on various types of files."""
+"""Class for collecting i3 file metadata."""
 
 
 import collections
-import hashlib
 import logging
 import os
 import re
@@ -11,13 +10,12 @@ import typing
 import xml
 import zlib
 from datetime import date
-from enum import Enum
-from typing import Any, cast, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import xmltodict  # type: ignore[import]
 
-from ..utils import types
-from . import filename_patterns
+from ..utils import types, utils
+from .basic import BasicFileMetadata
 
 
 class I3FileMetadata(BasicFileMetadata):
@@ -25,9 +23,9 @@ class I3FileMetadata(BasicFileMetadata):
 
     def __init__(
         self,
-        file: FileInfo,
+        file: utils.FileInfo,
         site: str,
-        processing_level: ProcessingLevel,
+        processing_level: utils.ProcessingLevel,
         filename_patterns_: List[str],
     ):
         super().__init__(file, site)
@@ -93,7 +91,7 @@ class I3FileMetadata(BasicFileMetadata):
                 values = match.groupdict()
                 # get year
                 if "ic_strings" in values:
-                    year = IceCubeSeason.name_to_year(f"IC{values['ic_strings']}")
+                    year = utils.IceCubeSeason.name_to_year(f"IC{values['ic_strings']}")
                 else:
                     try:
                         year = int(values["year"])

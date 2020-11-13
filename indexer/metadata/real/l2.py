@@ -1,22 +1,11 @@
-"""Classes for collecting metadata, on various types of files."""
+"""Class for collecting L2 file metadata."""
 
 
-import collections
-import hashlib
-import logging
-import os
 import re
-import tarfile
-import typing
-import xml
-import zlib
-from datetime import date
-from enum import Enum
-from typing import Any, cast, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
-import xmltodict  # type: ignore[import]
-
-from ..utils import types
+from ...utils import types, utils
+from ..i3 import I3FileMetadata
 from . import filename_patterns
 
 
@@ -27,14 +16,14 @@ class L2FileMetadata(I3FileMetadata):
 
     def __init__(  # pylint: disable=R0913
         self,
-        file: FileInfo,
+        file: utils.FileInfo,
         site: str,
         dir_meta_xml: Dict[str, Any],
         gaps_dict: Dict[str, Any],
         gcd_filepath: str,
     ):
         super().__init__(
-            file, site, ProcessingLevel.L2, L2FileMetadata.FILENAME_PATTERNS
+            file, site, utils.ProcessingLevel.L2, L2FileMetadata.FILENAME_PATTERNS
         )
         self.meta_xml = dir_meta_xml
         self.gaps_dict = gaps_dict
@@ -56,7 +45,7 @@ class L2FileMetadata(I3FileMetadata):
         if livetime < 0:  # corrupted value, don't read any more values
             return None, None, None, None
 
-        from icecube import dataclasses  # pylint: disable=E0401,C0415
+        from icecube import dataclasses  # type: ignore[import]  # pylint: disable=E0401,C0415
 
         try:
             # Ex: '53162019 2018 206130762188498'
@@ -102,7 +91,7 @@ class L2FileMetadata(I3FileMetadata):
         metadata["offline_processing_metadata"] = {
             # 'dataset_id': None,
             "season": self.season_year,
-            "season_name": IceCubeSeason.year_to_name(self.season_year),
+            "season_name": utils.IceCubeSeason.year_to_name(self.season_year),
             "L2_gcd_file": self.gcd_filepath,
             # 'L2_snapshot_id': None,
             # 'L2_production_version': None,

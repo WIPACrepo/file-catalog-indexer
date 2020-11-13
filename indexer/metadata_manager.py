@@ -12,15 +12,8 @@ from typing import Any, Dict
 import xmltodict  # type: ignore[import]
 import yaml
 
-from .metadata.metadata import (
-    BasicFileMetadata,
-    FileInfo,
-    I3FileMetadata,
-    L2FileMetadata,
-    PFDSTFileMetadata,
-    PFFiltFileMetadata,
-    PFRawFileMetadata,
-)
+from .metadata import BasicFileMetadata, I3FileMetadata, real
+from .utils import utils
 
 
 class MetadataManager:  # pylint: disable=R0903
@@ -93,10 +86,10 @@ class MetadataManager:  # pylint: disable=R0903
 
         Factory method.
         """
-        file = FileInfo(filepath)
+        file = utils.FileInfo(filepath)
         if not self.basic_only:
             # L2
-            if L2FileMetadata.is_valid_filename(file.name):
+            if real.L2FileMetadata.is_valid_filename(file.name):
                 # get directory's metadata
                 file_dir_path = os.path.dirname(os.path.abspath(file.path))
                 if (not self.l2_dir_metadata) or (file_dir_path != self.dir_path):
@@ -113,22 +106,22 @@ class MetadataManager:  # pylint: disable=R0903
                 except KeyError:
                     gcd = ""
                 logging.debug(f"Gathering L2 metadata for {file.name}...")
-                return L2FileMetadata(
+                return real.L2FileMetadata(
                     file, self.site, self.l2_dir_metadata["dir_meta_xml"], gaps, gcd
                 )
             # PFFilt
-            if PFFiltFileMetadata.is_valid_filename(file.name):
+            if real.PFFiltFileMetadata.is_valid_filename(file.name):
                 logging.debug(f"Gathering PFFilt metadata for {file.name}...")
-                return PFFiltFileMetadata(file, self.site)
+                return real.PFFiltFileMetadata(file, self.site)
             # PFDST
-            if PFDSTFileMetadata.is_valid_filename(file.name):
+            if real.PFDSTFileMetadata.is_valid_filename(file.name):
                 logging.debug(f"Gathering PFDST metadata for {file.name}...")
-                return PFDSTFileMetadata(file, self.site)
+                return real.PFDSTFileMetadata(file, self.site)
             # PFRaw
-            if PFRawFileMetadata.is_valid_filename(file.name):
+            if real.PFRawFileMetadata.is_valid_filename(file.name):
                 logging.debug(f"Gathering PFRaw metadata for {file.name}...")
-                return PFRawFileMetadata(file, self.site)
-            # if no match, fall-through to BasicFileMetadata...
+                return real.PFRawFileMetadata(file, self.site)
+            # if no match, fall-through to real.BasicFileMetadata...
         # Other/ Basic
         logging.debug(f"Gathering basic metadata for {file.name}...")
         return BasicFileMetadata(file, self.site)

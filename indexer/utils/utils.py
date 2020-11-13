@@ -1,23 +1,9 @@
-"""Classes for collecting metadata, on various types of files."""
+"""Utilities for metadata collection."""
 
 
-import collections
-import hashlib
-import logging
 import os
-import re
-import tarfile
-import typing
-import xml
-import zlib
-from datetime import date
 from enum import Enum
-from typing import Any, cast, Dict, Final, List, Optional, Tuple
-
-import xmltodict  # type: ignore[import]
-
-from ..utils import types
-from . import filename_patterns
+from typing import Dict, Optional
 
 
 class FileInfo:  # pylint: disable=R0903

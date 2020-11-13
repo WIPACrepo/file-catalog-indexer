@@ -1,22 +1,11 @@
-"""Classes for collecting metadata, on various types of files."""
+"""Class for collecting PFDST file metadata."""
 
 
-import collections
-import hashlib
-import logging
-import os
 import re
-import tarfile
-import typing
-import xml
-import zlib
-from datetime import date
-from enum import Enum
-from typing import Any, cast, Dict, Final, List, Optional, Tuple
+from typing import Final, List
 
-import xmltodict  # type: ignore[import]
-
-from ..utils import types
+from ...utils import utils
+from ..i3 import I3FileMetadata
 from . import filename_patterns
 
 
@@ -25,9 +14,9 @@ class PFDSTFileMetadata(I3FileMetadata):
 
     FILENAME_PATTERNS: Final[List[str]] = filename_patterns.PFDST["patterns"]
 
-    def __init__(self, file: FileInfo, site: str):
+    def __init__(self, file: utils.FileInfo, site: str):
         super().__init__(
-            file, site, ProcessingLevel.PFDST, PFDSTFileMetadata.FILENAME_PATTERNS
+            file, site, utils.ProcessingLevel.PFDST, PFDSTFileMetadata.FILENAME_PATTERNS
         )
         self._grab_meta_xml_from_tar()
 
