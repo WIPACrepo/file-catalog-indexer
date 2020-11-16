@@ -4,27 +4,22 @@ These chunks are outputted files, which are used as input in
 indexer_make_dag.py jobs.
 """
 
-import argparse
 import os
 import subprocess
 import sys
 from datetime import datetime as dt
-from typing import List, Union
+from typing import List, Optional, Union
 
 import bitmath  # type: ignore[import]
 
+sys.path.append(".")
+from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+    get_parser_w_common_args,
+    get_full_path,
+)
+
+
 MINIMUM_CHUNK_SIZE = int(bitmath.parse_string("1MB").to_Byte())
-
-
-def _full_path(path: str) -> str:
-    if not path:
-        return path
-
-    full_path = os.path.abspath(path)
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(full_path)
-
-    return full_path
 
 
 def check_call_print(
@@ -144,6 +139,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     prev_traverse: str,
     chunk_size: int,
     excluded_paths: List[str],
+    traverse_file: Optional[str],
 ) -> None:
     """Write all filepaths (rooted from `traverse_root`) to multiple files."""
     name = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
@@ -159,9 +155,10 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
         with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
             f.write(" ".join(sys.argv))
 
-        traverse_file = _full_traverse(
-            traverse_staging_dir, traverse_root, excluded_paths, workers
-        )
+        if not traverse_file:
+            traverse_file = _full_traverse(
+                traverse_staging_dir, traverse_root, excluded_paths, workers
+            )
         _remove_already_collected_files(prev_traverse, traverse_file)
         _chunk(traverse_staging_dir, chunk_size, traverse_file)
         _archive(staging_dir, name, traverse_file)
@@ -174,43 +171,16 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 
 def main() -> None:
     """Get all filepaths rooted at directory and split-up/write to files."""
-    parser = argparse.ArgumentParser(
-        description="Run this script via all_paths_make_condor.py."
-    )
-    parser.add_argument(
-        "traverse_root", help="root directory to traverse for files.", type=_full_path,
-    )
+    parser = get_parser_w_common_args("Run this script via all_paths_make_condor.py.")
     parser.add_argument(
         "--staging-dir",
         dest="staging_dir",
-        type=_full_path,
+        type=get_full_path,
         required=True,
         help="the base directory to store files for jobs, eg: /data/user/eevans/",
     )
     parser.add_argument(
-        "--previous-traverse",
-        dest="prev_traverse",
-        type=_full_path,
-        help="prior file with filepaths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
-        " These files will be skipped.",
-    )
-    parser.add_argument(
-        "--exclude",
-        "-e",
-        nargs="*",
-        default=[],
-        type=_full_path,
-        help='directories/paths to exclude from the traverse -- keep it short, this is "all paths" after all.',
-    )
-    parser.add_argument(
         "--workers", type=int, help="max number of workers", required=True
-    )
-    parser.add_argument(
-        "--chunk-size",
-        dest="chunk_size",
-        type=int,
-        default=0,
-        help="aggregate file-size limit per chunk/job (bytes); by default, one chunk is made.",
     )
     args = parser.parse_args()
 
@@ -221,9 +191,10 @@ def main() -> None:
         args.staging_dir,
         args.traverse_root,
         args.workers,
-        args.prev_traverse,
+        args.previous_traverse,
         args.chunk_size,
         args.exclude,
+        args.traverse_file,
     )
 
 

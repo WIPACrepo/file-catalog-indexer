@@ -1,27 +1,15 @@
 """Make the Condor script for all_paths.py."""
 
-import argparse
 import getpass
 import os
+import sys
 import subprocess
 from typing import List, Optional
 
-import bitmath  # type: ignore[import]
-
-
-def _parse_to_bytes(size: str) -> int:
-    return int(bitmath.parse_string_unsafe(size).to_Byte())
-
-
-def _full_path(path: str) -> str:
-    if not path:
-        return path
-
-    full_path = os.path.abspath(path)
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(full_path)
-
-    return full_path
+sys.path.append(".")
+from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+    get_parser_w_common_args,
+)
 
 
 def make_condor_scratch_dir(traverse_root: str, with_exclusions: bool = False) -> str:
@@ -52,11 +40,13 @@ def make_condor_file(  # pylint: disable=R0913
     with open(condorpath, "w") as file:
         # args
         staging_dir = os.path.join("/data/user/", getpass.getuser())
-        transfer_input_files = ["all_paths.py", "traverser.py"]
+        transfer_input_files = ["all_paths.py", "traverser.py", "common_args.py"]
         # optional args
         previous_arg = f"--previous-traverse {prev_traverse}" if prev_traverse else ""
         exculdes_args = " ".join(excluded_paths) if excluded_paths else ""
-        chunk_size_arg = f"--chunk-size {chunk_size}" if chunk_size else ""
+        chunk_size_arg = (
+            f"--chunk-size {chunk_size}" if chunk_size else ""
+        )  # FIXME -- is this in bytes, or what?
 
         # write
         file.write(
@@ -83,31 +73,11 @@ def main() -> None:
 
     Make scratch directory and condor file.
     """
-    parser = argparse.ArgumentParser(
-        description="Make Condor script for all_paths.py: "
+    parser = get_parser_w_common_args(
+        "Make Condor script for all_paths.py: "
         "recursively find all filepaths in `traverse_root`, "
         "place all_paths.py's output files in /data/user/{user}/, and "
         "Condor log files in /scratch/{user}/all-paths-{traverse_root_w_dashes}/."
-    )
-    parser.add_argument(
-        "traverse_root",
-        help="root directory to recursively scan for files.",
-        type=_full_path,
-    )
-    parser.add_argument(
-        "--previous-traverse",
-        dest="prev_traverse",
-        type=_full_path,
-        help="prior file with file paths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
-        " These files will be skipped.",
-    )
-    parser.add_argument(
-        "--exclude",
-        "-e",
-        nargs="*",
-        default=[],
-        type=_full_path,
-        help='directories/paths to exclude from the traverse -- keep it short, this is "all paths" after all.',
     )
     parser.add_argument(
         "--dryrun",
@@ -117,13 +87,6 @@ def main() -> None:
     )
     parser.add_argument("--cpus", type=int, help="number of CPUs", default=8)
     parser.add_argument("--memory", help="amount of memory", default="20GB")
-    parser.add_argument(
-        "--chunk-size",
-        dest="chunk_size",
-        type=_parse_to_bytes,
-        default=None,
-        help="aggregate file-size limit per chunk/job (bytes, KB, MB, ...), by default, one chunk is made.",
-    )
     args = parser.parse_args()
 
     for arg, val in vars(args).items():
@@ -135,7 +98,7 @@ def main() -> None:
     # make condor file
     condorpath = make_condor_file(
         scratch,
-        args.prev_traverse,
+        args.previous_traverse,
         args.traverse_root,
         args.cpus,
         args.memory,

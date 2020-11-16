@@ -1,23 +1,17 @@
 """Traverse directory paths, and print all filepaths."""
 
-import argparse
 import logging
 import os
 import stat
+import sys
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Tuple
 
-
-def _full_path(path: str) -> str:
-    if not path:
-        return path
-
-    full_path = os.path.abspath(path)
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(full_path)
-
-    return full_path
+sys.path.append(".")
+from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+    get_parser_w_common_args,
+)
 
 
 def is_excluded_path(path: str, excluded_paths: List[str]) -> bool:
@@ -85,21 +79,9 @@ def traverse(path: str, excluded_paths: List[str]) -> Tuple[List[str], int]:
 
 def main() -> None:
     """Recursively scan directory paths and print all file paths."""
-    parser = argparse.ArgumentParser(
-        description="Traverse directories under PATH(s) and print each filepath.",
-        epilog="Notes: (1) symbolic links are never followed.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "paths", metavar="PATH", nargs="+", type=_full_path, help="path(s) to scan."
-    )
-    parser.add_argument(
-        "--exclude",
-        "-e",
-        nargs="*",
-        default=[],
-        type=_full_path,
-        help="directories/paths to exclude from the traverse.",
+    parser = get_parser_w_common_args(
+        "Traverse directories under PATH(s) and print each filepath.",
+        only=["--exclude"],
     )
     parser.add_argument(
         "--workers", type=int, help="max number of workers", required=True
