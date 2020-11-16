@@ -9,9 +9,20 @@ jobs:
       - run:
           command: |
             pip install -r requirements.txt --use-feature=2020-resolver
-            pytest --mypy --flake8 -vvvvv --ignore=src
+            pytest tests/unit --mypy --flake8 -vvvvv --ignore=src
+
+  integrate:
+    docker:
+      - image: circleci/python:3.8
+    steps:
+      - checkout
+      - run:
+          command: |
+            pip install -r requirements.txt --use-feature=2020-resolver
+            pytest tests/integrate --mypy --flake8 -vvvvv --ignore=src
 
 workflows:
   build_and_test:
     jobs:
       - unit
+      - integrate

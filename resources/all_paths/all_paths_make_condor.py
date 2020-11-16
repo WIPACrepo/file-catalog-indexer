@@ -2,8 +2,8 @@
 
 import getpass
 import os
-import sys
 import subprocess
+import sys
 from typing import List, Optional
 
 sys.path.append(".")
@@ -44,9 +44,7 @@ def make_condor_file(  # pylint: disable=R0913
         # optional args
         previous_arg = f"--previous-traverse {prev_traverse}" if prev_traverse else ""
         exculdes_args = " ".join(excluded_paths) if excluded_paths else ""
-        chunk_size_arg = (
-            f"--chunk-size {chunk_size}" if chunk_size else ""
-        )  # FIXME -- is this in bytes, or what?
+        chunk_size_arg = f"--chunk-size {chunk_size}" if chunk_size else ""
 
         # write
         file.write(
