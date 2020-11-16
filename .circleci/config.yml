@@ -19,7 +19,10 @@ jobs:
       - run:
           command: |
             pip install -r requirements.txt --use-feature=2020-resolver
-            pytest tests/integrate --mypy --flake8 -vvvvv --ignore=src
+            cp ./resources/all_paths/traverser.py ./traverser.py
+            cp ./resources/all_paths/common_args.py ./common_args.py
+            pytest tests/integrate -vvvvv
+            rm -f ./traverser.py ./common_args.py
 
 workflows:
   build_and_test:

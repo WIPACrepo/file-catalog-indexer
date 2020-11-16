@@ -100,8 +100,8 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
     aggregate, chunk_lines = 0, []
     with open(traverse_file, "r") as traverse_f:
         for path in traverse_f:
-            chunk_lines.append(path + "\n")
-            aggregate += int(os.stat(path).st_size)
+            chunk_lines.append(path)
+            aggregate += int(os.stat(path.strip()).st_size)
             # time to chunk?
             if aggregate >= chunk_size:
                 # chunk!
@@ -153,7 +153,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 
         # output argv to a file
         with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
-            f.write(" ".join(sys.argv))
+            f.write(" ".join(sys.argv) + "\n")
 
         if not traverse_file:
             traverse_file = _full_traverse(

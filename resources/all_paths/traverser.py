@@ -11,6 +11,7 @@ from typing import List, Tuple
 sys.path.append(".")
 from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     get_parser_w_common_args,
+    get_full_path,
 )
 
 
@@ -82,6 +83,9 @@ def main() -> None:
     parser = get_parser_w_common_args(
         "Traverse directories under PATH(s) and print each filepath.",
         only=["--exclude"],
+    )
+    parser.add_argument(
+        "paths", metavar="PATH", nargs="+", type=get_full_path, help="path(s) to scan."
     )
     parser.add_argument(
         "--workers", type=int, help="max number of workers", required=True
