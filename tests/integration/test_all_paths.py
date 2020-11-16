@@ -5,7 +5,6 @@ import os
 import shutil
 import sys
 import time
-from shutil import copyfile
 from typing import Tuple
 
 import bitmath  # type: ignore[import]
@@ -37,11 +36,11 @@ def _setup() -> Tuple[str, str]:
     now = int(time.time())
 
     # write files
-    _write_n_files(f"./test-traverse-{now}/alpha", 15)
-    _write_n_files(f"./test-traverse-{now}/beta", 10)
-    _write_n_files(f"./test-traverse-{now}/beta/one", 1)
-    _write_n_files(f"./test-traverse-{now}/beta/two", 3)
-    _write_n_files(f"./test-traverse-{now}/gamma/one", 20)
+    _write_n_files(f"./test-traverse-{now}/alpha", 150)
+    _write_n_files(f"./test-traverse-{now}/beta", 100)
+    _write_n_files(f"./test-traverse-{now}/beta/one", 10)
+    _write_n_files(f"./test-traverse-{now}/beta/two", 30)
+    _write_n_files(f"./test-traverse-{now}/gamma/one", 200)
 
     # make dirs
     root = common_args.get_full_path(f"./test-traverse-{now}")

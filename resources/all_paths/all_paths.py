@@ -93,7 +93,7 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
             f" {bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
             f" < {bitmath.best_prefix(MINIMUM_CHUNK_SIZE).format('{value:.2f} {unit}')}"
         )
-        check_call_print(f"cp {traverse_file} {dir_}/chunk-0".split())
+        check_call_print(f"cp {traverse_file} {os.path.join(dir_, 'chunk-0')}".split())
         return
 
     i = 1
@@ -105,7 +105,7 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
             # time to chunk?
             if aggregate >= chunk_size:
                 # chunk!
-                with open(f"chunk-{hex(i)[2:].upper()}", "w") as chunk_f:
+                with open(os.path.join(dir_, f"chunk-{i}"), "w") as chunk_f:
                     chunk_f.writelines(chunk_lines)
                 # reset & increment
                 aggregate, chunk_lines = 0, []

@@ -11,7 +11,7 @@ jobs:
             pip install -r requirements.txt --use-feature=2020-resolver
             pytest tests/unit --mypy --flake8 -vvvvv --ignore=src
 
-  integrate:
+  integration:
     docker:
       - image: circleci/python:3.8
     steps:
@@ -21,11 +21,11 @@ jobs:
             pip install -r requirements.txt --use-feature=2020-resolver
             cp ./resources/all_paths/traverser.py ./traverser.py
             cp ./resources/all_paths/common_args.py ./common_args.py
-            pytest tests/integrate -vvvvv
+            pytest tests/integration -vvvvv
             rm -f ./traverser.py ./common_args.py
 
 workflows:
   build_and_test:
     jobs:
       - unit
-      - integrate
+      - integration
