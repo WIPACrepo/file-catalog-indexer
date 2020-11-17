@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import stat
+import subprocess
 import sys
 import time
 from typing import List, Tuple
@@ -17,7 +18,7 @@ import all_paths  # type: ignore[import]  # isort:skip  # noqa # pylint: disable
 import common_args  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
 
 
-logging.getLogger().setLevel("DEBUG")
+# logging.getLogger().setLevel("DEBUG")
 
 
 def _write_file(path: str, size: str) -> None:
@@ -37,19 +38,17 @@ def _write_n_files(root: str, num: int) -> None:
         _write_file(f"{root}/{size}", size)
 
 
-def _setup() -> Tuple[str, str]:
+def _setup(suffix: str) -> Tuple[str, str]:
     """Create a bunch of files and directories."""
-    now = int(time.time())
-
     # write files
-    _write_n_files(f"./test-traverse-{now}/alpha", 15)
-    _write_n_files(f"./test-traverse-{now}/beta", 10)
-    _write_n_files(f"./test-traverse-{now}/beta/one", 1)
-    _write_n_files(f"./test-traverse-{now}/beta/two", 3)
-    _write_n_files(f"./test-traverse-{now}/gamma/one", 20)
+    _write_n_files(f"./test-traverse-{suffix}/alpha", 15)
+    _write_n_files(f"./test-traverse-{suffix}/beta", 10)
+    _write_n_files(f"./test-traverse-{suffix}/beta/one", 1)
+    _write_n_files(f"./test-traverse-{suffix}/beta/two", 3)
+    _write_n_files(f"./test-traverse-{suffix}/gamma/one", 20)
 
     # make dirs
-    root = common_args.get_full_path(f"./test-traverse-{now}")
+    root = common_args.get_full_path(f"./test-traverse-{suffix}")
     stage = f"{root}-stage"
     os.makedirs(stage)
     stage = common_args.get_full_path(stage)
@@ -126,31 +125,39 @@ def _test_out_files(stage: str, chunk_size: int) -> None:
 
 def test_chunk_sizes() -> None:
     """Test various chunk sizes."""
-    for kibs in [0] + [10 ** i for i in range(0, 8)]:
-        chunk_size = int(bitmath.parse_string(f"{kibs}KiB").to_Byte())
-        logging.warning(
-            f"chunk_size => {bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')} ({chunk_size} bytes)"
+
+    def _shell() -> None:
+        subprocess.check_call(
+            f"python ./resources/all_paths/all_paths.py {root}"
+            f" --staging-dir {stage}"
+            f" --workers 1"
+            f" --chunk-size {chunk_size}".split(),
+            cwd=".",
         )
 
-        # setup
-        stage, root = _setup()
-
-        # execute
+    def _direct() -> None:
         all_paths.write_all_filepaths_to_files(stage, root, 1, "", chunk_size, [], None)
 
-        # test
-        _test_out_files(stage, chunk_size)
+    for func in [_direct, _shell]:
+        logging.warning(f"Invocation method: {func}")
+        now = str(time.time())
 
-        # cleanup
-        _cleanup(stage, root)
+        for kibs in [0] + [10 ** i for i in range(0, 8)]:
+            print("~ " * 60)
 
-        print("~ " * 60)
+            chunk_size = int(bitmath.parse_string(f"{kibs}KiB").to_Byte())
+            logging.warning(
+                f"chunk_size => {bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')} ({chunk_size} bytes)"
+            )
 
+            stage, root = _setup(f"{now}-{kibs}KiB")
 
-# TODO
-# def test_shell() -> None:
-#     """Test via the shell."""
-#     root = _setup_traverse_files()
+            func()
+
+            _test_out_files(stage, chunk_size)
+
+            _cleanup(stage, root)
+
 
 # TODO --traverse-file
 

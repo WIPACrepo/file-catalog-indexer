@@ -84,7 +84,7 @@ def get_parser_w_common_args(
             "--chunk-size",
             dest="chunk_size",
             type=_parse_to_bytes,
-            default=None,
+            default=0,
             help="aggregate file-size limit per chunk/job (bytes, KB, MB, ...), by default, one chunk is made.",
         )
 
