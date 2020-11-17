@@ -19,9 +19,6 @@ from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
 )
 
 
-MINIMUM_CHUNK_SIZE = int(bitmath.parse_string("1MB").to_Byte())
-
-
 def check_call_print(
     cmd: Union[List[str], str], cwd: str = ".", shell: bool = False
 ) -> None:
@@ -81,43 +78,44 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
     only one chunk is made ("chunk-0"), a copy of `traverse_file`.
 
     Example:
-    `traverse_staging_dir/paths/chunk-f01c`
+    `traverse_staging_dir/paths/chunk-1645`
     """
     dir_ = os.path.join(traverse_staging_dir, "paths/")
 
     check_call_print(f"mkdir {dir_}".split())
 
-    if chunk_size < MINIMUM_CHUNK_SIZE:
-        print(
-            f"Chunking bypassed, --chunk-size is too small:"
-            f" {bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
-            f" < {bitmath.best_prefix(MINIMUM_CHUNK_SIZE).format('{value:.2f} {unit}')}"
-        )
+    if chunk_size == 0:
+        print("Chunking bypassed, --chunk-size is zero")
         check_call_print(f"cp {traverse_file} {os.path.join(dir_, 'chunk-0')}".split())
         return
 
+    def _chunk_it(i: int, chunk_lines: List[str]) -> str:
+        filename = f"chunk-{i}"
+        with open(os.path.join(dir_, filename), "w") as chunk_f:
+            chunk_f.writelines(chunk_lines)
+        return filename
+
     i = 1
-    aggregate, chunk_lines = 0, []
+    aggregate, queue = 0, []
     with open(traverse_file, "r") as traverse_f:
         for path in traverse_f:
-            chunk_lines.append(path)
+            queue.append(path)
             aggregate += int(os.stat(path.strip()).st_size)
             # time to chunk?
             if aggregate >= chunk_size:
-                # chunk!
-                with open(os.path.join(dir_, f"chunk-{i}"), "w") as chunk_f:
-                    chunk_f.writelines(chunk_lines)
+                _chunk_it(i, queue)
                 # reset & increment
-                aggregate, chunk_lines = 0, []
+                aggregate, queue = 0, []
                 i += 1
+    # chunk whatever is left
+    if queue:
+        _chunk_it(i, queue)
 
     print(
         f"Chunked traverse into {i} files"
         f" ~{bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
         f" ({chunk_size} bytes) each @ {dir_}"
     )
-
-    # check_call_print(f"split -l{paths_per_file} {traverse_file} paths_file_".split(), cwd=dir_split)
 
 
 def _archive(staging_dir: str, name: str, traverse_file: str) -> None:

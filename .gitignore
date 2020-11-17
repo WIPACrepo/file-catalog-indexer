@@ -110,7 +110,14 @@ venv.bak/
 # Vagrant
 .vagrant
 
+# --------------------------------------------------------------------------------------
+
+# others
 combo/
 src/
 tableout/
 test-traverse*
+
+# copied to root for testing
+common_args.py
+traverser.py

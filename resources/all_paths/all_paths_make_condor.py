@@ -4,7 +4,7 @@ import getpass
 import os
 import subprocess
 import sys
-from typing import List, Optional
+from typing import List
 
 sys.path.append(".")
 from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -32,7 +32,7 @@ def make_condor_file(  # pylint: disable=R0913
     traverse_root: str,
     cpus: int,
     memory: str,
-    chunk_size: Optional[int],
+    chunk_size: int,
     excluded_paths: List[str],
 ) -> str:
     """Make the condor file."""
