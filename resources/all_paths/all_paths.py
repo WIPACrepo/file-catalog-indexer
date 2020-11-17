@@ -40,6 +40,7 @@ def _full_traverse(
     traverse_file = os.path.join(traverse_staging_dir, "paths.sort")
     file_log = os.path.join(traverse_staging_dir, "paths.log")
 
+    # traverse
     exculdes_args = ""
     if excluded_paths:
         exculdes_args = "--exclude " + " ".join(excluded_paths)
@@ -47,13 +48,17 @@ def _full_traverse(
         f"python traverser.py {traverse_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
         shell=True,
     )
-    check_call_print(
-        f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True
-    )  # remove blanks
+
+    # remove blanks
+    check_call_print(f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True)
+
+    # sort -- this'll ensure chunks/jobs have filepaths from the same "region"
     check_call_print(
         f"sort -T {traverse_staging_dir} {file_orig} > {traverse_file}", shell=True
     )
-    check_call_print(f"rm {file_orig}".split())  # Cleanup
+
+    # cleanup
+    check_call_print(f"rm {file_orig}".split())
 
     return traverse_file
 
@@ -122,15 +127,20 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
     )
 
 
-def _archive(staging_dir: str, name: str, traverse_file: str) -> None:
+def _archive(
+    staging_dir: str, suffix: str, traverse_file: str, dont_replace: bool = False
+) -> None:
     """Copy/Archive traverse into a file.
 
     Example:
     /data/user/eevans/data-exp-2020-03-10T15:11:42
     """
     time = dt.now().isoformat(timespec="seconds")
-    file_archive = os.path.join(staging_dir, f"{name}-{time}")
-    check_call_print(f"mv {traverse_file} {file_archive}".split())
+    file_archive = os.path.join(staging_dir, f"{suffix}-{time}")
+    if dont_replace:
+        check_call_print(f"cp {traverse_file} {file_archive}".split())
+    else:
+        check_call_print(f"mv {traverse_file} {file_archive}".split())
     print(f"Archive File: at {file_archive}")
 
 
@@ -141,14 +151,14 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     prev_traverse: str,
     chunk_size: int,
     excluded_paths: List[str],
-    traverse_file: Optional[str],
+    traverse_file_arg: Optional[str],
 ) -> None:
     """Write all filepaths (rooted from `traverse_root`) to multiple files."""
-    name = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
+    suffix = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
     if excluded_paths:
-        name += "-W-EXCLS"
+        suffix += "-W-EXCLS"
 
-    traverse_staging_dir = os.path.join(staging_dir, f"indexer-{name}/")
+    traverse_staging_dir = os.path.join(staging_dir, f"indexer-{suffix}/")
 
     if not os.path.exists(traverse_staging_dir):
         check_call_print(f"mkdir {traverse_staging_dir}".split())
@@ -157,13 +167,21 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
         with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
             f.write(" ".join(sys.argv) + "\n")
 
-        if not traverse_file:
+        # get traverse file
+        if traverse_file_arg:
+            print(f"Using --traverse-file {traverse_file_arg}.")
+            traverse_file = traverse_file_arg
+        else:
+            print(f"Traversing {traverse_root}...")
             traverse_file = _full_traverse(
                 traverse_staging_dir, traverse_root, excluded_paths, workers
             )
+
         _remove_already_collected_files(prev_traverse, traverse_file)
         _chunk(traverse_staging_dir, chunk_size, traverse_file)
-        _archive(staging_dir, name, traverse_file)
+        _archive(
+            staging_dir, suffix, traverse_file, dont_replace=bool(traverse_file_arg)
+        )
 
     else:
         print(
