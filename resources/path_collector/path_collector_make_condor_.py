@@ -18,7 +18,7 @@ from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
 def make_condor_scratch_dir(traverse_root: str, with_exclusions: bool = False) -> str:
     """Make the condor scratch directory."""
     name = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
-    dir_name = f"all-paths-{name}"
+    dir_name = f"path-collection-{name}"
     if with_exclusions:
         dir_name += "-W-EXCLS"
 
@@ -90,7 +90,7 @@ def main() -> None:
         "Make Condor script for path_collector.py: "
         "recursively find all filepaths in `traverse_root`, "
         "place path_collector.py's output files in /data/user/{user}/, and "
-        "Condor log files in /scratch/{user}/all-paths-{traverse_root_w_dashes}/."
+        "Condor log files in /scratch/{user}/path-collection-{traverse_root_w_dashes}/."
     )
     parser.add_argument(
         "--dryrun",
