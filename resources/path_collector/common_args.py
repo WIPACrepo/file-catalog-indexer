@@ -69,8 +69,7 @@ def get_parser_w_common_args(
             nargs="*",
             default=[],
             type=get_full_path,
-            help="directories/paths to exclude from the traverse"
-            ' -- keep it short, this is "all paths" after all.'
+            help="directories/paths to exclude from the traverse -- keep it short."
             " **Ignored if also using --traverse-file**",
         )
     if (not only) or ("--traverse-file" in only):

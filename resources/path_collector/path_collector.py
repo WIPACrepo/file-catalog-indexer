@@ -38,31 +38,31 @@ def _full_traverse(
     workers: int,
 ) -> str:
     """Get all filepaths in traverse_root and sort the list."""
-    file_orig = os.path.join(traverse_staging_dir, "paths.orig")
-    traverse_file = os.path.join(traverse_staging_dir, "paths.sort")
-    file_log = os.path.join(traverse_staging_dir, "paths.log")
+    traverse_out = os.path.join(traverse_staging_dir, "traverse.out")
+    traverse_sorted = os.path.join(traverse_staging_dir, "traverse.sorted")
+    traverse_log = os.path.join(traverse_staging_dir, "traverse.log")
 
     # traverse
-    exculdes_args = ""
-    if excluded_paths:
-        exculdes_args = "--exclude " + " ".join(excluded_paths)
+    exculdes_args = "--exclude " + " ".join(excluded_paths) if excluded_paths else ""
     check_call_and_log(
-        f"python traverser.py {traverse_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
+        f"python traverser.py {traverse_root} "
+        f"--workers {workers}"
+        f" {exculdes_args} > {traverse_out} 2> {traverse_log}",
         shell=True,
     )
 
     # remove blanks
-    check_call_and_log(f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True)
+    check_call_and_log(f"""sed -i '/^[[:space:]]*$/d' {traverse_out}""", shell=True)
 
     # sort -- this'll ensure chunks/jobs have filepaths from the same "region"
     check_call_and_log(
-        f"sort -T {traverse_staging_dir} {file_orig} > {traverse_file}", shell=True
+        f"sort -T {traverse_staging_dir} {traverse_out} > {traverse_sorted}", shell=True
     )
 
     # cleanup
-    check_call_and_log(f"rm {file_orig}".split())
+    check_call_and_log(f"rm {traverse_out}".split())
 
-    return traverse_file
+    return traverse_sorted
 
 
 def _remove_already_collected_files(prev_traverse: str, traverse_file: str) -> None:
@@ -195,7 +195,9 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 
 def main() -> None:
     """Get all filepaths rooted at directory and split-up/write to files."""
-    parser = get_parser_w_common_args("Run this script via all_paths_make_condor.py.")
+    parser = get_parser_w_common_args(
+        "Run this script via path_collector_make_condor.py."
+    )
     parser.add_argument(
         "--staging-dir",
         dest="staging_dir",

@@ -382,7 +382,7 @@ def main() -> None:
     parser.add_argument(
         "--blacklist-file",
         dest="blacklist_file",
-        help="blacklist file containing all paths to skip",
+        help="blacklist file containing filepaths to skip",
     )
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
 
@@ -395,7 +395,7 @@ def main() -> None:
         f"Collecting metadata from {args.paths} and those in file (at {args.paths_file})..."
     )
 
-    # Aggregate and sort all paths
+    # Aggregate and sort filepaths
     paths = sorted_unique_filepaths(
         file_of_filepaths=args.paths_file, list_of_filepaths=args.paths
     )

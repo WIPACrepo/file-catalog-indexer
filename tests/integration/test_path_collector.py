@@ -1,4 +1,4 @@
-"""Integration test resources/all_paths.py."""
+"""Integration test resources/path_collector.py."""
 
 
 import filecmp
@@ -16,8 +16,8 @@ from typing import Any, Final, List, Tuple
 import bitmath  # type: ignore[import]
 import pytest
 
-sys.path.append("./resources/all_paths")
-import all_paths  # type: ignore[import]  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+sys.path.append("./resources/path_collector")
+import path_collector  # type: ignore[import]  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
 import common_args  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
 
 
@@ -169,7 +169,7 @@ def test_chunk_sizes() -> None:
 
     def _shell() -> None:
         subprocess.check_call(
-            f"python ./resources/all_paths/all_paths.py {root}"
+            f"python ./resources/path_collector/path_collector.py {root}"
             f" --staging-dir {stage}"
             f" --workers 1"
             f" --chunk-size {chunk_size}".split(),
@@ -177,7 +177,9 @@ def test_chunk_sizes() -> None:
         )
 
     def _direct() -> None:
-        all_paths.write_all_filepaths_to_files(stage, root, 1, "", chunk_size, [], None)
+        path_collector.write_all_filepaths_to_files(
+            stage, root, 1, "", chunk_size, [], None
+        )
 
     for func in [_direct, _shell]:
         logging.warning(f"Using invocation function: {func}")
@@ -203,7 +205,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
     def _shell(traverse_file: str, w_chunks: bool = False) -> None:
         if w_chunks:
             subprocess.check_call(
-                f"python ./resources/all_paths/all_paths.py {root}"
+                f"python ./resources/path_collector/path_collector.py {root}"
                 f" --staging-dir {stage}"
                 f" --traverse-file {traverse_file}"
                 f" --chunk-size {chunk_size}"
@@ -212,7 +214,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             )
         else:
             subprocess.check_call(
-                f"python ./resources/all_paths/all_paths.py {root}"
+                f"python ./resources/path_collector/path_collector.py {root}"
                 f" --staging-dir {stage}"
                 f" --traverse-file {traverse_file}"
                 f" --workers 1".split(),
@@ -221,11 +223,11 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
 
     def _direct(traverse_file: str, w_chunks: bool = False) -> None:
         if w_chunks:
-            all_paths.write_all_filepaths_to_files(
+            path_collector.write_all_filepaths_to_files(
                 stage, root, 1, "", chunk_size, [], traverse_file
             )
         else:
-            all_paths.write_all_filepaths_to_files(
+            path_collector.write_all_filepaths_to_files(
                 stage, root, 1, "", 0, [], traverse_file
             )
 
@@ -332,7 +334,7 @@ def test_exclude() -> None:
 
     def _shell(excludes: List[str]) -> None:
         subprocess.check_call(
-            f"python ./resources/all_paths/all_paths.py {root}"
+            f"python ./resources/path_collector/path_collector.py {root}"
             f" --staging-dir {stage}"
             f" --workers 1"
             f" --exclude {' '.join(os.path.abspath(e) for e in excludes)}"
@@ -341,7 +343,7 @@ def test_exclude() -> None:
         )
 
     def _direct(excludes: List[str]) -> None:
-        all_paths.write_all_filepaths_to_files(
+        path_collector.write_all_filepaths_to_files(
             stage, root, 1, "", chunk_size, excludes, None
         )
 
@@ -405,7 +407,7 @@ def test_chunk_sizes() -> None:
 
     def _shell(prev_traverse: str) -> None:
         subprocess.check_call(
-            f"python ./resources/all_paths/all_paths.py {root}"
+            f"python ./resources/path_collector/path_collector.py {root}"
             f" --staging-dir {stage}"
             f" --previous-traverse {prev_traverse}"
             f" --workers 1".split(),
@@ -413,7 +415,7 @@ def test_chunk_sizes() -> None:
         )
 
     def _direct(prev_traverse: str) -> None:
-        all_paths.write_all_filepaths_to_files(
+        path_collector.write_all_filepaths_to_files(
             stage, root, 1, prev_traverse, 0, [], None
         )
 
@@ -425,7 +427,7 @@ def test_chunk_sizes() -> None:
         logging.warning("previous-traverse => good")
         with open("./archive-prev.txt", "w") as f:
             stage, root = _setup_testfiles("previous")
-            all_paths.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
+            path_collector.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
             with open(_get_archive_file(stage), "r") as a_f:
                 f.writelines(a_f.readlines()[5:15])
         _remove_all(stage, root)
@@ -444,7 +446,7 @@ def test_chunk_sizes() -> None:
         logging.warning("previous-traverse => bad lines")
         with open("./archive-prev.txt", "w") as f:
             stage, root = _setup_testfiles("previous")
-            all_paths.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
+            path_collector.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
             with open(_get_archive_file(stage), "r") as a_f:
                 f.writelines(["!FOOBARBAZ!"] + a_f.readlines()[5:15])
         _remove_all(stage, root)

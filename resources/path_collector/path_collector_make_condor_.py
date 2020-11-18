@@ -1,4 +1,4 @@
-"""Make the Condor script for all_paths.py."""
+"""Make the Condor script for path_collector.py."""
 
 import getpass
 import logging
@@ -44,7 +44,7 @@ def make_condor_file(  # pylint: disable=R0913
         # args
         staging_dir = os.path.join("/data/user/", getpass.getuser())
         transfer_input_files = [
-            "all_paths.py",
+            "path_collector.py",
             "traverser.py",
             "common_args.py",
             "../../requirements.txt",
@@ -57,10 +57,10 @@ def make_condor_file(  # pylint: disable=R0913
         # write
         file.write(
             f"""executable = {os.path.abspath('../indexer_env.sh')}
-arguments = python all_paths.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg}
-output = {scratch}/all_paths.out
-error = {scratch}/all_paths.err
-log = {scratch}/all_paths.log
+arguments = python path_collector.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg}
+output = {scratch}/path_collector.out
+error = {scratch}/path_collector.err
+log = {scratch}/path_collector.log
 +FileSystemDomain = "blah"
 should_transfer_files = YES
 transfer_input_files = {",".join([os.path.abspath(f) for f in transfer_input_files])}
@@ -75,21 +75,21 @@ queue
 
 
 def main() -> None:
-    """Prep and execute Condor job (to run all_paths.py).
+    """Prep and execute Condor job (to run path_collector.py).
 
     Make scratch directory and condor file.
     """
-    if not os.getcwd().endswith("file-catalog-indexer/resources/all_paths"):
+    if not os.getcwd().endswith("file-catalog-indexer/resources/path_collector"):
         raise RuntimeError(
             "You must run this script from"
-            " `file-catalog-indexer/resources/all_paths`."
+            " `file-catalog-indexer/resources/path_collector`."
             " This script uses relative paths."
         )
 
     parser = get_parser_w_common_args(
-        "Make Condor script for all_paths.py: "
+        "Make Condor script for path_collector.py: "
         "recursively find all filepaths in `traverse_root`, "
-        "place all_paths.py's output files in /data/user/{user}/, and "
+        "place path_collector.py's output files in /data/user/{user}/, and "
         "Condor log files in /scratch/{user}/all-paths-{traverse_root_w_dashes}/."
     )
     parser.add_argument(

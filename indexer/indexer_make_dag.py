@@ -216,7 +216,7 @@ def main() -> None:
         "filepaths to index. Ex: /data/user/eevans/indexer-data-exp/paths/",
     )
     parser.add_argument(
-        "--blacklist", help="blacklist file containing all paths to skip"
+        "--blacklist", help="blacklist file containing all filepaths to skip"
     )
     parser.add_argument(
         "--dryrun",
