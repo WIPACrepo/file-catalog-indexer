@@ -85,22 +85,22 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
     only one chunk is made ("chunk-0"), a copy of `traverse_file`.
 
     Example:
-    `traverse_staging_dir/paths/chunk-1645`
+    `traverse_staging_dir/chunks/chunk-1645`
     """
-    dir_ = os.path.join(traverse_staging_dir, "paths/")
+    chunks_dir = os.path.join(traverse_staging_dir, "traverse-chunks/")
 
-    check_call_and_log(f"mkdir {dir_}".split())
+    check_call_and_log(f"mkdir {chunks_dir}".split())
 
     if chunk_size == 0:
         logging.warning("Chunking bypassed, --chunk-size is zero")
         check_call_and_log(
-            f"cp {traverse_file} {os.path.join(dir_, 'chunk-0')}".split()
+            f"cp {traverse_file} {os.path.join(chunks_dir, 'chunk-0')}".split()
         )
         return
 
     def _chunk_it(i: int, chunk_lines: List[str]) -> str:
         filename = f"chunk-{i}"
-        with open(os.path.join(dir_, filename), "w") as chunk_f:
+        with open(os.path.join(chunks_dir, filename), "w") as chunk_f:
             chunk_f.writelines(chunk_lines)
         return filename
 
@@ -126,7 +126,7 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
     logging.info(
         f"Chunked traverse into {_id} chunk-files"
         f" ~{bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
-        f" ({chunk_size} bytes) each @ {dir_}."
+        f" ({chunk_size} bytes) each @ {chunks_dir}."
         f" Total ~{bitmath.best_prefix(total_f_size).format('{value:.2f} {unit}')}."
     )
 
