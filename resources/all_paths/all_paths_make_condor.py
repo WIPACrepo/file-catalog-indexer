@@ -40,7 +40,12 @@ def make_condor_file(  # pylint: disable=R0913
     with open(condorpath, "w") as file:
         # args
         staging_dir = os.path.join("/data/user/", getpass.getuser())
-        transfer_input_files = ["all_paths.py", "traverser.py", "common_args.py"]
+        transfer_input_files = [
+            "all_paths.py",
+            "traverser.py",
+            "common_args.py",
+            "../../requirements.txt",
+        ]
         # optional args
         previous_arg = f"--previous-traverse {prev_traverse}" if prev_traverse else ""
         exculdes_args = " ".join(excluded_paths) if excluded_paths else ""
