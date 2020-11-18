@@ -162,7 +162,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     if excluded_paths and not traverse_file_arg:
         suffix += "-W-EXCLS"
 
-    traverse_staging_dir = os.path.join(staging_dir, f"indexer-{suffix}/")
+    traverse_staging_dir = os.path.join(staging_dir, f"pre-index-{suffix}/")
 
     if not os.path.exists(traverse_staging_dir):
         check_call_and_log(f"mkdir {traverse_staging_dir}".split())
