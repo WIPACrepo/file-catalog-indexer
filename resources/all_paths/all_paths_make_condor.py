@@ -1,10 +1,13 @@
 """Make the Condor script for all_paths.py."""
 
 import getpass
+import logging
 import os
 import subprocess
 import sys
 from typing import List
+
+import coloredlogs  # type: ignore[import]
 
 sys.path.append(".")
 from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -100,7 +103,7 @@ def main() -> None:
     args = parser.parse_args()
 
     for arg, val in vars(args).items():
-        print(f"{arg}: {val}")
+        logging.warning(f"{arg}: {val}")
 
     # make condor scratch directory
     scratch = make_condor_scratch_dir(args.traverse_root, bool(args.exclude))
@@ -118,12 +121,13 @@ def main() -> None:
 
     # Execute
     if args.dryrun:
-        print(f"Script Aborted: Condor job not submitted ({condorpath}).")
+        logging.error(f"Script Aborted: Condor job not submitted ({condorpath}).")
     else:
         cmd = f"condor_submit {condorpath}"
-        print(cmd)
+        logging.info(cmd)
         subprocess.check_call(cmd.split(), cwd=scratch)
 
 
 if __name__ == "__main__":
+    coloredlogs.install(level="DEBUG")
     main()

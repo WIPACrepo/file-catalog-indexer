@@ -2,11 +2,14 @@
 
 import argparse
 import getpass
+import logging
 import os
 import re
 import subprocess
 from enum import Enum
 from typing import List, Tuple, TypedDict
+
+import coloredlogs  # type: ignore[import]
 
 # types
 
@@ -96,7 +99,7 @@ def make_condor_file(
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
     if os.path.exists(condorpath):
-        print(
+        logging.warning(
             f"Writing Bypassed: {condorpath} already exists. Using preexisting condor file."
         )
     else:
@@ -141,7 +144,7 @@ def make_dag_file(
     """Make the DAG file."""
     dagpath = os.path.join(scratch, "dag")
     if os.path.exists(dagpath):
-        print(
+        logging.warning(
             f"Writing Bypassed: {dagpath} already exists. Using preexisting dag file."
         )
     else:
@@ -223,6 +226,8 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    for arg, val in vars(args).items():
+        logging.warning(f"{arg}: {val}")
 
     # check if either --level or --dir-of-paths-files
     if (args.level and args.dir_of_paths_files) or (
@@ -259,12 +264,13 @@ def main() -> None:
 
     # Execute
     if args.dryrun:
-        print("Indexer Aborted: Condor jobs not submitted.")
+        logging.error("Indexer Aborted: Condor jobs not submitted.")
     else:
         cmd = f"condor_submit_dag -maxjobs {args.maxjobs} {dagpath}"
-        print(cmd)
+        logging.info(cmd)
         subprocess.check_call(cmd.split(), cwd=scratch)
 
 
 if __name__ == "__main__":
+    coloredlogs.install(level="DEBUG")
     main()

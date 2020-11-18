@@ -12,6 +12,7 @@ from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Optional, TypedDict
 
+import coloredlogs  # type: ignore[import]
 import requests
 
 # local imports
@@ -384,11 +385,11 @@ def main() -> None:
         help="blacklist file containing all paths to skip",
     )
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
-    args = parser.parse_args()
 
-    logging.basicConfig(level=getattr(logging, args.log.upper()))
+    args = parser.parse_args()
+    coloredlogs.install(level=getattr(logging, args.log.upper()))
     for arg, val in vars(args).items():
-        logging.info(f"{arg}: {val}")
+        logging.warning(f"{arg}: {val}")
 
     logging.info(
         f"Collecting metadata from {args.paths} and those in file (at {args.paths_file})..."

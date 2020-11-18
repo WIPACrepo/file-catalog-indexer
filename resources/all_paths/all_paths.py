@@ -4,6 +4,7 @@ These chunks are outputted files, which are used as input in
 indexer_make_dag.py jobs.
 """
 
+import logging
 import os
 import subprocess
 import sys
@@ -11,6 +12,7 @@ from datetime import datetime as dt
 from typing import List, Optional, Union
 
 import bitmath  # type: ignore[import]
+import coloredlogs  # type: ignore[import]
 
 sys.path.append(".")
 from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -19,13 +21,13 @@ from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
 )
 
 
-def check_call_print(
+def check_call_and_log(
     cmd: Union[List[str], str], cwd: str = ".", shell: bool = False
 ) -> None:
     """Wrap subprocess.check_call and print command."""
     if shell and isinstance(cmd, list):
         raise Exception("Do not set shell=True and pass a list--pass a string.")
-    print(f"Execute: {cmd} @ {cwd}")
+    logging.info(f"Execute: {cmd} @ {cwd}")
     subprocess.check_call(cmd, cwd=cwd, shell=shell)
 
 
@@ -44,21 +46,21 @@ def _full_traverse(
     exculdes_args = ""
     if excluded_paths:
         exculdes_args = "--exclude " + " ".join(excluded_paths)
-    check_call_print(
+    check_call_and_log(
         f"python traverser.py {traverse_root} --workers {workers} {exculdes_args} > {file_orig} 2> {file_log}",
         shell=True,
     )
 
     # remove blanks
-    check_call_print(f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True)
+    check_call_and_log(f"""sed -i '/^[[:space:]]*$/d' {file_orig}""", shell=True)
 
     # sort -- this'll ensure chunks/jobs have filepaths from the same "region"
-    check_call_print(
+    check_call_and_log(
         f"sort -T {traverse_staging_dir} {file_orig} > {traverse_file}", shell=True
     )
 
     # cleanup
-    check_call_print(f"rm {file_orig}".split())
+    check_call_and_log(f"rm {file_orig}".split())
 
     return traverse_file
 
@@ -66,11 +68,11 @@ def _full_traverse(
 def _remove_already_collected_files(prev_traverse: str, traverse_file: str) -> None:
     """Get lines(filepaths) unique to this traverse versus the previous."""
     if prev_traverse:
-        check_call_print(
+        check_call_and_log(
             f"comm -1 -3 {prev_traverse} {traverse_file} > {traverse_file}.unique",
             shell=True,
         )
-        check_call_print(f"mv {traverse_file}.unique {traverse_file}".split())
+        check_call_and_log(f"mv {traverse_file}.unique {traverse_file}".split())
 
 
 def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> None:
@@ -87,11 +89,13 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
     """
     dir_ = os.path.join(traverse_staging_dir, "paths/")
 
-    check_call_print(f"mkdir {dir_}".split())
+    check_call_and_log(f"mkdir {dir_}".split())
 
     if chunk_size == 0:
-        print("Chunking bypassed, --chunk-size is zero")
-        check_call_print(f"cp {traverse_file} {os.path.join(dir_, 'chunk-0')}".split())
+        logging.warning("Chunking bypassed, --chunk-size is zero")
+        check_call_and_log(
+            f"cp {traverse_file} {os.path.join(dir_, 'chunk-0')}".split()
+        )
         return
 
     def _chunk_it(i: int, chunk_lines: List[str]) -> str:
@@ -119,7 +123,7 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
         _id += 1
         _chunk_it(_id, queue)
 
-    print(
+    logging.info(
         f"Chunked traverse into {_id} chunk-files"
         f" ~{bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
         f" ({chunk_size} bytes) each @ {dir_}."
@@ -138,10 +142,10 @@ def _archive(
     time = dt.now().isoformat(timespec="seconds")
     file_archive = os.path.join(staging_dir, f"{suffix}-{time}")
     if dont_replace:
-        check_call_print(f"cp {traverse_file} {file_archive}".split())
+        check_call_and_log(f"cp {traverse_file} {file_archive}".split())
     else:
-        check_call_print(f"mv {traverse_file} {file_archive}".split())
-    print(f"Archive File: at {file_archive}")
+        check_call_and_log(f"mv {traverse_file} {file_archive}".split())
+    logging.info(f"Archive File: at {file_archive}")
 
 
 def write_all_filepaths_to_files(  # pylint: disable=R0913
@@ -161,7 +165,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     traverse_staging_dir = os.path.join(staging_dir, f"indexer-{suffix}/")
 
     if not os.path.exists(traverse_staging_dir):
-        check_call_print(f"mkdir {traverse_staging_dir}".split())
+        check_call_and_log(f"mkdir {traverse_staging_dir}".split())
 
         # output argv to a file
         with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
@@ -169,10 +173,10 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 
         # get traverse file
         if traverse_file_arg:
-            print(f"Using --traverse-file {traverse_file_arg}.")
+            logging.info(f"Using --traverse-file {traverse_file_arg}.")
             traverse_file = traverse_file_arg
         else:
-            print(f"Traversing {traverse_root}...")
+            logging.info(f"Traversing {traverse_root}...")
             traverse_file = _full_traverse(
                 traverse_staging_dir, traverse_root, excluded_paths, workers
             )
@@ -184,7 +188,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
         )
 
     else:
-        print(
+        logging.warning(
             f"Writing Bypassed: {traverse_staging_dir} already exists. Use preexisting files."
         )
 
@@ -206,9 +210,8 @@ def main() -> None:
         required=True,
     )
     args = parser.parse_args()
-
     for arg, val in vars(args).items():
-        print(f"{arg}: {val}")
+        logging.warning(f"{arg}: {val}")
 
     write_all_filepaths_to_files(
         args.staging_dir,
@@ -222,4 +225,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    coloredlogs.install(level="DEBUG")
     main()
