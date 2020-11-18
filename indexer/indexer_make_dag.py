@@ -213,7 +213,7 @@ def main() -> None:
         "--dir-of-paths-files",
         dest="dir_of_paths_files",
         help="the directory containing files, each of which contains a list of "
-        "filepaths to index. Ex: /data/user/eevans/indexer-data-exp/paths/",
+        "filepaths to index. Ex: /data/user/eevans/pre-index-data-exp/paths/",
     )
     parser.add_argument(
         "--blacklist", help="blacklist file containing all filepaths to skip"
