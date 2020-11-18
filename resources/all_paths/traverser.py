@@ -1,42 +1,37 @@
-"""Recursively scan directory paths and print all file paths."""
+"""Traverse directory paths, and print all filepaths."""
 
-import argparse
 import logging
 import os
 import stat
+import sys
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Tuple
 
-
-def _full_path(path: str) -> str:
-    if not path:
-        return path
-
-    full_path = os.path.abspath(path)
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(full_path)
-
-    return full_path
+sys.path.append(".")
+from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+    get_parser_w_common_args,
+    get_full_path,
+)
 
 
-def exclude_path(path: str, exclude: List[str]) -> bool:
+def is_excluded_path(path: str, excluded_paths: List[str]) -> bool:
     """Return `True` if `path` should be excluded.
 
     Either:
-    - `path` is in `exclude`, or
-    - `path` has a parent path in `exclude`.
+    - `path` is in `excluded_paths`, or
+    - `path` has a parent path in `excluded_paths`.
     """
-    for bad_path in exclude:
-        if (path == bad_path) or (os.path.commonpath([path, bad_path]) == bad_path):
+    for excl in excluded_paths:
+        if (path == excl) or (os.path.commonpath([path, excl]) == excl):
             logging.debug(
-                f"Skipping {path}, file and/or directory path is in `exclude` ({bad_path})."
+                f"Skipping {path}, file and/or directory path is in `--exclude` ({excl})."
             )
             return True
     return False
 
 
-def process_dir(path: str, exclude: List[str]) -> Tuple[List[str], int]:
+def traverse(path: str, excluded_paths: List[str]) -> Tuple[List[str], int]:
     """Print out file paths and return sub-directories."""
     try:
         scan = os.scandir(path)
@@ -61,8 +56,7 @@ def process_dir(path: str, exclude: List[str]) -> Tuple[List[str], int]:
             logging.info(f"Permission denied: {dir_entry.path}")
             continue
 
-        # check `exclude` paths
-        if exclude_path(path, exclude):
+        if is_excluded_path(path, excluded_paths):
             continue
 
         # append if it's a directory
@@ -86,21 +80,12 @@ def process_dir(path: str, exclude: List[str]) -> Tuple[List[str], int]:
 
 def main() -> None:
     """Recursively scan directory paths and print all file paths."""
-    parser = argparse.ArgumentParser(
-        description="Find directories under PATH(s)",
-        epilog="Notes: (1) symbolic links are never followed.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    parser = get_parser_w_common_args(
+        "Traverse directories under PATH(s) and print each filepath.",
+        only=["--exclude"],
     )
     parser.add_argument(
-        "paths", metavar="PATH", nargs="+", type=_full_path, help="path(s) to scan."
-    )
-    parser.add_argument(
-        "--exclude",
-        "-e",
-        nargs="*",
-        default=[],
-        type=_full_path,
-        help="directories/paths to exclude from the traverse.",
+        "paths", metavar="PATH", nargs="+", type=get_full_path, help="path(s) to scan."
     )
     parser.add_argument(
         "--workers", type=int, help="max number of workers", required=True
@@ -113,7 +98,7 @@ def main() -> None:
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         while futures or dirs:
             # submit process job
-            futures.extend(pool.submit(process_dir, d, args.exclude) for d in dirs)
+            futures.extend(pool.submit(traverse, d, args.exclude) for d in dirs)
             # wait
             while not futures[0].done():
                 sleep(0.1)

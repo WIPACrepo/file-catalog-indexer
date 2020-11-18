@@ -119,7 +119,7 @@ def make_condor_file(
 
             # write
             file.write(
-                f"""executable = {os.path.abspath('indexer_env.sh')}
+                f"""executable = {os.path.abspath('../indexer_env.sh')}
 arguments = python indexer.py -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
