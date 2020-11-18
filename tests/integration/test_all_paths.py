@@ -400,4 +400,59 @@ def test_exclude() -> None:
         _remove_all(stage, root)
 
 
-# TODO --previous-traverse
+def test_chunk_sizes() -> None:
+    """Test using --previous-traverse."""
+
+    def _shell(prev_traverse: str) -> None:
+        subprocess.check_call(
+            f"python ./resources/all_paths/all_paths.py {root}"
+            f" --staging-dir {stage}"
+            f" --previous-traverse {prev_traverse}"
+            f" --workers 1".split(),
+            cwd=".",
+        )
+
+    def _direct(prev_traverse: str) -> None:
+        all_paths.write_all_filepaths_to_files(
+            stage, root, 1, prev_traverse, 0, [], None
+        )
+
+    for func in [_direct, _shell]:
+        logging.warning(f"Using invocation function: {func}")
+
+        # good previous-traverse
+        print("~ " * 60)
+        logging.warning("previous-traverse => good")
+        with open("./archive-prev.txt", "w") as f:
+            stage, root = _setup_testfiles("previous")
+            all_paths.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
+            with open(_get_archive_file(stage), "r") as a_f:
+                f.writelines(a_f.readlines()[5:15])
+        _remove_all(stage, root)
+        stage, root = _setup_testfiles("prev-traverse-good")
+        func("./archive-prev.txt")
+        _assert_out_files(stage)
+        _assert_out_chunks(stage, 0)
+        with open(_get_archive_file(stage), "r") as a_f:
+            with open("./archive-prev.txt", "r") as p_f:
+                assert all(ln not in a_f.readlines() for ln in p_f.readlines())
+        _remove_all(stage, root, "./archive-prev.txt")
+
+        # bad lines previous-traverse
+        # -- just as okay as good lines
+        print("~ " * 60)
+        logging.warning("previous-traverse => bad lines")
+        with open("./archive-prev.txt", "w") as f:
+            stage, root = _setup_testfiles("previous")
+            all_paths.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
+            with open(_get_archive_file(stage), "r") as a_f:
+                f.writelines(["!FOOBARBAZ!"] + a_f.readlines()[5:15])
+        _remove_all(stage, root)
+        stage, root = _setup_testfiles("prev-traverse-bad-lines")
+        func("./archive-prev.txt")
+        _assert_out_files(stage)
+        _assert_out_chunks(stage, 0)
+        with open(_get_archive_file(stage), "r") as a_f:
+            with open("./archive-prev.txt", "r") as p_f:
+                assert all(ln not in a_f.readlines() for ln in p_f.readlines())
+        _remove_all(stage, root, "./archive-prev.txt")
