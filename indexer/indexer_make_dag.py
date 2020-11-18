@@ -102,7 +102,7 @@ def make_condor_file(
     else:
         with open(condorpath, "w") as file:
             # configure transfer_input_files
-            transfer_input_files = ["indexer.py"]
+            transfer_input_files = ["indexer.py", "../requirements.txt"]
             blacklist_arg = ""
             if indexer_args["blacklist"]:
                 blacklist_arg = f"--blacklist {indexer_args['blacklist']}"
@@ -119,7 +119,7 @@ def make_condor_file(
 
             # write
             file.write(
-                f"""executable = {os.path.abspath('../indexer_env.sh')}
+                f"""executable = {os.path.abspath('../resources/indexer_env.sh')}
 arguments = python indexer.py -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
@@ -174,6 +174,13 @@ def main() -> None:
 
     Make scratch directory, condor file, and DAGMan file.
     """
+    if not os.getcwd().endswith("file-catalog-indexer/indexer"):
+        raise RuntimeError(
+            "You must run this script from"
+            " `file-catalog-indexer/indexer`."
+            " This script uses relative paths."
+        )
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--token", help="Auth Token", required=True)
     parser.add_argument("-j", "--maxjobs", default=500, help="max concurrent jobs")

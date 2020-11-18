@@ -76,6 +76,13 @@ def main() -> None:
 
     Make scratch directory and condor file.
     """
+    if not os.getcwd().endswith("file-catalog-indexer/resources/all_paths"):
+        raise RuntimeError(
+            "You must run this script from"
+            " `file-catalog-indexer/resources/all_paths`."
+            " This script uses relative paths."
+        )
+
     parser = get_parser_w_common_args(
         "Make Condor script for all_paths.py: "
         "recursively find all filepaths in `traverse_root`, "
