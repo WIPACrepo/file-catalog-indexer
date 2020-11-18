@@ -155,7 +155,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
 ) -> None:
     """Write all filepaths (rooted from `traverse_root`) to multiple files."""
     suffix = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
-    if excluded_paths:
+    if excluded_paths and not traverse_file_arg:
         suffix += "-W-EXCLS"
 
     traverse_staging_dir = os.path.join(staging_dir, f"indexer-{suffix}/")
@@ -200,7 +200,10 @@ def main() -> None:
         help="the base directory to store files for jobs, eg: /data/user/eevans/",
     )
     parser.add_argument(
-        "--workers", type=int, help="max number of workers", required=True
+        "--workers",
+        type=int,
+        help="max number of workers. **Ignored if also using --traverse-file**",
+        required=True,
     )
     args = parser.parse_args()
 

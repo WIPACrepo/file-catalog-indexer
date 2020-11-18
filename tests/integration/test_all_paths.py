@@ -103,6 +103,10 @@ def _get_traverse_staging_dir(stage: str) -> os.DirEntry:  # type: ignore[type-a
     return [d for d in os.scandir(stage) if stat.S_ISDIR(os.lstat(d.path).st_mode)][0]
 
 
+def _get_paths_log(stage: str) -> str:
+    return os.path.join(_get_traverse_staging_dir(stage).path, "paths.log")
+
+
 def _get_paths_dir(stage: str) -> str:
     return os.path.join(_get_traverse_staging_dir(stage).path, "paths")
 
@@ -161,7 +165,7 @@ def _assert_out_chunks(stage: str, chunk_size: int) -> None:
 
 
 def test_chunk_sizes() -> None:
-    """Test various chunk sizes."""
+    """Test using --chunk-size."""
 
     def _shell() -> None:
         subprocess.check_call(
@@ -322,6 +326,78 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         _remove_all(stage, root, "bad-filepaths.txt")
 
 
-# TODO --exclude
+def test_exclude() -> None:
+    """Test using --exclude."""
+    chunk_size: Final[int] = int(bitmath.parse_string("500MiB").to_Byte())
+
+    def _shell(excludes: List[str]) -> None:
+        subprocess.check_call(
+            f"python ./resources/all_paths/all_paths.py {root}"
+            f" --staging-dir {stage}"
+            f" --workers 1"
+            f" --exclude {' '.join(os.path.abspath(e) for e in excludes)}"
+            f" --chunk-size {chunk_size}".split(),
+            cwd=".",
+        )
+
+    def _direct(excludes: List[str]) -> None:
+        all_paths.write_all_filepaths_to_files(
+            stage, root, 1, "", chunk_size, excludes, None
+        )
+
+    for func in [_direct, _shell]:
+        logging.warning(f"Using invocation function: {func}")
+
+        #
+        # good excludes
+        print("~ " * 60)
+        logging.warning("exclude => good")
+        stage, root = _setup_testfiles("good-excludes")
+        func(
+            [
+                "./test-traverse-good-excludes/gamma",
+                "./test-traverse-good-excludes/beta/two",
+            ]
+        )
+        _assert_out_files(stage)
+        _assert_out_chunks(stage, chunk_size)
+        with open(_get_archive_file(stage)) as f:
+            lines = f.read()
+            assert lines
+        for e in ["gamma", "beta/two"]:
+            assert e not in lines
+        assert "-W-EXCLS" in _get_traverse_staging_dir(stage).name
+        _remove_all(stage, root)
+
+        #
+        # real but needless excludes
+        print("~ " * 60)
+        logging.warning("exclude => real but needless")
+        stage, root = _setup_testfiles("real-but-needless-excludes")
+        func(["./.gitignore", "./README.md"])
+        _assert_out_files(stage)
+        _assert_out_chunks(stage, chunk_size)
+        with open(_get_archive_file(stage)) as f:
+            lines = f.read()
+            assert lines
+        for e in [".gitignore", "README.md"]:
+            assert e not in lines
+        assert "-W-EXCLS" in _get_traverse_staging_dir(stage).name
+        _remove_all(stage, root)
+
+        #
+        # bad excludes
+        print("~ " * 60)
+        logging.warning("exclude => bad")
+        stage, root = _setup_testfiles("bad-excludes")
+        with pytest.raises(subprocess.CalledProcessError):  # raised by traverser.py
+            func(["./foo", "./bar"])
+        if func == _direct:
+            assert "-W-EXCLS" in _get_traverse_staging_dir(stage).name
+            with open(_get_paths_log(stage)) as f:
+                assert "FileNotFoundError" in f.read()
+        # when using _shell, it's a nested CalledProcessError, so no files are written
+        _remove_all(stage, root)
+
 
 # TODO --previous-traverse

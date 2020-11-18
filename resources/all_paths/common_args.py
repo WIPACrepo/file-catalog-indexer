@@ -50,7 +50,8 @@ def get_parser_w_common_args(
     if (not only) or ("traverse_root" in only):
         parser.add_argument(
             "traverse_root",
-            help="root directory to traverse for files.",
+            help="root directory to traverse for files."
+            " **Ignored if also using --traverse-file**",
             type=get_full_path,
         )
     if (not only) or ("--previous-traverse" in only):
@@ -68,7 +69,9 @@ def get_parser_w_common_args(
             nargs="*",
             default=[],
             type=get_full_path,
-            help='directories/paths to exclude from the traverse -- keep it short, this is "all paths" after all.',
+            help="directories/paths to exclude from the traverse"
+            ' -- keep it short, this is "all paths" after all.'
+            " **Ignored if also using --traverse-file**",
         )
     if (not only) or ("--traverse-file" in only):
         parser.add_argument(
@@ -77,7 +80,8 @@ def get_parser_w_common_args(
             type=get_full_path,
             default=None,
             help="bypass traversing and use this file instead;"
-            " useful for tweaking other controls.",
+            " useful for tweaking other controls."
+            " **Overrides other arguments, see those for details.**",
         )
     if (not only) or ("--chunk-size" in only):
         parser.add_argument(
