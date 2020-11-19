@@ -90,5 +90,13 @@ def get_parser_w_common_args(
             default=0,
             help="aggregate file-size limit per chunk/job (bytes, KB, MB, ...), by default, one chunk is made.",
         )
+    if (not only) or ("--force" in only):
+        parser.add_argument(
+            "--force",
+            "-f",
+            default=False,
+            action="store_true",
+            help="write over any pre-exiting *STAGING* files -- useful for condor restarts.",
+        )
 
     return parser

@@ -220,13 +220,6 @@ def main() -> None:
         help="max number of workers. **Ignored if also using --traverse-file**",
         required=True,
     )
-    parser.add_argument(
-        "--force",
-        "-f",
-        default=False,
-        action="store_true",
-        help="write over any pre-exiting *STAGING* files -- useful for condor restarts.",
-    )
     args = parser.parse_args()
     # print args
     for arg, val in vars(args).items():
