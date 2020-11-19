@@ -243,6 +243,8 @@ def main() -> None:
         shutil.move("collector.log.temp", _get_path_collector_log(traverse_staging_dir))
     elif os.path.exists(traverse_staging_dir):
         raise FileExistsError(traverse_staging_dir)
+    else:
+        os.mkdir(traverse_staging_dir)
 
     #
     # setup logging
