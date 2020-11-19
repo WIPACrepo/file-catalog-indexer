@@ -38,9 +38,9 @@ def _full_traverse(
     workers: int,
 ) -> str:
     """Get all filepaths in traverse_root and sort the list."""
-    traverse_out = os.path.join(traverse_staging_dir, "traverse.out")
+    traverse_out = os.path.join(traverse_staging_dir, "traverser.out")
     traverse_sorted = os.path.join(traverse_staging_dir, "traverse.sorted")
-    traverse_log = os.path.join(traverse_staging_dir, "traverse.log")
+    traverse_log = os.path.join(traverse_staging_dir, "traverser.log")
 
     # traverse
     exculdes_args = "--exclude " + " ".join(excluded_paths) if excluded_paths else ""
@@ -228,4 +228,10 @@ def main() -> None:
 
 if __name__ == "__main__":
     coloredlogs.install(level="DEBUG")
+
+    # also log to a file -- use the formatter from coloredlogs
+    fh = logging.FileHandler("path_collector.log")
+    fh.setFormatter(logging.getLogger().handlers[0].formatter)  # type: ignore[arg-type]
+    logging.getLogger().addHandler(fh)
+
     main()
