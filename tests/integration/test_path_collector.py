@@ -488,3 +488,55 @@ def test_previous_traverse() -> None:
             with open("./archive-prev.txt", "r") as p_f:
                 assert all(ln not in a_f.readlines() for ln in p_f.readlines())
         _remove_all(stage, root, "./archive-prev.txt")
+
+
+def test_force() -> None:
+    """Test using --force."""
+    #
+    # test good use of force w/o an existing traverse_staging_dir
+    stage, root = _setup_testfiles("w-force-no-traverse-staging-dir")
+    subprocess.check_call(
+        f"python ./resources/path_collector/path_collector.py {root}"
+        f" --staging-dir {stage}"
+        f" --workers 1"
+        f" --force".split(),
+        cwd=".",
+    )
+    _remove_all(stage, root)
+
+    #
+    # test good use of force w/ an existing traverse_staging_dir
+    stage, root = _setup_testfiles("w-force-w-traverse-staging-dir")
+    _make_traverse_staging_dir(stage, root, [], None)
+    subprocess.check_call(
+        f"python ./resources/path_collector/path_collector.py {root}"
+        f" --staging-dir {stage}"
+        f" --workers 1"
+        f" --force".split(),
+        cwd=".",
+    )
+    _remove_all(stage, root)
+
+    #
+    # test w/o --force & w/o an existing traverse_staging_dir
+    stage, root = _setup_testfiles("no-force-no-traverse-staging-dir")
+    subprocess.check_call(
+        f"python ./resources/path_collector/path_collector.py {root}"
+        f" --staging-dir {stage}"
+        f" --workers 1".split(),
+        cwd=".",
+    )
+    _remove_all(stage, root)
+
+    #
+    # test w/o --force, but w/ an existing traverse_staging_dir
+    stage, root = _setup_testfiles("no-force-w-traverse-staging-dir")
+    _make_traverse_staging_dir(stage, root, [], None)
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.check_call(
+            f"python ./resources/path_collector/path_collector.py {root}"
+            f" --staging-dir {stage}"
+            f" --workers 1".split(),
+            cwd=".",
+        )
+    _remove_all(stage, root)

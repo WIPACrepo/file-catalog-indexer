@@ -237,12 +237,21 @@ def main() -> None:
     suffix = _suffix(args.traverse_root, bool(args.exclude), bool(args.traverse_file))
     traverse_staging_dir = _get_traverse_staging_dir(args.staging_dir, suffix)
     if args.force:
-        shutil.move(_get_path_collector_log(traverse_staging_dir), "collector.log.temp")
-        shutil.rmtree(traverse_staging_dir)
-        os.mkdir(traverse_staging_dir)
-        shutil.move("collector.log.temp", _get_path_collector_log(traverse_staging_dir))
+        # was using `--force` moot?
+        if not os.path.exists(traverse_staging_dir):
+            os.mkdir(traverse_staging_dir)
+        # preserve path-collector.log if it already exists
+        elif os.path.exists(_get_path_collector_log(traverse_staging_dir)):
+            shutil.move(_get_path_collector_log(traverse_staging_dir), "pc.log.temp")
+            shutil.rmtree(traverse_staging_dir)
+            os.mkdir(traverse_staging_dir)
+            shutil.move("pc.log.temp", _get_path_collector_log(traverse_staging_dir))
+        # just rm -r traverse_staging_dir && mkdir traverse_staging_dir
+        else:
+            shutil.rmtree(traverse_staging_dir)
+            os.mkdir(traverse_staging_dir)
     elif os.path.exists(traverse_staging_dir):
-        raise FileExistsError(traverse_staging_dir)
+        raise FileExistsError(f"{traverse_staging_dir}. Use --force to overwrite.")
     else:
         os.mkdir(traverse_staging_dir)
 
