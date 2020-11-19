@@ -11,7 +11,7 @@ import stat
 import subprocess
 import sys
 import time
-from typing import Any, Final, List, Tuple
+from typing import Any, Final, List, Optional, Tuple
 
 import bitmath  # type: ignore[import]
 import pytest
@@ -22,6 +22,21 @@ import common_args  # type: ignore[import]  # isort:skip  # noqa # pylint: disab
 
 
 # logging.getLogger().setLevel("DEBUG")
+
+
+def _make_traverse_staging_dir(
+    stage: str,
+    traverse_root: str,
+    excluded_paths: List[str],
+    traverse_file_arg: Optional[str],
+) -> None:
+    # pylint: disable=W0212
+    suffix = path_collector._suffix(
+        traverse_root, bool(excluded_paths), bool(traverse_file_arg)
+    )
+    _dir = path_collector._get_traverse_staging_dir(stage, suffix)
+    logging.info(f"mkdir {_dir}")
+    os.mkdir(_dir)
 
 
 def _write_file(path: str, size: str) -> None:
@@ -75,7 +90,9 @@ def _get_archive_file(stage: str) -> os.DirEntry:  # type: ignore[type-arg]
     return [d for d in os.scandir(stage) if stat.S_ISREG(os.lstat(d.path).st_mode)][0]
 
 
-def _assert_out_files(stage: str, no_paths_log: bool = False) -> None:
+def _assert_out_files(
+    stage: str, ran_via_shell: bool, no_traverser_log: bool = False,
+) -> None:
     """Test outputted files and directories."""
     # 2 entries in staging directory
     assert len(os.listdir(stage)) == 2
@@ -93,19 +110,24 @@ def _assert_out_files(stage: str, no_paths_log: bool = False) -> None:
     assert len(stage_files) == 1
 
     # the files in traverse staging directory...
-    if no_paths_log:
-        assert set(os.listdir(stage_dirs[0])) == set(["argv.txt", "traverse-chunks"])
-    else:
-        assert set(os.listdir(stage_dirs[0])) == set(
-            ["argv.txt", "traverser.log", "traverse-chunks"]
-        )
+    expected_files = [
+        "argv.txt",
+        "traverser.log",
+        "traverse-chunks",
+        "path_collector.log",
+    ]
+    if no_traverser_log:
+        expected_files.remove("traverser.log")
+    if not ran_via_shell:
+        expected_files.remove("path_collector.log")
+    assert set(os.listdir(stage_dirs[0])) == set(expected_files)
 
 
 def _get_traverse_staging_dir(stage: str) -> os.DirEntry:  # type: ignore[type-arg]
     return [d for d in os.scandir(stage) if stat.S_ISDIR(os.lstat(d.path).st_mode)][0]
 
 
-def _get_traverse_log(stage: str) -> str:
+def _get_traverser_log(stage: str) -> str:
     return os.path.join(_get_traverse_staging_dir(stage).path, "traverser.log")
 
 
@@ -179,6 +201,7 @@ def test_chunk_size() -> None:
         )
 
     def _direct() -> None:
+        _make_traverse_staging_dir(stage, root, [], None)
         path_collector.write_all_filepaths_to_files(
             stage, root, 1, "", chunk_size, [], None
         )
@@ -195,7 +218,7 @@ def test_chunk_size() -> None:
             )
             stage, root = _setup_testfiles(f"{now}-{kibs}KiB")
             func()
-            _assert_out_files(stage)
+            _assert_out_files(stage, func == _shell)
             _assert_out_chunks(stage, chunk_size)
             _remove_all(stage, root)
 
@@ -224,6 +247,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             )
 
     def _direct(traverse_file: str, w_chunks: bool = False) -> None:
+        _make_traverse_staging_dir(stage, root, [], traverse_file)
         if w_chunks:
             path_collector.write_all_filepaths_to_files(
                 stage, root, 1, "", chunk_size, [], traverse_file
@@ -245,7 +269,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         with open("good.txt", "w") as f:
             f.writelines(ln + "\n" for ln in glob.glob(f"{root}/**", recursive=True))
         func("good.txt")
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
+        _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert filecmp.cmp(_get_archive_file(stage), "good.txt")
         assert filecmp.cmp(_get_chunk_0(stage), "good.txt")
         _remove_all(stage, root, "good.txt")
@@ -258,7 +282,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         with open("good.txt", "w") as f:
             f.writelines(ln + "\n" for ln in glob.glob(f"{root}/**", recursive=True))
         func("good.txt", w_chunks=True)
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
+        _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert filecmp.cmp(_get_archive_file(stage), "good.txt")
         _assert_out_chunks(stage, chunk_size)
         _remove_all(stage, root, "good.txt")
@@ -272,7 +296,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             pass
         stage, root = _setup_testfiles("empty-traverse-file")
         func("empty.txt")
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
+        _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert int(os.lstat("empty.txt").st_size) == 0
         assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
         assert filecmp.cmp(_get_archive_file(stage), "empty.txt")
@@ -288,7 +312,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             pass
         stage, root = _setup_testfiles("empty-traverse-file")
         func("empty.txt", w_chunks=True)
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
+        _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert int(os.lstat("empty.txt").st_size) == 0
         assert not os.listdir(_get_chunks_dir(stage))  # empty paths/
         assert filecmp.cmp(_get_archive_file(stage), "empty.txt")
@@ -303,7 +327,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             f.write("foo\nbar\nbaz")
         stage, root = _setup_testfiles("bad-filepaths-traverse-file")
         func("bad-filepaths.txt")
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
+        _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert filecmp.cmp(_get_archive_file(stage), "bad-filepaths.txt")
         assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
         assert filecmp.cmp(_get_chunk_0(stage), "bad-filepaths.txt")
@@ -321,7 +345,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         with pytest.raises((FileNotFoundError, subprocess.CalledProcessError)):
             func("bad-filepaths.txt", w_chunks=True)
         with pytest.raises(AssertionError):
-            _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
+            _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert os.path.exists(_get_chunks_dir(stage))
         with pytest.raises(IndexError):
             _get_archive_file(stage)
@@ -345,6 +369,7 @@ def test_exclude() -> None:
         )
 
     def _direct(excludes: List[str]) -> None:
+        _make_traverse_staging_dir(stage, root, excludes, None)
         path_collector.write_all_filepaths_to_files(
             stage, root, 1, "", chunk_size, excludes, None
         )
@@ -363,7 +388,7 @@ def test_exclude() -> None:
                 "./test-traverse-good-excludes/beta/two",
             ]
         )
-        _assert_out_files(stage)
+        _assert_out_files(stage, func == _shell)
         _assert_out_chunks(stage, chunk_size)
         with open(_get_archive_file(stage)) as f:
             lines = f.read()
@@ -379,7 +404,7 @@ def test_exclude() -> None:
         logging.warning("exclude => real but needless")
         stage, root = _setup_testfiles("real-but-needless-excludes")
         func(["./.gitignore", "./README.md"])
-        _assert_out_files(stage)
+        _assert_out_files(stage, func == _shell)
         _assert_out_chunks(stage, chunk_size)
         with open(_get_archive_file(stage)) as f:
             lines = f.read()
@@ -398,7 +423,7 @@ def test_exclude() -> None:
             func(["./foo", "./bar"])
         if func == _direct:
             assert "-W-EXCLS" in _get_traverse_staging_dir(stage).name
-            with open(_get_traverse_log(stage)) as f:
+            with open(_get_traverser_log(stage)) as f:
                 assert "FileNotFoundError" in f.read()
         # when using _shell, it's a nested CalledProcessError, so no files are written
         _remove_all(stage, root)
@@ -417,6 +442,7 @@ def test_previous_traverse() -> None:
         )
 
     def _direct(prev_traverse: str) -> None:
+        _make_traverse_staging_dir(stage, root, [], None)
         path_collector.write_all_filepaths_to_files(
             stage, root, 1, prev_traverse, 0, [], None
         )
@@ -429,13 +455,14 @@ def test_previous_traverse() -> None:
         logging.warning("previous-traverse => good")
         with open("./archive-prev.txt", "w") as f:
             stage, root = _setup_testfiles("previous")
+            _make_traverse_staging_dir(stage, root, [], None)
             path_collector.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
             with open(_get_archive_file(stage), "r") as a_f:
                 f.writelines(a_f.readlines()[5:15])
         _remove_all(stage, root)
         stage, root = _setup_testfiles("prev-traverse-good")
         func("./archive-prev.txt")
-        _assert_out_files(stage)
+        _assert_out_files(stage, func == _shell)
         _assert_out_chunks(stage, 0)
         with open(_get_archive_file(stage), "r") as a_f:
             with open("./archive-prev.txt", "r") as p_f:
@@ -448,13 +475,14 @@ def test_previous_traverse() -> None:
         logging.warning("previous-traverse => bad lines")
         with open("./archive-prev.txt", "w") as f:
             stage, root = _setup_testfiles("previous")
+            _make_traverse_staging_dir(stage, root, [], None)
             path_collector.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
             with open(_get_archive_file(stage), "r") as a_f:
                 f.writelines(["!FOOBARBAZ!"] + a_f.readlines()[5:15])
         _remove_all(stage, root)
         stage, root = _setup_testfiles("prev-traverse-bad-lines")
         func("./archive-prev.txt")
-        _assert_out_files(stage)
+        _assert_out_files(stage, func == _shell)
         _assert_out_chunks(stage, 0)
         with open(_get_archive_file(stage), "r") as a_f:
             with open("./archive-prev.txt", "r") as p_f:

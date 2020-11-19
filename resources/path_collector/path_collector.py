@@ -175,9 +175,9 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     suffix = _suffix(traverse_root, bool(excluded_paths), bool(traverse_file_arg))
     traverse_staging_dir = _get_traverse_staging_dir(staging_dir, suffix)
 
-    # traverse_staging_dir must NOT already exist
-    if os.path.exists(traverse_staging_dir):
-        raise FileExistsError(traverse_staging_dir)
+    # traverse_staging_dir must already exist
+    if not os.path.exists(traverse_staging_dir):
+        raise FileNotFoundError(traverse_staging_dir)
 
     # output argv to a file
     with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
