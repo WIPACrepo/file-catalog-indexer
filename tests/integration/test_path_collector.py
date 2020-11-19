@@ -97,7 +97,7 @@ def _assert_out_files(stage: str, no_paths_log: bool = False) -> None:
         assert set(os.listdir(stage_dirs[0])) == set(["argv.txt", "traverse-chunks"])
     else:
         assert set(os.listdir(stage_dirs[0])) == set(
-            ["argv.txt", "traverse.log", "traverse-chunks"]
+            ["argv.txt", "traverser.log", "traverse-chunks"]
         )
 
 
@@ -106,7 +106,7 @@ def _get_traverse_staging_dir(stage: str) -> os.DirEntry:  # type: ignore[type-a
 
 
 def _get_traverse_log(stage: str) -> str:
-    return os.path.join(_get_traverse_staging_dir(stage).path, "traverse.log")
+    return os.path.join(_get_traverse_staging_dir(stage).path, "traverser.log")
 
 
 def _get_chunks_dir(stage: str) -> str:
@@ -245,7 +245,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         with open("good.txt", "w") as f:
             f.writelines(ln + "\n" for ln in glob.glob(f"{root}/**", recursive=True))
         func("good.txt")
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverse.log'
+        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
         assert filecmp.cmp(_get_archive_file(stage), "good.txt")
         assert filecmp.cmp(_get_chunk_0(stage), "good.txt")
         _remove_all(stage, root, "good.txt")
@@ -258,7 +258,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         with open("good.txt", "w") as f:
             f.writelines(ln + "\n" for ln in glob.glob(f"{root}/**", recursive=True))
         func("good.txt", w_chunks=True)
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverse.log'
+        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
         assert filecmp.cmp(_get_archive_file(stage), "good.txt")
         _assert_out_chunks(stage, chunk_size)
         _remove_all(stage, root, "good.txt")
@@ -272,7 +272,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             pass
         stage, root = _setup_testfiles("empty-traverse-file")
         func("empty.txt")
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverse.log'
+        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
         assert int(os.lstat("empty.txt").st_size) == 0
         assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
         assert filecmp.cmp(_get_archive_file(stage), "empty.txt")
@@ -288,7 +288,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             pass
         stage, root = _setup_testfiles("empty-traverse-file")
         func("empty.txt", w_chunks=True)
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverse.log'
+        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
         assert int(os.lstat("empty.txt").st_size) == 0
         assert not os.listdir(_get_chunks_dir(stage))  # empty paths/
         assert filecmp.cmp(_get_archive_file(stage), "empty.txt")
@@ -303,7 +303,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             f.write("foo\nbar\nbaz")
         stage, root = _setup_testfiles("bad-filepaths-traverse-file")
         func("bad-filepaths.txt")
-        _assert_out_files(stage, no_paths_log=True)  # no 'traverse.log'
+        _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
         assert filecmp.cmp(_get_archive_file(stage), "bad-filepaths.txt")
         assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
         assert filecmp.cmp(_get_chunk_0(stage), "bad-filepaths.txt")
@@ -321,7 +321,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         with pytest.raises((FileNotFoundError, subprocess.CalledProcessError)):
             func("bad-filepaths.txt", w_chunks=True)
         with pytest.raises(AssertionError):
-            _assert_out_files(stage, no_paths_log=True)  # no 'traverse.log'
+            _assert_out_files(stage, no_paths_log=True)  # no 'traverser.log'
         assert os.path.exists(_get_chunks_dir(stage))
         with pytest.raises(IndexError):
             _get_archive_file(stage)
