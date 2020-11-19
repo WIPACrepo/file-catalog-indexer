@@ -148,6 +148,19 @@ def _archive(
     logging.info(f"Archive File: at {file_archive}")
 
 
+def _suffix(
+    traverse_root: str, has_excluded_paths: bool, has_traverse_file_arg: bool
+) -> str:
+    suffix = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
+    if has_excluded_paths and not has_traverse_file_arg:
+        suffix += "-W-EXCLS"
+    return suffix
+
+
+def _get_traverse_staging_dir(staging_dir: str, suffix: str) -> str:
+    return os.path.join(staging_dir, f"pre-index-{suffix}/")
+
+
 def write_all_filepaths_to_files(  # pylint: disable=R0913
     staging_dir: str,
     traverse_root: str,
@@ -158,11 +171,8 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     traverse_file_arg: Optional[str],
 ) -> None:
     """Write all filepaths (rooted from `traverse_root`) to multiple files."""
-    suffix = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
-    if excluded_paths and not traverse_file_arg:
-        suffix += "-W-EXCLS"
-
-    traverse_staging_dir = os.path.join(staging_dir, f"pre-index-{suffix}/")
+    suffix = _suffix(traverse_root, bool(excluded_paths), bool(traverse_file_arg))
+    traverse_staging_dir = _get_traverse_staging_dir(staging_dir, suffix)
 
     if not os.path.exists(traverse_staging_dir):
         check_call_and_log(f"mkdir {traverse_staging_dir}".split())
@@ -212,9 +222,22 @@ def main() -> None:
         required=True,
     )
     args = parser.parse_args()
+    coloredlogs.install(level="DEBUG")
+
+    # also log to a file -- use the formatter (and level) from coloredlogs
+    suffix = _suffix(args.traverse_root, bool(args.exclude), bool(args.traverse_file))
+    traverse_staging_dir = _get_traverse_staging_dir(args.staging_dir, suffix)
+    fhandler = logging.FileHandler(
+        os.path.join(traverse_staging_dir, "path_collector.log")
+    )
+    fhandler.setFormatter(logging.getLogger().handlers[0].formatter)  # type: ignore[arg-type]
+    logging.getLogger().addHandler(fhandler)
+
+    # log args
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
+    # traverse and chunk
     write_all_filepaths_to_files(
         args.staging_dir,
         args.traverse_root,
@@ -227,11 +250,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    coloredlogs.install(level="DEBUG")
-
-    # also log to a file -- use the formatter from coloredlogs
-    fh = logging.FileHandler("path_collector.log")
-    fh.setFormatter(logging.getLogger().handlers[0].formatter)  # type: ignore[arg-type]
-    logging.getLogger().addHandler(fh)
-
     main()

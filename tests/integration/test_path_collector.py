@@ -166,7 +166,7 @@ def _assert_out_chunks(stage: str, chunk_size: int) -> None:
         assert set(all_lines) == set(ln.strip() for ln in f)
 
 
-def test_chunk_sizes() -> None:
+def test_chunk_size() -> None:
     """Test using --chunk-size."""
 
     def _shell() -> None:
@@ -404,7 +404,7 @@ def test_exclude() -> None:
         _remove_all(stage, root)
 
 
-def test_chunk_sizes() -> None:
+def test_previous_traverse() -> None:
     """Test using --previous-traverse."""
 
     def _shell(prev_traverse: str) -> None:
