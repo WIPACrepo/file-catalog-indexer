@@ -37,6 +37,7 @@ def make_condor_file(  # pylint: disable=R0913
     memory: str,
     chunk_size: int,
     excluded_paths: List[str],
+    force: bool,
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -53,11 +54,12 @@ def make_condor_file(  # pylint: disable=R0913
         previous_arg = f"--previous-traverse {prev_traverse}" if prev_traverse else ""
         exculdes_args = " ".join(excluded_paths) if excluded_paths else ""
         chunk_size_arg = f"--chunk-size {chunk_size}" if chunk_size else ""
+        force_arg = "--force" if force else ""
 
         # write
         file.write(
             f"""executable = {os.path.abspath('../indexer_env.sh')}
-arguments = python path_collector.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg}
+arguments = python path_collector.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg} {force_arg}
 output = {scratch}/path_collector.out
 error = {scratch}/path_collector.err
 log = {scratch}/path_collector.log
@@ -117,6 +119,7 @@ def main() -> None:
         args.memory,
         args.chunk_size,
         args.exclude,
+        args.force,
     )
 
     # Execute
