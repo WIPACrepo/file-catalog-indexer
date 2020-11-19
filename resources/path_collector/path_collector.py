@@ -6,6 +6,7 @@ indexer_make_dag.py jobs.
 
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from datetime import datetime as dt
@@ -174,33 +175,31 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     suffix = _suffix(traverse_root, bool(excluded_paths), bool(traverse_file_arg))
     traverse_staging_dir = _get_traverse_staging_dir(staging_dir, suffix)
 
-    if not os.path.exists(traverse_staging_dir):
-        check_call_and_log(f"mkdir {traverse_staging_dir}".split())
+    # traverse_staging_dir must NOT already exist
+    if os.path.exists(traverse_staging_dir):
+        raise FileExistsError(traverse_staging_dir)
 
-        # output argv to a file
-        with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
-            f.write(" ".join(sys.argv) + "\n")
+    # output argv to a file
+    with open(os.path.join(traverse_staging_dir, "argv.txt"), "w") as f:
+        f.write(" ".join(sys.argv) + "\n")
 
-        # get traverse file
-        if traverse_file_arg:
-            logging.info(f"Using --traverse-file {traverse_file_arg}.")
-            traverse_file = traverse_file_arg
-        else:
-            logging.info(f"Traversing {traverse_root}...")
-            traverse_file = _full_traverse(
-                traverse_staging_dir, traverse_root, excluded_paths, workers
-            )
-
-        _remove_already_collected_files(prev_traverse, traverse_file)
-        _chunk(traverse_staging_dir, chunk_size, traverse_file)
-        _archive(
-            staging_dir, suffix, traverse_file, dont_replace=bool(traverse_file_arg)
-        )
-
+    # get traverse file
+    if traverse_file_arg:
+        logging.info(f"Using --traverse-file {traverse_file_arg}.")
+        traverse_file = traverse_file_arg
     else:
-        logging.warning(
-            f"Writing Bypassed: {traverse_staging_dir} already exists. Use preexisting files."
+        logging.info(f"Traversing {traverse_root}...")
+        traverse_file = _full_traverse(
+            traverse_staging_dir, traverse_root, excluded_paths, workers
         )
+
+    _remove_already_collected_files(prev_traverse, traverse_file)
+    _chunk(traverse_staging_dir, chunk_size, traverse_file)
+    _archive(staging_dir, suffix, traverse_file, dont_replace=bool(traverse_file_arg))
+
+
+def _get_path_collector_log(traverse_staging_dir: str) -> str:
+    return os.path.join(traverse_staging_dir, "path_collector.log")
 
 
 def main() -> None:
@@ -221,23 +220,43 @@ def main() -> None:
         help="max number of workers. **Ignored if also using --traverse-file**",
         required=True,
     )
+    parser.add_argument(
+        "--force",
+        "-f",
+        default=False,
+        action="store_true",
+        help="write over any pre-exiting *STAGING* files -- useful for condor restarts.",
+    )
     args = parser.parse_args()
-    coloredlogs.install(level="DEBUG")
+    # print args
+    for arg, val in vars(args).items():
+        print(f"{arg}: {val}")
 
-    # also log to a file -- use the formatter (and level) from coloredlogs
+    #
+    # figure traverse_staging_dir
     suffix = _suffix(args.traverse_root, bool(args.exclude), bool(args.traverse_file))
     traverse_staging_dir = _get_traverse_staging_dir(args.staging_dir, suffix)
-    fhandler = logging.FileHandler(
-        os.path.join(traverse_staging_dir, "path_collector.log")
-    )
+    if args.force:
+        shutil.move(_get_path_collector_log(traverse_staging_dir), "collector.log.temp")
+        shutil.rmtree(traverse_staging_dir)
+        os.mkdir(traverse_staging_dir)
+        shutil.move("collector.log.temp", _get_path_collector_log(traverse_staging_dir))
+    elif os.path.exists(traverse_staging_dir):
+        raise FileExistsError(traverse_staging_dir)
+
+    #
+    # setup logging
+    coloredlogs.install(level="DEBUG")
+    # also log to a file -- use the formatter (and level) from coloredlogs
+    fhandler = logging.FileHandler(_get_path_collector_log(traverse_staging_dir))
     fhandler.setFormatter(logging.getLogger().handlers[0].formatter)  # type: ignore[arg-type]
     logging.getLogger().addHandler(fhandler)
-
     # log args
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    # traverse and chunk
+    #
+    # traverse and chunk!
     write_all_filepaths_to_files(
         args.staging_dir,
         args.traverse_root,
