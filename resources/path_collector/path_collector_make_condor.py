@@ -15,12 +15,10 @@ from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
 )
 
 
-def make_condor_scratch_dir(traverse_root: str, with_exclusions: bool = False) -> str:
+def make_condor_scratch_dir(traverse_root: str) -> str:
     """Make the condor scratch directory."""
     name = traverse_root.strip("/").replace("/", "-")  # Ex: 'data-exp'
     dir_name = f"path-collection-{name}"
-    if with_exclusions:
-        dir_name += "-W-EXCLS"
 
     scratch = os.path.join("/scratch/", getpass.getuser(), dir_name)
     if not os.path.exists(scratch):
@@ -29,7 +27,7 @@ def make_condor_scratch_dir(traverse_root: str, with_exclusions: bool = False) -
     return scratch
 
 
-def make_condor_file(  # pylint: disable=R0913
+def make_condor_file(  # pylint: disable=R0913,R0914
     scratch: str,
     prev_traverse: str,
     traverse_root: str,
@@ -37,7 +35,7 @@ def make_condor_file(  # pylint: disable=R0913
     memory: str,
     chunk_size: int,
     excluded_paths: List[str],
-    force: bool,
+    fast_forward: bool,
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -54,12 +52,12 @@ def make_condor_file(  # pylint: disable=R0913
         previous_arg = f"--previous-traverse {prev_traverse}" if prev_traverse else ""
         exculdes_args = " ".join(excluded_paths) if excluded_paths else ""
         chunk_size_arg = f"--chunk-size {chunk_size}" if chunk_size else ""
-        force_arg = "--force" if force else ""
+        fast_forward_arg = "--fast-forward" if fast_forward else ""
 
         # write
         file.write(
             f"""executable = {os.path.abspath('../indexer_env.sh')}
-arguments = python path_collector.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg} {force_arg}
+arguments = python path_collector.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg} {fast_forward_arg}
 output = {scratch}/path_collector.out
 error = {scratch}/path_collector.err
 log = {scratch}/path_collector.log
@@ -108,7 +106,7 @@ def main() -> None:
         logging.warning(f"{arg}: {val}")
 
     # make condor scratch directory
-    scratch = make_condor_scratch_dir(args.traverse_root, bool(args.exclude))
+    scratch = make_condor_scratch_dir(args.traverse_root)
 
     # make condor file
     condorpath = make_condor_file(
@@ -119,7 +117,7 @@ def main() -> None:
         args.memory,
         args.chunk_size,
         args.exclude,
-        args.force,
+        args.fast_forward,
     )
 
     # Execute

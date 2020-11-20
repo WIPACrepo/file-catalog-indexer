@@ -10,8 +10,7 @@ import shutil
 import stat
 import subprocess
 import sys
-import time
-from typing import Any, Final, List, Optional, Tuple
+from typing import Any, Final, List, Tuple
 
 import bitmath  # type: ignore[import]
 import pytest
@@ -24,16 +23,9 @@ import common_args  # type: ignore[import]  # isort:skip  # noqa # pylint: disab
 # logging.getLogger().setLevel("DEBUG")
 
 
-def _make_traverse_staging_dir(
-    stage: str,
-    traverse_root: str,
-    excluded_paths: List[str],
-    traverse_file_arg: Optional[str],
-) -> None:
+def _make_traverse_staging_dir(stage: str, traverse_root: str) -> None:
     # pylint: disable=W0212
-    suffix = path_collector._suffix(
-        traverse_root, bool(excluded_paths), bool(traverse_file_arg)
-    )
+    suffix = path_collector._suffix(traverse_root)
     _dir = path_collector._get_traverse_staging_dir(stage, suffix)
     logging.info(f"mkdir {_dir}")
     os.mkdir(_dir)
@@ -87,6 +79,7 @@ def _remove_all(*args: Any) -> None:
 
 
 def _get_archive_file(stage: str) -> os.DirEntry:  # type: ignore[type-arg]
+    print([d for d in os.scandir(stage) if stat.S_ISREG(os.lstat(d.path).st_mode)])
     return [d for d in os.scandir(stage) if stat.S_ISREG(os.lstat(d.path).st_mode)][0]
 
 
@@ -191,48 +184,49 @@ def _assert_out_chunks(stage: str, chunk_size: int) -> None:
 def test_chunk_size() -> None:
     """Test using --chunk-size."""
 
-    def _shell() -> None:
-        subprocess.check_call(
-            f"python ./resources/path_collector/path_collector.py {root}"
-            f" --staging-dir {stage}"
-            f" --workers 1"
-            f" --chunk-size {chunk_size}".split(),
-            cwd=".",
-        )
+    # def _shell() -> None:
+    #     subprocess.check_call(
+    #         f"python ./resources/path_collector/path_collector.py {root}"
+    #         f" --staging-dir {stage}"
+    #         f" --workers 1"
+    #         f" --chunk-size {chunk_size}".split(),
+    #         cwd=".",
+    #     )
 
-    def _direct() -> None:
-        _make_traverse_staging_dir(stage, root, [], None)
-        path_collector.write_all_filepaths_to_files(
-            stage, root, 1, "", chunk_size, [], None
-        )
+    # def _direct() -> None:
+    #     _make_traverse_staging_dir(stage, root)
+    #     path_collector.write_all_filepaths_to_files(
+    #         stage, root, 1, "", chunk_size, [], None
+    #     )
 
-    for func in [_direct, _shell]:
-        logging.warning(f"Using invocation function: {func}")
-        now = str(time.time())
+    # for func in [_direct, _shell]:
+    #     logging.warning(f"Using invocation function: {func}")
+    #     now = str(time.time())
 
-        for kibs in [0] + [10 ** i for i in range(0, 8)]:
-            print("~ " * 60)
-            chunk_size = int(bitmath.parse_string(f"{kibs}KiB").to_Byte())
-            logging.warning(
-                f"chunk_size => {bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')} ({chunk_size} bytes)"
-            )
-            stage, root = _setup_testfiles(f"{now}-{kibs}KiB")
-            func()
-            _assert_out_files(stage, func == _shell)
-            _assert_out_chunks(stage, chunk_size)
-            _remove_all(stage, root)
+    #     for kibs in [0] + [10 ** i for i in range(0, 8)]:
+    #         print("~ " * 60)
+    #         chunk_size = int(bitmath.parse_string(f"{kibs}KiB").to_Byte())
+    #         logging.warning(
+    #             f"chunk_size => {bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')} ({chunk_size} bytes)"
+    #         )
+    #         stage, root = _setup_testfiles(f"{now}-{kibs}KiB")
+    #         func()
+    #         _assert_out_files(stage, func == _shell)
+    #         _assert_out_chunks(stage, chunk_size)
+    #         _remove_all(stage, root)
 
 
-def test_w_traverse_file() -> None:  # pylint: disable=R0915
-    """Test using --traverse-file."""
+def test_w_fast_forward() -> None:  # pylint: disable=R0915
+    """Test using --fast-forward."""
     chunk_size: Final[int] = int(bitmath.parse_string("500MiB").to_Byte())
 
-    def _shell(traverse_file: str, w_chunks: bool = False) -> None:
+    def _shell(ff_traverse_file: str, w_chunks: bool = False) -> None:
+        _make_traverse_staging_dir(stage, root)
         if w_chunks:
             subprocess.check_call(
                 f"python ./resources/path_collector/path_collector.py {root}"
                 f" --staging-dir {stage}"
-                f" --traverse-file {traverse_file}"
+                f" --fast-forward"
                 f" --chunk-size {chunk_size}"
                 f" --workers 1".split(),
                 cwd=".",
@@ -241,21 +235,28 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             subprocess.check_call(
                 f"python ./resources/path_collector/path_collector.py {root}"
                 f" --staging-dir {stage}"
-                f" --traverse-file {traverse_file}"
+                f" --fast-forward"
                 f" --workers 1".split(),
                 cwd=".",
             )
 
-    def _direct(traverse_file: str, w_chunks: bool = False) -> None:
-        _make_traverse_staging_dir(stage, root, [], traverse_file)
+    def _direct(ff_traverse_file: str, w_chunks: bool = False) -> None:
+        _make_traverse_staging_dir(stage, root)
         if w_chunks:
             path_collector.write_all_filepaths_to_files(
-                stage, root, 1, "", chunk_size, [], traverse_file
+                stage, root, 1, "", chunk_size, [], ff_traverse_file
             )
         else:
             path_collector.write_all_filepaths_to_files(
-                stage, root, 1, "", 0, [], traverse_file
+                stage, root, 1, "", 0, [], ff_traverse_file
             )
+
+    def _assert_same_lines(a: str, b: str) -> None:  # pylint: disable=C0103
+        with open(a) as f:
+            a_lines = [ln.strip() for ln in f.readlines()]
+        with open(b) as f:
+            b_lines = [ln.strip() for ln in f.readlines()]
+        assert set(a_lines) == set(b_lines)
 
     # TEST
     for func in [_direct, _shell]:
@@ -264,86 +265,86 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
         #
         # test good traverse file w/o chunking
         print("~ " * 60)
-        logging.warning("traverse_file => good.txt (no chunks)")
+        logging.warning("ff_traverse_file => good.txt (no chunks)")
         stage, root = _setup_testfiles("good-traverse-file")
-        with open("good.txt", "w") as f:
+        with open("traverse.raw", "w") as f:
             f.writelines(ln + "\n" for ln in glob.glob(f"{root}/**", recursive=True))
-        func("good.txt")
+        func("traverse.raw")
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
-        assert filecmp.cmp(_get_archive_file(stage), "good.txt")
-        assert filecmp.cmp(_get_chunk_0(stage), "good.txt")
-        _remove_all(stage, root, "good.txt")
+        _assert_same_lines(_get_archive_file(stage).path, "traverse.raw")
+        _assert_same_lines(_get_chunk_0(stage).path, "traverse.raw")
+        _remove_all(stage, root, "traverse.raw")
 
         #
         # test good traverse file w/ chunking
         print("~ " * 60)
-        logging.warning("traverse_file => good.txt (w/ chunks)")
+        logging.warning("ff_traverse_file => good.txt (w/ chunks)")
         stage, root = _setup_testfiles("good-traverse-file")
-        with open("good.txt", "w") as f:
+        with open("traverse.raw", "w") as f:
             f.writelines(ln + "\n" for ln in glob.glob(f"{root}/**", recursive=True))
-        func("good.txt", w_chunks=True)
+        func("traverse.raw", w_chunks=True)
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
-        assert filecmp.cmp(_get_archive_file(stage), "good.txt")
+        _assert_same_lines(_get_archive_file(stage).path, "traverse.raw")
         _assert_out_chunks(stage, chunk_size)
-        _remove_all(stage, root, "good.txt")
+        _remove_all(stage, root, "traverse.raw")
 
         #
         # test empty traverse file w/o chunking
         # -- there will be a paths/chunk-0 file, but it's empty
         print("~ " * 60)
-        logging.warning("traverse_file => empty.txt (no chunks)")
-        with open("empty.txt", "w") as f:
+        logging.warning("ff_traverse_file => empty.txt (no chunks)")
+        with open("traverse.raw", "w") as f:
             pass
         stage, root = _setup_testfiles("empty-traverse-file")
-        func("empty.txt")
+        func("traverse.raw")
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
-        assert int(os.lstat("empty.txt").st_size) == 0
+        assert int(os.lstat("traverse.raw").st_size) == 0
         assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
-        assert filecmp.cmp(_get_archive_file(stage), "empty.txt")
-        assert filecmp.cmp(_get_chunk_0(stage), "empty.txt")
-        _remove_all(stage, root, "empty.txt")
+        _assert_same_lines(_get_archive_file(stage).path, "traverse.raw")
+        _assert_same_lines(_get_chunk_0(stage).path, "traverse.raw")
+        _remove_all(stage, root, "traverse.raw")
 
         #
         # test empty traverse file w/ chunking
         # -- there will be a paths/ directory, but it's empty
         print("~ " * 60)
-        logging.warning("traverse_file => empty.txt (w/ chunks)")
-        with open("empty.txt", "w") as f:
+        logging.warning("ff_traverse_file => empty.txt (w/ chunks)")
+        with open("traverse.raw", "w") as f:
             pass
         stage, root = _setup_testfiles("empty-traverse-file")
-        func("empty.txt", w_chunks=True)
+        func("traverse.raw", w_chunks=True)
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
-        assert int(os.lstat("empty.txt").st_size) == 0
+        assert int(os.lstat("traverse.raw").st_size) == 0
         assert not os.listdir(_get_chunks_dir(stage))  # empty paths/
-        assert filecmp.cmp(_get_archive_file(stage), "empty.txt")
-        _remove_all(stage, root, "empty.txt")
+        _assert_same_lines(_get_archive_file(stage).path, "traverse.raw")
+        _remove_all(stage, root, "traverse.raw")
 
         #
         # test traverse file w/ bad lines (filepaths) w/o chunking
         # -- there will be a paths/chunk-0 file, but it's empty
         print("~ " * 60)
-        logging.warning("traverse_file => bad-filepaths.txt")
-        with open("bad-filepaths.txt", "w") as f:
+        logging.warning("ff_traverse_file => bad-filepaths.txt")
+        with open("traverse.raw", "w") as f:
             f.write("foo\nbar\nbaz")
         stage, root = _setup_testfiles("bad-filepaths-traverse-file")
-        func("bad-filepaths.txt")
+        func("traverse.raw")
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
-        assert filecmp.cmp(_get_archive_file(stage), "bad-filepaths.txt")
+        _assert_same_lines(_get_archive_file(stage).path, "traverse.raw")
         assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
-        assert filecmp.cmp(_get_chunk_0(stage), "bad-filepaths.txt")
-        _remove_all(stage, root, "bad-filepaths.txt")
+        _assert_same_lines(_get_chunk_0(stage).path, "traverse.raw")
+        _remove_all(stage, root, "traverse.raw")
 
         #
         # test traverse file w/ bad lines (filepaths) w/ chunking
         # -- there will be a paths/ directory, but it's empty
         # -- no archive file, but there is argv.txt
         print("~ " * 60)
-        logging.warning("traverse_file => bad-filepaths.txt (w/ chunks)")
-        with open("bad-filepaths.txt", "w") as f:
+        logging.warning("ff_traverse_file => bad-filepaths.txt (w/ chunks)")
+        with open("traverse.raw", "w") as f:
             f.write("foo\nbar\nbaz")
         stage, root = _setup_testfiles("bad-filepaths-traverse-file")
         with pytest.raises((FileNotFoundError, subprocess.CalledProcessError)):
-            func("bad-filepaths.txt", w_chunks=True)
+            func("traverse.raw", w_chunks=True)
         with pytest.raises(AssertionError):
             _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert os.path.exists(_get_chunks_dir(stage))
@@ -351,7 +352,7 @@ def test_w_traverse_file() -> None:  # pylint: disable=R0915
             _get_archive_file(stage)
         assert not os.listdir(_get_chunks_dir(stage))
         assert "argv.txt" in os.listdir(_get_traverse_staging_dir(stage))
-        _remove_all(stage, root, "bad-filepaths.txt")
+        _remove_all(stage, root, "traverse.raw")
 
 
 def test_exclude() -> None:
@@ -369,7 +370,7 @@ def test_exclude() -> None:
         )
 
     def _direct(excludes: List[str]) -> None:
-        _make_traverse_staging_dir(stage, root, excludes, None)
+        _make_traverse_staging_dir(stage, root)
         path_collector.write_all_filepaths_to_files(
             stage, root, 1, "", chunk_size, excludes, None
         )
@@ -395,7 +396,6 @@ def test_exclude() -> None:
             assert lines
         for e in ["gamma", "beta/two"]:
             assert e not in lines
-        assert "-W-EXCLS" in _get_traverse_staging_dir(stage).name
         _remove_all(stage, root)
 
         #
@@ -411,7 +411,6 @@ def test_exclude() -> None:
             assert lines
         for e in [".gitignore", "README.md"]:
             assert e not in lines
-        assert "-W-EXCLS" in _get_traverse_staging_dir(stage).name
         _remove_all(stage, root)
 
         #
@@ -422,7 +421,6 @@ def test_exclude() -> None:
         with pytest.raises(subprocess.CalledProcessError):  # raised by traverser.py
             func(["./foo", "./bar"])
         if func == _direct:
-            assert "-W-EXCLS" in _get_traverse_staging_dir(stage).name
             with open(_get_traverser_log(stage)) as f:
                 assert "FileNotFoundError" in f.read()
         # when using _shell, it's a nested CalledProcessError, so no files are written
@@ -442,7 +440,7 @@ def test_previous_traverse() -> None:
         )
 
     def _direct(prev_traverse: str) -> None:
-        _make_traverse_staging_dir(stage, root, [], None)
+        _make_traverse_staging_dir(stage, root)
         path_collector.write_all_filepaths_to_files(
             stage, root, 1, prev_traverse, 0, [], None
         )
@@ -455,7 +453,7 @@ def test_previous_traverse() -> None:
         logging.warning("previous-traverse => good")
         with open("./archive-prev.txt", "w") as f:
             stage, root = _setup_testfiles("previous")
-            _make_traverse_staging_dir(stage, root, [], None)
+            _make_traverse_staging_dir(stage, root)
             path_collector.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
             with open(_get_archive_file(stage), "r") as a_f:
                 f.writelines(a_f.readlines()[5:15])
@@ -475,7 +473,7 @@ def test_previous_traverse() -> None:
         logging.warning("previous-traverse => bad lines")
         with open("./archive-prev.txt", "w") as f:
             stage, root = _setup_testfiles("previous")
-            _make_traverse_staging_dir(stage, root, [], None)
+            _make_traverse_staging_dir(stage, root)
             path_collector.write_all_filepaths_to_files(stage, root, 1, "", 0, [], None)
             with open(_get_archive_file(stage), "r") as a_f:
                 f.writelines(["!FOOBARBAZ!"] + a_f.readlines()[5:15])
@@ -490,36 +488,36 @@ def test_previous_traverse() -> None:
         _remove_all(stage, root, "./archive-prev.txt")
 
 
-def test_force() -> None:
-    """Test using --force."""
+def test_fast_forward_logic() -> None:
+    """Test using --fast-forward."""
     #
-    # test good use of force w/o an existing traverse_staging_dir
-    stage, root = _setup_testfiles("w-force-no-traverse-staging-dir")
+    # test good use of fast_forward w/o an existing traverse_staging_dir
+    stage, root = _setup_testfiles("w-fast_forward-no-traverse-staging-dir")
     subprocess.check_call(
         f"python ./resources/path_collector/path_collector.py {root}"
         f" --staging-dir {stage}"
         f" --workers 1"
-        f" --force".split(),
+        f" --fast-forward".split(),
         cwd=".",
     )
     _remove_all(stage, root)
 
     #
-    # test good use of force w/ an existing traverse_staging_dir
-    stage, root = _setup_testfiles("w-force-w-traverse-staging-dir")
-    _make_traverse_staging_dir(stage, root, [], None)
+    # test good use of fast_forward w/ an existing traverse_staging_dir
+    stage, root = _setup_testfiles("w-fast_forward-w-traverse-staging-dir")
+    _make_traverse_staging_dir(stage, root)
     subprocess.check_call(
         f"python ./resources/path_collector/path_collector.py {root}"
         f" --staging-dir {stage}"
         f" --workers 1"
-        f" --force".split(),
+        f" --fast-forward".split(),
         cwd=".",
     )
     _remove_all(stage, root)
 
     #
-    # test w/o --force & w/o an existing traverse_staging_dir
-    stage, root = _setup_testfiles("no-force-no-traverse-staging-dir")
+    # test w/o --fast-forward & w/o an existing traverse_staging_dir
+    stage, root = _setup_testfiles("no-fast_forward-no-traverse-staging-dir")
     subprocess.check_call(
         f"python ./resources/path_collector/path_collector.py {root}"
         f" --staging-dir {stage}"
@@ -529,9 +527,9 @@ def test_force() -> None:
     _remove_all(stage, root)
 
     #
-    # test w/o --force, but w/ an existing traverse_staging_dir
-    stage, root = _setup_testfiles("no-force-w-traverse-staging-dir")
-    _make_traverse_staging_dir(stage, root, [], None)
+    # test w/o --fast-forward, but w/ an existing traverse_staging_dir
+    stage, root = _setup_testfiles("no-fast_forward-w-traverse-staging-dir")
+    _make_traverse_staging_dir(stage, root)
     with pytest.raises(subprocess.CalledProcessError):
         subprocess.check_call(
             f"python ./resources/path_collector/path_collector.py {root}"
