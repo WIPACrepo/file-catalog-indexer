@@ -22,7 +22,7 @@ def get_full_path(path: str) -> str:
 
 def redact(fpath: str) -> None:
     """Write out basic patterns."""
-    with open("redacted.txt", "w") as bpf:
+    with open("redacted.raw", "w") as bpf:
         with open(fpath, "r") as f:
             for line in f.readlines():
                 if "#" in line:
@@ -31,8 +31,10 @@ def redact(fpath: str) -> None:
                 redacted = re.sub(r"\d+", "#", line)
                 bpf.write(redacted)
 
-    subprocess.check_call("sort redacted.txt | uniq > redacted.txt", shell=True)
-    # subprocess.check_call("uniq redacted.sort > redacted.uniq", shell=True)
+    subprocess.check_call("sort redacted.raw > redacted.sort", shell=True)
+    os.remove("redacted.raw")
+    subprocess.check_call("uniq redacted.sort > redacted.txt", shell=True)
+    os.remove("redacted.sort")
 
 
 def main() -> None:
