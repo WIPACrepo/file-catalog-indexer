@@ -272,21 +272,34 @@ def _figure_fast_forwarding(traverse_staging_dir: str) -> str:
     logging.info("Figuring where to fast-forward to...")
 
     # clean-up for fast forwarding -- rm -r chunks/ && rm *.tmp
-    logging.info(f"ls {traverse_staging_dir} -> {os.listdir(traverse_staging_dir)}")
+    logging.warning("Cleaning up traverse-staging directory:")
+    # ls
+    logging.info(
+        f"BEFORE: ls {traverse_staging_dir} -> {os.listdir(traverse_staging_dir)}"
+    )
+    # rm -r chunks/
     if os.path.exists(_get_chunks_dir(traverse_staging_dir)):
         logging.warning(f"rm -r {_get_chunks_dir(traverse_staging_dir)}...")
         shutil.rmtree(_get_chunks_dir(traverse_staging_dir))
-    for f in [os.path.abspath(p) for p in os.listdir(traverse_staging_dir)]:
-        if f.endswith(".tmp"):
-            logging.warning(f"rm {f}...")
-            os.remove(f)
+    # rm *.tmp
+    for fpath in [
+        os.path.join(traverse_staging_dir, fn)
+        for fn in os.listdir(traverse_staging_dir)
+    ]:
+        if fpath.endswith(".tmp"):
+            logging.debug(f"rm {fpath}...")
+            os.remove(fpath)
+    # ls
+    logging.info(
+        f"AFTER: ls {traverse_staging_dir} -> {os.listdir(traverse_staging_dir)}"
+    )
 
-    # find which file to use for fast-forwarding
-    for trav_file in ["traverse.unique", "traverse.sorted", "traverse.raw"]:
-        if trav_file in [os.path.basename(p) for p in os.listdir(traverse_staging_dir)]:
-            logging.info(f"'{trav_file}' was the last completed traverse.* file")
-            return os.path.join(traverse_staging_dir, trav_file)
-
+    # find which traverse.* file to use for fast-forwarding
+    for fname in ["traverse.unique", "traverse.sorted", "traverse.raw"]:
+        if fname in os.listdir(traverse_staging_dir):
+            logging.info(f"Found the last completed traverse.* file: '{fname}'")
+            return os.path.join(traverse_staging_dir, fname)
+    # ---
     logging.info("Cannot fast-forward -- there were no complete traverse.* files")
     return ""
 
