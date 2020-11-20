@@ -19,8 +19,8 @@ jobs:
       - run:
           command: |
             pip install -r requirements.txt --use-feature=2020-resolver
-            cp ./resources/all_paths/traverser.py ./traverser.py
-            cp ./resources/all_paths/common_args.py ./common_args.py
+            cp ./resources/path_collector/traverser.py ./traverser.py
+            cp ./resources/path_collector/common_args.py ./common_args.py
             pytest tests/integration -vvvvv
             rm -f ./traverser.py ./common_args.py
 

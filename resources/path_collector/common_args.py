@@ -51,7 +51,7 @@ def get_parser_w_common_args(
         parser.add_argument(
             "traverse_root",
             help="root directory to traverse for files."
-            " **Ignored if also using --traverse-file**",
+            " **Potentially bypassed if also using --fast-forward**",
             type=get_full_path,
         )
     if (not only) or ("--previous-traverse" in only):
@@ -69,19 +69,8 @@ def get_parser_w_common_args(
             nargs="*",
             default=[],
             type=get_full_path,
-            help="directories/paths to exclude from the traverse"
-            ' -- keep it short, this is "all paths" after all.'
-            " **Ignored if also using --traverse-file**",
-        )
-    if (not only) or ("--traverse-file" in only):
-        parser.add_argument(
-            "--traverse-file",
-            dest="traverse_file",
-            type=get_full_path,
-            default=None,
-            help="bypass traversing and use this file instead;"
-            " useful for tweaking other controls."
-            " **Overrides other arguments, see those for details.**",
+            help="directories/paths to exclude from the traverse -- keep it short."
+            " **Potentially bypassed if also using --fast-forward**",
         )
     if (not only) or ("--chunk-size" in only):
         parser.add_argument(
@@ -90,6 +79,15 @@ def get_parser_w_common_args(
             type=_parse_to_bytes,
             default=0,
             help="aggregate file-size limit per chunk/job (bytes, KB, MB, ...), by default, one chunk is made.",
+        )
+    if (not only) or ("--fast-forward" in only):
+        parser.add_argument(
+            "--fast-forward",
+            "-f",
+            default=False,
+            action="store_true",
+            help="If *STAGING* files already exist, pick up where it left off"
+            " -- useful for condor restarts and tweaking controls",
         )
 
     return parser
