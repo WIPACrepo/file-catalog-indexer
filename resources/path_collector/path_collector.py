@@ -245,7 +245,7 @@ def write_all_filepaths_to_files(  # pylint: disable=R0913
     else:
         raise RuntimeError(f"Unknown type of fast-forward file {ff_traverse_file}")
 
-    logging.info(f"Chunking {fname} ({chunk_size=})...")
+    logging.info(f"Chunking {fname}...")
     _chunk(traverse_staging_dir, chunk_size, fname)
 
     # cleanup
