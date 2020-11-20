@@ -8,6 +8,8 @@ from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Tuple
 
+import coloredlogs  # type: ignore[import]
+
 sys.path.append(".")
 from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     get_parser_w_common_args,
@@ -24,15 +26,17 @@ def is_excluded_path(path: str, excluded_paths: List[str]) -> bool:
     """
     for excl in excluded_paths:
         if (path == excl) or (os.path.commonpath([path, excl]) == excl):
-            logging.debug(
+            logging.info(
                 f"Skipping {path}, file and/or directory path is in `--exclude` ({excl})."
             )
             return True
     return False
 
 
-def traverse(path: str, excluded_paths: List[str]) -> Tuple[List[str], int]:
-    """Print out file paths and return sub-directories."""
+def scan_directory(path: str, excluded_paths: List[str]) -> Tuple[List[str], int]:
+    """Print out file paths and return sub-directories' paths."""
+    logging.debug(f"Scanning directory: {path}...")
+
     try:
         scan = os.scandir(path)
     except (PermissionError, FileNotFoundError):
@@ -75,6 +79,7 @@ def traverse(path: str, excluded_paths: List[str]) -> Tuple[List[str], int]:
                         f"Invalid file name in: {os.path.dirname(dir_entry.path)}"
                     )
 
+    logging.debug(f"Scan finished, directory: {path}")
     return dirs, all_file_count
 
 
@@ -97,19 +102,26 @@ def main() -> None:
     all_file_count = 0
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         while futures or dirs:
-            # submit process job
-            futures.extend(pool.submit(traverse, d, args.exclude) for d in dirs)
-            # wait
-            while not futures[0].done():
-                sleep(0.1)
+            # submit directory-paths for scanning
+            for dir_path in dirs:
+                logging.debug(f"Submitting directory: {dir_path}...")
+                futures.append(pool.submit(scan_directory, dir_path, args.exclude))
+            # get next finished future
+            while True:
+                try:
+                    fin_future = next(f for f in futures if f.done())
+                    futures.remove(fin_future)
+                    break
+                except StopIteration:  # there were no finished futures
+                    sleep(0.1)
             # cleanup and prep for next job
-            future = futures.pop(0)
-            dirs, result_all_file_count = future.result()
+            dirs, result_all_file_count = fin_future.result()
             all_file_count = all_file_count + result_all_file_count
 
     logging.info(f"File Count: {all_file_count}")
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    coloredlogs.install(level="DEBUG")
+    # logging.basicConfig(level=logging.DEBUG)
     main()
