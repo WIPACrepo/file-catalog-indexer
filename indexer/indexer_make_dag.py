@@ -2,11 +2,14 @@
 
 import argparse
 import getpass
+import logging
 import os
 import re
 import subprocess
 from enum import Enum
 from typing import List, Tuple, TypedDict
+
+import coloredlogs  # type: ignore[import]
 
 # types
 
@@ -96,13 +99,13 @@ def make_condor_file(
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
     if os.path.exists(condorpath):
-        print(
+        logging.warning(
             f"Writing Bypassed: {condorpath} already exists. Using preexisting condor file."
         )
     else:
         with open(condorpath, "w") as file:
             # configure transfer_input_files
-            transfer_input_files = ["indexer.py"]
+            transfer_input_files = ["indexer.py", "../requirements.txt"]
             blacklist_arg = ""
             if indexer_args["blacklist"]:
                 blacklist_arg = f"--blacklist {indexer_args['blacklist']}"
@@ -119,7 +122,7 @@ def make_condor_file(
 
             # write
             file.write(
-                f"""executable = {os.path.abspath('../indexer_env.sh')}
+                f"""executable = {os.path.abspath('../resources/indexer_env.sh')}
 arguments = python indexer.py -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
@@ -141,7 +144,7 @@ def make_dag_file(
     """Make the DAG file."""
     dagpath = os.path.join(scratch, "dag")
     if os.path.exists(dagpath):
-        print(
+        logging.warning(
             f"Writing Bypassed: {dagpath} already exists. Using preexisting dag file."
         )
     else:
@@ -174,6 +177,13 @@ def main() -> None:
 
     Make scratch directory, condor file, and DAGMan file.
     """
+    if not os.getcwd().endswith("file-catalog-indexer/indexer"):
+        raise RuntimeError(
+            "You must run this script from"
+            " `file-catalog-indexer/indexer`."
+            " This script uses relative paths."
+        )
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--token", help="Auth Token", required=True)
     parser.add_argument("-j", "--maxjobs", default=500, help="max concurrent jobs")
@@ -203,10 +213,10 @@ def main() -> None:
         "--dir-of-paths-files",
         dest="dir_of_paths_files",
         help="the directory containing files, each of which contains a list of "
-        "filepaths to index. Ex: /data/user/eevans/indexer-data-exp/paths/",
+        "filepaths to index. Ex: /data/user/eevans/pre-index-data-exp/paths/",
     )
     parser.add_argument(
-        "--blacklist", help="blacklist file containing all paths to skip"
+        "--blacklist", help="blacklist file containing all filepaths to skip"
     )
     parser.add_argument(
         "--dryrun",
@@ -216,6 +226,8 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    for arg, val in vars(args).items():
+        logging.warning(f"{arg}: {val}")
 
     # check if either --level or --dir-of-paths-files
     if (args.level and args.dir_of_paths_files) or (
@@ -252,12 +264,13 @@ def main() -> None:
 
     # Execute
     if args.dryrun:
-        print("Indexer Aborted: Condor jobs not submitted.")
+        logging.error("Indexer Aborted: Condor jobs not submitted.")
     else:
         cmd = f"condor_submit_dag -maxjobs {args.maxjobs} {dagpath}"
-        print(cmd)
+        logging.info(cmd)
         subprocess.check_call(cmd.split(), cwd=scratch)
 
 
 if __name__ == "__main__":
+    coloredlogs.install(level="DEBUG")
     main()
