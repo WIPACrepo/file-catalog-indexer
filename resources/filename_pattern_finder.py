@@ -4,6 +4,8 @@ import argparse
 import logging
 import os
 import re
+import shutil
+import subprocess
 
 
 def get_full_path(path: str) -> str:
@@ -28,6 +30,9 @@ def redact(fpath: str) -> None:
                 # replace each string of digits w/ '#'
                 redacted = re.sub(r"\d+", "#", line)
                 bpf.write(redacted)
+
+    subprocess.check_call("sort redacted.txt > redacted.sort".split())
+    subprocess.check_call("uniq redacted.sort > redacted.uniq".split())
 
 
 def main() -> None:
