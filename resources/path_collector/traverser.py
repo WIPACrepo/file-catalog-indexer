@@ -60,7 +60,7 @@ def scan_directory(path: str, excluded_paths: List[str]) -> Tuple[List[str], int
             logging.info(f"Permission denied: {dir_entry.path}")
             continue
 
-        if is_excluded_path(path, excluded_paths):
+        if is_excluded_path(dir_entry.path, excluded_paths):
             continue
 
         # append if it's a directory
