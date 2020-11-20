@@ -31,8 +31,8 @@ def redact(fpath: str) -> None:
                 redacted = re.sub(r"\d+", "#", line)
                 bpf.write(redacted)
 
-    subprocess.check_call("sort redacted.txt > redacted.sort", shell=True)
-    subprocess.check_call("uniq redacted.sort > redacted.uniq", shell=True)
+    subprocess.check_call("sort redacted.txt | uniq > redacted.txt", shell=True)
+    # subprocess.check_call("uniq redacted.sort > redacted.uniq", shell=True)
 
 
 def main() -> None:
