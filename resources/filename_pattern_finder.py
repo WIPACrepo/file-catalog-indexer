@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import re
 
 
 def get_full_path(path: str) -> str:
@@ -17,6 +18,18 @@ def get_full_path(path: str) -> str:
     return full_path
 
 
+def redact(fpath: str) -> None:
+    """Write out basic patterns."""
+    with open("redacted.txt", "w") as bpf:
+        with open(fpath, "r") as f:
+            for line in f.readlines():
+                if "#" in line:
+                    logging.warning(f'"#" in filepath: {line.strip()}')
+                # replace each string of digits w/ '#'
+                redacted = re.sub(r"\d+", "#", line)
+                bpf.write(redacted)
+
+
 def main() -> None:
     """Find patterns."""
     parser = argparse.ArgumentParser(
@@ -26,6 +39,9 @@ def main() -> None:
     parser.add_argument(
         "file", help="file that contains a filepath on each line", type=get_full_path,
     )
+    args = parser.parse_args()
+
+    redact(args.file)
 
 
 if __name__ == "__main__":
