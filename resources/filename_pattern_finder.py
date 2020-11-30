@@ -27,7 +27,7 @@ def get_full_path(path: str) -> str:
     return full_path
 
 
-def redact(fpath: str) -> str:
+def redact(fpath: str) -> None:
     """Write out basic patterns; return name of out-file."""
     with open("redacted.raw", "w") as bpf:
         with open(fpath, "r") as f:
@@ -41,10 +41,8 @@ def redact(fpath: str) -> str:
     subprocess.check_call("sort redacted.raw > redacted-paths.txt", shell=True)
     os.remove("redacted.raw")
 
-    return "redacted-paths.txt"
 
-
-def summarize(fname: str) -> None:
+def summarize() -> None:
     """Create a YAML summary with filename patterns."""
 
     class _PatternSummary(TypedDict):
@@ -53,7 +51,7 @@ def summarize(fname: str) -> None:
 
     summary: Dict[str, _PatternSummary] = {}
 
-    with open(fname, "r") as f:
+    with open("redacted-paths.txt", "r") as f:
         for line in f:
             match = re.match(r"(?P<dpath>.+)/(?P<fname_pattern>[^/]+)$", line.strip())
             if match:
@@ -90,9 +88,9 @@ def main() -> None:
         raise RuntimeError("--file or an existing './redacted-paths.txt' is required")
     else:
         logging.info(f"Parsing {args.file}...")
-        fname = redact(args.file)
+        redact(args.file)
 
-    summarize(fname)
+    summarize()
 
 
 if __name__ == "__main__":
