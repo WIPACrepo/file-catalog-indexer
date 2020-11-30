@@ -7,6 +7,8 @@ import re
 import subprocess
 from typing import Dict, Set
 
+import yaml
+
 try:
     from typing import TypedDict
 except:  # noqa: E722 # pylint: disable=W0702
@@ -49,8 +51,8 @@ def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
 
     class _PatternSummary(TypedDict):
+        count: int
         dirs: Set[str]
-        file_count: int
 
     summary: Dict[str, _PatternSummary] = {}
 
@@ -60,17 +62,17 @@ def summarize(fname: str) -> None:
             if match:
                 fname_pattern = match.groupdict()["fname_pattern"]
                 if fname_pattern not in summary:
-                    summary[fname_pattern] = {"dirs": set(), "file_count": 0}
+                    summary[fname_pattern] = {"dirs": set(), "count": 0}
                 summary[fname_pattern]["dirs"].add(match.groupdict()["dpath"])
-                summary[fname_pattern]["file_count"] += 1
+                summary[fname_pattern]["count"] += 1
             else:
                 logging.info(f"no match: '{line.strip()}'")
 
-    # TODO make YAML
-
-    from pprint import pprint
-
-    pprint(summary)
+    with open("summary.yaml") as f:
+        yaml.dump(
+            dict(sorted(summary.items(), key=lambda ps: ps[1]["count"], reverse=True)),
+            f,
+        )
 
 
 def main() -> None:
