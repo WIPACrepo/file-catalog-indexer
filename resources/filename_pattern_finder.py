@@ -4,9 +4,13 @@ import argparse
 import logging
 import os
 import re
-import shutil
 import subprocess
-from typing import Dict, Set, TypedDict
+from typing import Any, Dict, Set
+
+try:
+    from typing import TypedDict
+except:  # noqa: E722 # pylint: disable=W0702
+    TypedDict = Any
 
 
 def get_full_path(path: str) -> str:
@@ -44,11 +48,11 @@ def redact(fpath: str) -> str:
 def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
 
-    class PatternSummary(TypedDict):
+    class _PatternSummary(TypedDict):
         dirs: Set[str]
         file_count: int
 
-    summary: Dict[str, PatternSummary] = {}
+    summary: Dict[str, _PatternSummary] = {}
 
     with open(fname, "r") as f:
         for line in f:
