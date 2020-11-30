@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+from typing import Dict, Set, TypedDict
 
 
 def get_full_path(path: str) -> str:
@@ -20,8 +21,8 @@ def get_full_path(path: str) -> str:
     return full_path
 
 
-def redact(fpath: str) -> None:
-    """Write out basic patterns."""
+def redact(fpath: str) -> str:
+    """Write out basic patterns; return name of out-file."""
     with open("redacted.raw", "w") as bpf:
         with open(fpath, "r") as f:
             for line in f.readlines():
@@ -33,8 +34,39 @@ def redact(fpath: str) -> None:
 
     subprocess.check_call("sort redacted.raw > redacted.sort", shell=True)
     os.remove("redacted.raw")
-    subprocess.check_call("uniq redacted.sort > redacted.txt", shell=True)
-    os.remove("redacted.sort")
+
+    return "redacted.sort"
+
+    # subprocess.check_call("uniq redacted.sort > redacted.txt", shell=True)
+    # os.remove("redacted.sort")
+
+
+def summarize(fname: str) -> None:
+    """Create a YAML summary with filename patterns."""
+
+    class PatternSummary(TypedDict):
+        dirs: Set[str]
+        file_count: int
+
+    summary: Dict[str, PatternSummary] = {}
+
+    with open(fname, "r") as f:
+        for line in f:
+            match = re.match(r"(?P<dpath>.+)/(?P<fname_pattern>[^/]+)$", line.strip())
+            if match:
+                fname_pattern = match.groupdict()["fname_pattern"]
+                if fname_pattern not in summary:
+                    summary[fname_pattern] = {"dirs": set(), "file_count": 0}
+                summary[fname_pattern]["dirs"].add(match.groupdict()["dpath"])
+                summary[fname_pattern]["file_count"] += 1
+            else:
+                logging.info(f"no match: '{line.strip()}'")
+
+    # TODO make YAML
+
+    from pprint import pprint
+
+    pprint(summary)
 
 
 def main() -> None:
@@ -48,7 +80,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    redact(args.file)
+    fname = redact(args.file)
+
+    summarize(fname)
 
 
 if __name__ == "__main__":
