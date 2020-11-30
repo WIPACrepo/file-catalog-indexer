@@ -63,7 +63,7 @@ def summarize() -> None:
             else:
                 logging.info(f"no match: '{line.strip()}'")
 
-    with open("summary.yaml") as f:
+    with open("summary.yaml", "w") as f:
         yaml.dump(
             dict(sorted(summary.items(), key=lambda ps: ps[1]["count"], reverse=True)),
             f,
