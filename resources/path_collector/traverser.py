@@ -33,17 +33,20 @@ def is_excluded_path(path: str, excluded_paths: List[str]) -> bool:
     return False
 
 
-def scan_directory(path: str, excluded_paths: List[str]) -> Tuple[List[str], int]:
-    """Print out file paths and return sub-directories' paths."""
+def scan_directory(path: str, excluded_paths: List[str]) -> Tuple[List[str], List[str]]:
+    """Return sub-directories' paths and regular-file's paths.
+
+    Ignore all other file types.
+    """
     logging.debug(f"Scanning directory: {path}...")
 
     try:
         scan = os.scandir(path)
     except (PermissionError, FileNotFoundError):
         scan = []  # type: ignore[assignment]
-    dirs = []
 
-    all_file_count = 0
+    subdirs = []
+    filepaths = []
     for dir_entry in scan:
         try:
             mode = os.lstat(dir_entry.path).st_mode
@@ -65,22 +68,16 @@ def scan_directory(path: str, excluded_paths: List[str]) -> Tuple[List[str], int
 
         # append if it's a directory
         if dir_entry.is_dir():
-            dirs.append(dir_entry.path)
+            subdirs.append(dir_entry.path)
         # print if it's a good file
         elif dir_entry.is_file():
-            all_file_count = all_file_count + 1
             if not dir_entry.path.strip():
                 logging.info(f"Blank file name in: {os.path.dirname(dir_entry.path)}")
             else:
-                try:
-                    print(dir_entry.path)
-                except UnicodeEncodeError:
-                    logging.info(
-                        f"Invalid file name in: {os.path.dirname(dir_entry.path)}"
-                    )
+                filepaths.append(dir_entry.path)
 
     logging.debug(f"Scan finished, directory: {path}")
-    return dirs, all_file_count
+    return subdirs, filepaths
 
 
 def main() -> None:
@@ -98,7 +95,7 @@ def main() -> None:
     args = parser.parse_args()
 
     dirs = args.paths
-    futures: List[Future] = []  # type: ignore[type-arg]
+    futures: List[Future[Tuple[List[str], List[str]]]] = []  # pylint: disable=E1136
     all_file_count = 0
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         while futures or dirs:
@@ -114,9 +111,16 @@ def main() -> None:
                     break
                 except StopIteration:  # there were no finished futures
                     sleep(0.1)
-            # cleanup and prep for next job
-            dirs, result_all_file_count = fin_future.result()
-            all_file_count = all_file_count + result_all_file_count
+            # grab subdirectories for traversing and print filepaths
+            dirs, filepaths = fin_future.result()
+            result_file_count = 0
+            for fpath in filepaths:
+                try:
+                    print(fpath)
+                    result_file_count += 1
+                except UnicodeEncodeError:
+                    logging.info(f"Invalid file name in: {os.path.dirname(fpath)}")
+            all_file_count += result_file_count
 
     logging.info(f"File Count: {all_file_count}")
 

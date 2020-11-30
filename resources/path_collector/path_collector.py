@@ -42,6 +42,14 @@ def _call_traverser(
     traverser_log = os.path.join(traverse_staging_dir, "traverser.log")
     traverse_raw_tmp = os.path.join(traverse_staging_dir, "traverse.raw.tmp")
 
+    # copy over existing traverser.log
+    if os.path.exists(traverser_log):
+        dst = os.path.join(
+            traverse_staging_dir,
+            f"old-traverser-log-{dt.now().isoformat(timespec='seconds')}",
+        )
+        os.rename(traverser_log, dst)
+
     # traverse
     exculdes_args = "--exclude " + " ".join(excluded_paths) if excluded_paths else ""
     check_call_and_log(

@@ -5,7 +5,6 @@ import asyncio
 import logging
 import math
 import os
-import re
 import stat
 import string
 from concurrent.futures import Future, ProcessPoolExecutor
@@ -162,17 +161,6 @@ async def process_file(
     await request_post_patch(fc_rc, metadata, no_patch)
 
 
-def fix_known_filepath_issues(filepath: str) -> Optional[List[str]]:
-    """Deal with known weird quirks in filenames."""
-    # split filenames that were concatenated at some point in preprocessing
-    match = re.match(r"(?P<first>/data/exp/.*)(?P<second>/data/exp/.*)", filepath)
-    if match:
-        files = list(match.groupdict().values())
-        files = sorted_unique_filepaths(list_of_filepaths=files)
-        return files
-    return None
-
-
 async def process_paths(
     paths: List[str], manager: MetadataManager, fc_rc: RestClient, no_patch: bool
 ) -> List[str]:
@@ -194,18 +182,8 @@ async def process_paths(
             else:
                 logging.info(f"Skipping {p}, not a directory nor file.")
 
-        except (PermissionError, FileNotFoundError) as e:
+        except (PermissionError, FileNotFoundError, NotADirectoryError) as e:
             logging.info(f"Skipping {p}, {e.__class__.__name__}.")
-
-        except NotADirectoryError as e:
-            fixed_filepaths = fix_known_filepath_issues(p)
-            if fixed_filepaths:
-                paths.extend(fixed_filepaths)
-                logging.info(
-                    f"Fixed known issue with filepath, {p} -> {fixed_filepaths}."
-                )
-            else:
-                logging.info(f"Skipping {p}, {e.__class__.__name__}.")
 
     return sub_files
 
