@@ -6,9 +6,6 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import pytest
 
 sys.path.append(".")
-from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
-    fix_known_filepath_issues,
-)
 from indexer.metadata import (  # isort:skip # noqa # pylint: disable=C0413
     I3FileMetadata,
     real,
@@ -415,45 +412,3 @@ def test_bad_patterns() -> None:
                 [pattern], "filename-wont-be-matched-anyways"
             )
         assert "Pattern does not have `run` regex group," in str(e.value)
-
-
-def test_hard_coded_filepath_fixes() -> None:
-    """Run hard_coded_filepath_fixes() tests."""
-    raw_lines = [
-        (
-            "/data/exp/IceCube/2011/unbiased/AURA_Processed/0824/MDAQ-Run-186971/headers_unsorted.txt.new",
-            None,
-        ),
-        (
-            "/data/exp/IceCube/2011/unbiased/AURA_Processed/0824/MDAQ-Run-186971/headers_unsorted.txt/data/exp/IceCube/2011/unbiased/AURA_Processed/0706/MDAQ-Run-175122/mdaq.hdr",
-            [
-                "/data/exp/IceCube/2011/unbiased/AURA_Processed/0824/MDAQ-Run-186971/headers_unsorted.txt",
-                "/data/exp/IceCube/2011/unbiased/AURA_Processed/0706/MDAQ-Run-175122/mdaq.hdr",
-            ],
-        ),
-        (
-            "/data/exp/IceCube/2011/unbiased/AURA_Processed/0824/MDAQ-Run-186971/mdaq.hdr",
-            None,
-        ),
-        (
-            "/data/exp/IceCube/2012/filtered/level2/0815/Level2_IC86.2012_data_Run00120559_Subrun00000015_DST.root",
-            None,
-        ),
-        (
-            "/data/exp/IceCube/2012/filtered/level2/0815/Level2_IC86.2012_data_Run00120559_Subrun00000015_IT.i3.bz2/data/exp/IceCube/2008/unbiased/acoustic/0112/spats_strBpts_200801120704.tar.gz",
-            [
-                "/data/exp/IceCube/2012/filtered/level2/0815/Level2_IC86.2012_data_Run00120559_Subrun00000015_IT.i3.bz2",
-                "/data/exp/IceCube/2008/unbiased/acoustic/0112/spats_strBpts_200801120704.tar.gz",
-            ],
-        ),
-        (
-            "/data/exp/IceCube/2012/filtered/level2/0815/Level2_IC86.2012_data_Run00120559_Subrun00000016.i3.bz2",
-            None,
-        ),
-    ]
-
-    for raw, fixed in raw_lines:
-        if fixed:
-            fixed = sorted(fixed)
-        print(f"{raw} -- {fixed}")
-        assert fixed == fix_known_filepath_issues(raw)
