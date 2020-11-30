@@ -38,13 +38,10 @@ def redact(fpath: str) -> str:
                 redacted = re.sub(r"\d+", "#", line)
                 bpf.write(redacted)
 
-    subprocess.check_call("sort redacted.raw > redacted.sort", shell=True)
+    subprocess.check_call("sort redacted.raw > redacted-paths.txt", shell=True)
     os.remove("redacted.raw")
 
-    return "redacted.sort"
-
-    # subprocess.check_call("uniq redacted.sort > redacted.txt", shell=True)
-    # os.remove("redacted.sort")
+    return "redacted-paths.txt"
 
 
 def summarize(fname: str) -> None:
@@ -82,11 +79,18 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "file", help="file that contains a filepath on each line", type=get_full_path,
+        "--file", help="file that contains a filepath on each line", type=get_full_path,
     )
     args = parser.parse_args()
 
-    fname = redact(args.file)
+    if "redacted-paths.txt" in os.listdir("."):
+        logging.info("Using existing redacted-paths.txt")
+    elif not args.file:
+        logging.critical("--file or an existing './redacted-paths.txt' is required")
+        raise RuntimeError("--file or an existing './redacted-paths.txt' is required")
+    else:
+        logging.info(f"Parsing {args.file}...")
+        fname = redact(args.file)
 
     summarize(fname)
 
