@@ -5,12 +5,12 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, Set
+from typing import Dict, Set
 
 try:
     from typing import TypedDict
 except:  # noqa: E722 # pylint: disable=W0702
-    TypedDict = Any
+    TypedDict = Dict
 
 
 def get_full_path(path: str) -> str:
