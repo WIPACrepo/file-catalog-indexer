@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Final
 
 import yaml
 
@@ -20,6 +20,9 @@ NON_I3RP = f"non-{I3RP}"
 MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
+
+IC_SUMMARY_YAML = "ic-replacement-summary.yaml"
+YEARS_SUMMARY_YAML = "year-replacement-summary.yaml"
 
 
 def get_full_path(path: str) -> str:
@@ -36,6 +39,8 @@ def get_full_path(path: str) -> str:
 
 def redact(fpath: str) -> None:
     """Write out basic patterns."""
+    logging.info(f"Redacting {fpath}...")
+
     allowed_substrs = [
         "i3.bz2",
         "i3",
@@ -51,6 +56,7 @@ def redact(fpath: str) -> None:
         "Level5",
         "SPICE1",
         "SPICE-1",
+        "SPASE-2",
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
@@ -106,18 +112,23 @@ def redact(fpath: str) -> None:
     subprocess.check_call(f"sort {I3RP}.raw > {I3RP}", shell=True)
     os.remove(f"{I3RP}.raw")
 
-    with open("ic-replacement-summary.yaml", "w") as f:
+    with open(IC_SUMMARY_YAML, "w") as f:
+        logging.info(f"Dumping to {IC_SUMMARY_YAML}...")
         yaml.dump(  # dump in descending order of frequency
             dict(sorted(ics_summary.items(), key=lambda ic: ic[1], reverse=True)),
             f,
             sort_keys=False,
         )
-    with open("year-replacement-summary.yaml", "w") as f:
+    with open(YEARS_SUMMARY_YAML, "w") as f:
+        logging.info(f"Dumping to {YEARS_SUMMARY_YAML}...")
         yaml.dump(years_summary, f)
+
+    logging.info(f"Redacted {fpath}: {IC_SUMMARY_YAML} & {YEARS_SUMMARY_YAML}")
 
 
 def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
+    logging.info(f"Summarizing {fname}...")
 
     class _PatternSummary(TypedDict):
         count: int
@@ -141,14 +152,18 @@ def summarize(fname: str) -> None:
                 summary[fname_pattern]["dirs"][dpath] += 1
                 summary[fname_pattern]["count"] += 1
             else:
-                logging.info(f"no match: '{line.strip()}'")
+                logging.debug(f"no match: '{line.strip()}'")
 
-    with open(f"{fname}-summary.yaml", "w") as f:
+    summary_yaml: Final[str] = f"{fname}-summary.yaml"
+    with open(summary_yaml, "w") as f:
+        logging.info(f"Dumping to {summary_yaml}...")
         yaml.dump(  # dump in descending order of frequency
             dict(sorted(summary.items(), key=lambda ps: ps[1]["count"], reverse=True)),
             f,
             sort_keys=False,
         )
+
+    logging.info(f"Summarized {fname}: {summary_yaml}")
 
 
 def main() -> None:
@@ -168,7 +183,6 @@ def main() -> None:
         logging.critical(f"must have './{I3RP}' and './{NON_I3RP}'; OR use --file")
         raise RuntimeError(f"must have './{I3RP}' and './{NON_I3RP}'; OR use --file")
     else:
-        logging.info(f"Parsing {args.file}...")
         redact(args.file)
 
     for fname in [I3RP, NON_I3RP]:
