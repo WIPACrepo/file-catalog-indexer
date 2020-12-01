@@ -45,13 +45,13 @@ def redact(fpath: str) -> None:
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
     def _temp_replace(line: str) -> str:
-        for i, char in enumerate(allowed_substrs):
-            line = re.sub(char, chr(i), line)
+        for i, substr in enumerate(allowed_substrs):
+            line = line.replace(substr, chr(i))
         return line
 
     def _replace_back(line: str) -> str:
-        for i, char in enumerate(allowed_substrs):
-            line = re.sub(chr(i), char, line)
+        for i, substr in enumerate(allowed_substrs):
+            line = line.replace(chr(i), substr)
         return line
 
     with open(f"{NON_I3RP}.raw", "w") as nonf, open(f"{I3RP}.raw", "w") as i3f:
