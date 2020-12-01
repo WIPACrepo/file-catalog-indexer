@@ -8,6 +8,7 @@ import subprocess
 from datetime import datetime
 from typing import Dict
 
+import coloredlogs
 import yaml
 
 try:
@@ -176,6 +177,7 @@ def main() -> None:
         "--file", help="file that contains a filepath on each line", type=get_full_path,
     )
     args = parser.parse_args()
+    coloredlogs.install(level="DEBUG")
 
     if I3RP in os.listdir(".") and NON_I3RP in os.listdir("."):
         logging.info("Using existing redacted-paths.txt")
