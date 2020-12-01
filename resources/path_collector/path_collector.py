@@ -139,18 +139,25 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
         return
 
     def _chunk_it(i: int, chunk_lines: List[str]) -> str:
-        filename = f"chunk-{i}"
-        with open(os.path.join(chunks_dir, filename), "w") as chunk_f:
+        fname = f"chunk-{i}"
+        with open(os.path.join(chunks_dir, fname), "w") as chunk_f:
             chunk_f.writelines(chunk_lines)
-        return filename
+        return fname
 
     _id = 0
     queue_f_size, queue = 0, []
     total_f_size = 0
-    with open(traverse_file, "r") as traverse_f:
-        for path in traverse_f:
-            queue.append(path)
-            f_size = int(os.stat(path.strip()).st_size)
+    with open(traverse_file, "r") as f:
+        for fpath_line in f:
+            try:
+                f_size = int(os.stat(fpath_line.strip()).st_size)
+            except FileNotFoundError:
+                logging.warning(
+                    f"Skipping file '{fpath_line.strip()}'--path was removed since traversal."
+                )
+                continue
+            # enqueue & increment
+            queue.append(fpath_line)
             queue_f_size += f_size
             total_f_size += f_size
             # time to chunk?
@@ -158,7 +165,7 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
                 _id += 1
                 _chunk_it(_id, queue)
                 queue_f_size, queue = 0, []  # reset
-    # chunk whatever is left
+    # chunk whatever is left over
     if queue:
         _id += 1
         _chunk_it(_id, queue)
