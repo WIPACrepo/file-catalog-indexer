@@ -58,6 +58,7 @@ def redact(fpath: str) -> None:
         "SPICE1",
         "SPICE-1",
         "SPASE-2",
+        "Gen2",
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
@@ -138,6 +139,7 @@ def summarize(fname: str) -> None:
     summary: Dict[str, _PatternSummary] = {}
 
     with open(fname, "r") as f:
+        logging.info(f"Parsing {fname}...")
         for line in f:
             match = re.match(r"(?P<dpath>.+)/(?P<fname_pattern>[^/]+)$", line.strip())
             if match:
