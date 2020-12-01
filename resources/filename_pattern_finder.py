@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import subprocess
+from datetime import datetime
 from typing import Dict
 
 import yaml
@@ -16,6 +17,9 @@ except:  # noqa: E722 # pylint: disable=W0702
 
 I3RP = "i3-redacted-paths"
 NON_I3RP = f"non-{I3RP}"
+MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
+logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
+YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
 
 def get_full_path(path: str) -> str:
@@ -35,12 +39,18 @@ def redact(fpath: str) -> None:
     allowed_substrs = [
         "i3.bz2",
         "i3",
+        "level1",
+        "Level1",
         "level2",
         "Level2",
         "level3",
         "Level3",
         "level4",
         "Level4",
+        "level5",
+        "Level5",
+        "SPICE1",
+        "SPICE-1",
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
@@ -49,10 +59,13 @@ def redact(fpath: str) -> None:
             line = line.replace(substr, chr(i))
         return line
 
-    def _replace_back(line: str) -> str:
+    def _replace_temps_back(line: str) -> str:
         for i, substr in enumerate(allowed_substrs):
             line = line.replace(chr(i), substr)
         return line
+
+    years_summary: Dict[int, int] = {k: 0 for k in YEARS}
+    ics_summary: Dict[str, int] = {}
 
     with open(f"{NON_I3RP}.raw", "w") as nonf, open(f"{I3RP}.raw", "w") as i3f:
         with open(fpath, "r") as f:
@@ -61,9 +74,26 @@ def redact(fpath: str) -> None:
                 if "#" in line:
                     logging.warning(f'"#" in filepath: {line.strip()}')
                 else:
+                    # special digit-substrings
                     line = _temp_replace(line)
-                    line = re.sub(r"\d+", "#", line)  # replace strings of digits w/ '#'
-                    line = _replace_back(line)
+                    for i in YEARS:
+                        if f"/{i}/" in line:
+                            line = line.replace(f"/{i}/", "/YYYY/")
+                            years_summary[i] += 1
+                    if "IC" in line:
+                        for match in re.finditer(r"IC(-)?\d+(-\d+)?", line):
+                            ic_str = match.group(0)
+                            try:
+                                ics_summary[ic_str] += 1
+                            except KeyError:
+                                ics_summary[ic_str] = 1
+                        line = re.sub(r"IC\d+-\d+", "IC^-^", line)
+                        line = re.sub(r"IC\d+", "IC^", line)
+                        line = re.sub(r"IC-\d+-\d+", "IC-^-^", line)
+                        line = re.sub(r"IC-\d+", "IC-^", line)
+                    # strings of digits -> '#'
+                    line = re.sub(r"\d+", "#", line)
+                    line = _replace_temps_back(line)
                     # .i3 file
                     if ".i3" in line:
                         i3f.write(line)
@@ -75,6 +105,15 @@ def redact(fpath: str) -> None:
     os.remove(f"{NON_I3RP}.raw")
     subprocess.check_call(f"sort {I3RP}.raw > {I3RP}", shell=True)
     os.remove(f"{I3RP}.raw")
+
+    with open("ic-replacement-summary.yaml", "w") as f:
+        yaml.dump(  # dump in descending order of frequency
+            dict(sorted(ics_summary.items(), key=lambda ic: ic[1], reverse=True)),
+            f,
+            sort_keys=False,
+        )
+    with open("year-replacement-summary.yaml", "w") as f:
+        yaml.dump(years_summary, f)
 
 
 def summarize(fname: str) -> None:
@@ -105,7 +144,7 @@ def summarize(fname: str) -> None:
                 logging.info(f"no match: '{line.strip()}'")
 
     with open(f"{fname}-summary.yaml", "w") as f:
-        yaml.dump(
+        yaml.dump(  # dump in descending order of frequency
             dict(sorted(summary.items(), key=lambda ps: ps[1]["count"], reverse=True)),
             f,
             sort_keys=False,
