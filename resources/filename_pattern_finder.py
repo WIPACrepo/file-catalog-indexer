@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 from datetime import datetime
-from typing import Dict, Final
+from typing import Dict
 
 import yaml
 
@@ -154,7 +154,7 @@ def summarize(fname: str) -> None:
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    summary_yaml: Final[str] = f"{fname}-summary.yaml"
+    summary_yaml: str = f"{fname}-summary.yaml"
     with open(summary_yaml, "w") as f:
         logging.info(f"Dumping to {summary_yaml}...")
         yaml.dump(  # dump in descending order of frequency
