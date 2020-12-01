@@ -14,7 +14,7 @@ try:
 except:  # noqa: E722 # pylint: disable=W0702
     TypedDict = Dict
 
-I3RP = "non-i3-redacted-paths"
+I3RP = "i3-redacted-paths"
 NON_I3RP = f"non-{I3RP}"
 
 
