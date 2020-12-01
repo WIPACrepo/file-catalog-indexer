@@ -298,7 +298,7 @@ def test_w_fast_forward() -> None:  # pylint: disable=R0915
 
         #
         # test empty traverse file w/o chunking
-        # -- there will be a paths/chunk-0 file, but it's empty
+        # -- there will be a traverse-chunks/chunk-0 file, but it's empty
         print("~ " * 60)
         logging.warning("ff_traverse_file => empty (no chunks)")
         with open("traverse.raw", "w") as f:
@@ -307,14 +307,16 @@ def test_w_fast_forward() -> None:  # pylint: disable=R0915
         func("traverse.raw")
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert int(os.lstat("traverse.raw").st_size) == 0
-        assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
+        assert (
+            len(os.listdir(_get_chunks_dir(stage))) == 1
+        )  # 'chunk-0' in traverse-chunks/
         assert filecmp.cmp(_get_archive_file(stage), "traverse.raw")
         assert filecmp.cmp(_get_chunk_0(stage), "traverse.raw")
         _remove_all(stage, root, "traverse.raw")
 
         #
         # test empty traverse file w/ chunking
-        # -- there will be a paths/ directory, but it's empty
+        # -- there will be a traverse-chunks/ directory, but it's empty
         print("~ " * 60)
         logging.warning("ff_traverse_file => empty (w/ chunks)")
         with open("traverse.raw", "w") as f:
@@ -323,13 +325,13 @@ def test_w_fast_forward() -> None:  # pylint: disable=R0915
         func("traverse.raw", w_chunks=True)
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert int(os.lstat("traverse.raw").st_size) == 0
-        assert not os.listdir(_get_chunks_dir(stage))  # empty paths/
+        assert not os.listdir(_get_chunks_dir(stage))  # empty traverse-chunks/
         assert filecmp.cmp(_get_archive_file(stage), "traverse.raw")
         _remove_all(stage, root, "traverse.raw")
 
         #
         # test traverse file w/ bad lines (filepaths) w/o chunking
-        # -- there will be a paths/chunk-0 file, but it's empty
+        # -- there will be a traverse-chunks/chunk-0 file that contains all the lines
         print("~ " * 60)
         logging.warning("ff_traverse_file => bad-filepaths")
         with open("traverse.raw", "w") as f:
@@ -338,26 +340,25 @@ def test_w_fast_forward() -> None:  # pylint: disable=R0915
         func("traverse.raw")
         _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert filecmp.cmp(_get_archive_file(stage), "traverse.raw")
-        assert len(os.listdir(_get_chunks_dir(stage))) == 1  # 'chunk-0' in paths/
+        # 'chunk-0' in traverse-chunks/
+        assert len(os.listdir(_get_chunks_dir(stage))) == 1
         assert filecmp.cmp(_get_chunk_0(stage), "traverse.raw")
         _remove_all(stage, root, "traverse.raw")
 
         #
         # test traverse file w/ bad lines (filepaths) w/ chunking
-        # -- there will be a paths/ directory, but it's empty
-        # -- no archive file, but there is argv.txt
+        # -- there will be a traverse-chunks/ directory, but it's empty
+        # -- there is an archive file and argv.txt
         print("~ " * 60)
         logging.warning("ff_traverse_file => bad-filepaths (w/ chunks)")
         with open("traverse.raw", "w") as f:
             f.write("a-foo\nb-bar\nc-baz\n")
         stage, root = _setup_testfiles("bad-filepaths-traverse-file")
-        with pytest.raises((FileNotFoundError, subprocess.CalledProcessError)):
-            func("traverse.raw", w_chunks=True)
-        with pytest.raises(AssertionError):
-            _assert_out_files(stage, func == _shell, no_traverser_log=True)
+        func("traverse.raw", w_chunks=True)
+        _assert_out_files(stage, func == _shell, no_traverser_log=True)
         assert os.path.exists(_get_chunks_dir(stage))
         _get_archive_file(stage)  # no raised exception AKA file exists
-        assert not os.listdir(_get_chunks_dir(stage))
+        assert not os.listdir(_get_chunks_dir(stage))  # empty dir
         assert "argv.txt" in os.listdir(_get_traverse_staging_dir(stage))
         _remove_all(stage, root, "traverse.raw")
 
