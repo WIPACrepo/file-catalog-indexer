@@ -47,7 +47,7 @@ def summarize() -> None:
 
     class _PatternSummary(TypedDict):
         count: int
-        dirs: Set[str]
+        dirs: Dict[str, int]
 
     summary: Dict[str, _PatternSummary] = {}
 
@@ -55,10 +55,16 @@ def summarize() -> None:
         for line in f:
             match = re.match(r"(?P<dpath>.+)/(?P<fname_pattern>[^/]+)$", line.strip())
             if match:
+                # get substrings
                 fname_pattern = match.groupdict()["fname_pattern"]
+                dpath = match.groupdict()["dpath"]
+                # allocate
                 if fname_pattern not in summary:
-                    summary[fname_pattern] = {"dirs": set(), "count": 0}
-                summary[fname_pattern]["dirs"].add(match.groupdict()["dpath"])
+                    summary[fname_pattern] = {"dirs": {}, "count": 0}
+                if dpath not in summary[fname_pattern]["dirs"]:
+                    summary[fname_pattern]["dirs"][dpath] = 0
+                # increment
+                summary[fname_pattern]["dirs"][dpath] += 1
                 summary[fname_pattern]["count"] += 1
             else:
                 logging.info(f"no match: '{line.strip()}'")
@@ -67,6 +73,7 @@ def summarize() -> None:
         yaml.dump(
             dict(sorted(summary.items(), key=lambda ps: ps[1]["count"], reverse=True)),
             f,
+            sort_keys=False,
         )
 
 
