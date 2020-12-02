@@ -62,12 +62,12 @@ def redact(fpath: str) -> None:
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
-    def _temp_replace(fpathline: str) -> str:
+    def _replace_special_digit_substrs(fpathline: str) -> str:
         for i, substr in enumerate(allowed_substrs):
             fpathline = fpathline.replace(substr, chr(i))
         return fpathline
 
-    def _replace_temps_back(fpathline: str) -> str:
+    def _replace_back_special_digit_substrs(fpathline: str) -> str:
         for i, substr in enumerate(allowed_substrs):
             fpathline = fpathline.replace(chr(i), substr)
         return fpathline
@@ -82,13 +82,18 @@ def redact(fpath: str) -> None:
                 # weird file, probably some kind of backup file
                 if "#" in redacted_line:
                     logging.warning(f'"#" in filepath: {redacted_line}')
+                # another weird file
+                elif "^" in redacted_line:
+                    logging.warning(f'"^" in filepath: {redacted_line}')
+                # a normal file
                 else:
-                    # special digit-substrings
-                    redacted_line = _temp_replace(redacted_line)
+                    redacted_line = _replace_special_digit_substrs(redacted_line)
+                    # year-like substrings
                     for i in YEARS:
                         if f"/{i}/" in redacted_line:
                             redacted_line = redacted_line.replace(f"/{i}/", "/YYYY/")
                             years_summary[i] += 1
+                    # IC substrings
                     if "IC" in redacted_line:
                         for match in re.finditer(r"IC(-)?\d+(-\d+)?", redacted_line):
                             ic_str = match.group(0)
@@ -102,13 +107,13 @@ def redact(fpath: str) -> None:
                         redacted_line = re.sub(r"IC-\d+", "IC-^", redacted_line)
                     # strings of digits -> '#'
                     redacted_line = re.sub(r"\d+", "#", redacted_line)
-                    redacted_line = _replace_temps_back(redacted_line)
+                    redacted_line = _replace_back_special_digit_substrs(redacted_line)
                     # .i3 file
                     if ".i3" in redacted_line:
-                        print(redacted_line, file=i3f)
+                        print(f"{redacted_line} {line.strip()}", file=i3f)
                     # non-i3 file
                     else:
-                        print(redacted_line, file=nonf)
+                        print(f"{redacted_line} {line.strip()}", file=nonf)
 
     subprocess.check_call(f"sort {NON_I3_RED}.raw > {NON_I3_RED}", shell=True)
     os.remove(f"{NON_I3_RED}.raw")
