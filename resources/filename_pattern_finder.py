@@ -8,7 +8,7 @@ import subprocess
 from datetime import datetime
 from typing import Dict
 
-import coloredlogs  # type: ignore[import]
+import coloredlogs
 import yaml
 
 try:
@@ -132,11 +132,11 @@ def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Summarizing {fname}...")
 
-    class _FilenamePatternSummary(TypedDict):
+    class _PatternSummary(TypedDict):
         count: int
         dirs: Dict[str, int]
 
-    pattern_summaries: Dict[str, _FilenamePatternSummary] = {}
+    summary: Dict[str, _PatternSummary] = {}
 
     with open(fname, "r") as f:
         logging.info(f"Parsing {fname}...")
@@ -147,32 +147,26 @@ def summarize(fname: str) -> None:
                 fname_pattern = match.groupdict()["fname_pattern"]
                 dpath = match.groupdict()["dpath"]
                 # allocate
-                if fname_pattern not in pattern_summaries:
-                    pattern_summaries[fname_pattern] = {"dirs": {}, "count": 0}
-                if dpath not in pattern_summaries[fname_pattern]["dirs"]:
-                    pattern_summaries[fname_pattern]["dirs"][dpath] = 0
+                if fname_pattern not in summary:
+                    summary[fname_pattern] = {"dirs": {}, "count": 0}
+                if dpath not in summary[fname_pattern]["dirs"]:
+                    summary[fname_pattern]["dirs"][dpath] = 0
                 # increment
-                pattern_summaries[fname_pattern]["dirs"][dpath] += 1
-                pattern_summaries[fname_pattern]["count"] += 1
+                summary[fname_pattern]["dirs"][dpath] += 1
+                summary[fname_pattern]["count"] += 1
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    summary_fname = f"{fname}.summary"
-    with open(summary_fname + ".tmp", "w") as f:
-        logging.info(f"Writing to {summary_fname}.tmp...")
-        for fname_pattern, summmary in sorted(
-            pattern_summaries.items(), key=lambda ps: ps[1]["count"], reverse=True
-        ):
-            print(".", end="")  # loading...
-            f.write(fname_pattern + "\n")
-            f.write(f"{' '*4}count: {summmary['count']}\n")
-            f.write(f"{' '*4}dirs:\n")
-            for dir_pattern, count in summmary["dirs"].items():
-                f.write(f"{' '*8}{dir_pattern}: {count}\n")
-    print()
+    summary_yaml: str = f"{fname}-summary.yaml"
+    with open(summary_yaml, "w") as f:
+        logging.info(f"Dumping to {summary_yaml}...")
+        yaml.dump(  # dump in descending order of frequency
+            dict(sorted(summary.items(), key=lambda ps: ps[1]["count"], reverse=True)),
+            f,
+            sort_keys=False,
+        )
 
-    os.rename(summary_fname + ".tmp", summary_fname)
-    logging.info(f"Summarized {fname}: {summary_fname}")
+    logging.info(f"Summarized {fname}: {summary_yaml}")
 
 
 def main() -> None:
