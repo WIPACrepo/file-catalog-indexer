@@ -22,8 +22,8 @@ MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
-IC_SUMMARY_YAML = "ic-replacement-summary.yaml"
-YEARS_SUMMARY_YAML = "year-replacement-summary.yaml"
+IC_SUMMARY_YAML = "ic-replacement.summary.yaml"
+YEARS_SUMMARY_YAML = "year-replacement.summary.yaml"
 
 
 def get_full_path(path: str) -> str:
