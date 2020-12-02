@@ -8,7 +8,7 @@ import subprocess
 from datetime import datetime
 from typing import Dict
 
-import coloredlogs
+import coloredlogs  # type: ignore[import]
 import yaml
 
 try:
@@ -16,8 +16,8 @@ try:
 except:  # noqa: E722 # pylint: disable=W0702
     TypedDict = Dict
 
-I3RP = "i3-redacted-paths"
-NON_I3RP = f"non-{I3RP}"
+I3_RED = "i3-paths.redacted"
+NON_I3_RED = f"non-{I3_RED}"
 MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
@@ -62,57 +62,58 @@ def redact(fpath: str) -> None:
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
-    def _temp_replace(line: str) -> str:
+    def _temp_replace(fpathline: str) -> str:
         for i, substr in enumerate(allowed_substrs):
-            line = line.replace(substr, chr(i))
-        return line
+            fpathline = fpathline.replace(substr, chr(i))
+        return fpathline
 
-    def _replace_temps_back(line: str) -> str:
+    def _replace_temps_back(fpathline: str) -> str:
         for i, substr in enumerate(allowed_substrs):
-            line = line.replace(chr(i), substr)
-        return line
+            fpathline = fpathline.replace(chr(i), substr)
+        return fpathline
 
     years_summary: Dict[int, int] = {k: 0 for k in YEARS}
     ics_summary: Dict[str, int] = {}
 
-    with open(f"{NON_I3RP}.raw", "w") as nonf, open(f"{I3RP}.raw", "w") as i3f:
+    with open(f"{NON_I3_RED}.raw", "w") as nonf, open(f"{I3_RED}.raw", "w") as i3f:
         with open(fpath, "r") as f:
-            for line in f.readlines():
+            for line in f:
+                redacted_line = line.strip()
                 # weird file, probably some kind of backup file
-                if "#" in line:
-                    logging.warning(f'"#" in filepath: {line.strip()}')
+                if "#" in redacted_line:
+                    logging.warning(f'"#" in filepath: {redacted_line}')
                 else:
                     # special digit-substrings
-                    line = _temp_replace(line)
+                    redacted_line = _temp_replace(redacted_line)
                     for i in YEARS:
-                        if f"/{i}/" in line:
-                            line = line.replace(f"/{i}/", "/YYYY/")
+                        if f"/{i}/" in redacted_line:
+                            redacted_line = redacted_line.replace(f"/{i}/", "/YYYY/")
                             years_summary[i] += 1
-                    if "IC" in line:
-                        for match in re.finditer(r"IC(-)?\d+(-\d+)?", line):
+                    if "IC" in redacted_line:
+                        for match in re.finditer(r"IC(-)?\d+(-\d+)?", redacted_line):
                             ic_str = match.group(0)
                             try:
                                 ics_summary[ic_str] += 1
                             except KeyError:
                                 ics_summary[ic_str] = 1
-                        line = re.sub(r"IC\d+-\d+", "IC^-^", line)
-                        line = re.sub(r"IC\d+", "IC^", line)
-                        line = re.sub(r"IC-\d+-\d+", "IC-^-^", line)
-                        line = re.sub(r"IC-\d+", "IC-^", line)
+                        redacted_line = re.sub(r"IC\d+-\d+", "IC^-^", redacted_line)
+                        redacted_line = re.sub(r"IC\d+", "IC^", redacted_line)
+                        redacted_line = re.sub(r"IC-\d+-\d+", "IC-^-^", redacted_line)
+                        redacted_line = re.sub(r"IC-\d+", "IC-^", redacted_line)
                     # strings of digits -> '#'
-                    line = re.sub(r"\d+", "#", line)
-                    line = _replace_temps_back(line)
+                    redacted_line = re.sub(r"\d+", "#", redacted_line)
+                    redacted_line = _replace_temps_back(redacted_line)
                     # .i3 file
-                    if ".i3" in line:
-                        i3f.write(line)
+                    if ".i3" in redacted_line:
+                        print(redacted_line, file=i3f)
                     # non-i3 file
                     else:
-                        nonf.write(line)
+                        print(redacted_line, file=nonf)
 
-    subprocess.check_call(f"sort {NON_I3RP}.raw > {NON_I3RP}", shell=True)
-    os.remove(f"{NON_I3RP}.raw")
-    subprocess.check_call(f"sort {I3RP}.raw > {I3RP}", shell=True)
-    os.remove(f"{I3RP}.raw")
+    subprocess.check_call(f"sort {NON_I3_RED}.raw > {NON_I3_RED}", shell=True)
+    os.remove(f"{NON_I3_RED}.raw")
+    subprocess.check_call(f"sort {I3_RED}.raw > {I3_RED}", shell=True)
+    os.remove(f"{I3_RED}.raw")
 
     with open(IC_SUMMARY_YAML, "w") as f:
         logging.info(f"Dumping to {IC_SUMMARY_YAML}...")
@@ -132,11 +133,11 @@ def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Summarizing {fname}...")
 
-    class _PatternSummary(TypedDict):
+    class _FilenamePatternSummary(TypedDict):
         count: int
         dirs: Dict[str, int]
 
-    summary: Dict[str, _PatternSummary] = {}
+    fpattern_summaries: Dict[str, _FilenamePatternSummary] = {}
 
     with open(fname, "r") as f:
         logging.info(f"Parsing {fname}...")
@@ -147,25 +148,33 @@ def summarize(fname: str) -> None:
                 fname_pattern = match.groupdict()["fname_pattern"]
                 dpath = match.groupdict()["dpath"]
                 # allocate
-                if fname_pattern not in summary:
-                    summary[fname_pattern] = {"dirs": {}, "count": 0}
-                if dpath not in summary[fname_pattern]["dirs"]:
-                    summary[fname_pattern]["dirs"][dpath] = 0
+                if fname_pattern not in fpattern_summaries:
+                    fpattern_summaries[fname_pattern] = {"dirs": {}, "count": 0}
+                if dpath not in fpattern_summaries[fname_pattern]["dirs"]:
+                    fpattern_summaries[fname_pattern]["dirs"][dpath] = 0
                 # increment
-                summary[fname_pattern]["dirs"][dpath] += 1
-                summary[fname_pattern]["count"] += 1
+                fpattern_summaries[fname_pattern]["dirs"][dpath] += 1
+                fpattern_summaries[fname_pattern]["count"] += 1
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    summary_yaml: str = f"{fname}-summary.yaml"
-    with open(summary_yaml, "w") as f:
-        logging.info(f"Dumping to {summary_yaml}...")
-        yaml.dump(  # dump in descending order of frequency
-            dict(sorted(summary.items(), key=lambda ps: ps[1]["count"], reverse=True)),
+    summary_yaml: str = f"{fname}.summary.yaml"
+    with open(summary_yaml + ".tmp", "w") as f:
+        logging.info(f"Dumping to {summary_yaml}.tmp...")
+        # dump in descending order of frequency
+        yaml.dump(
+            dict(
+                sorted(
+                    fpattern_summaries.items(),
+                    key=lambda ps: ps[1]["count"],
+                    reverse=True,
+                )
+            ),
             f,
             sort_keys=False,
         )
 
+    os.rename(summary_yaml + ".tmp", summary_yaml)
     logging.info(f"Summarized {fname}: {summary_yaml}")
 
 
@@ -181,15 +190,17 @@ def main() -> None:
     args = parser.parse_args()
     coloredlogs.install(level="DEBUG")
 
-    if I3RP in os.listdir(".") and NON_I3RP in os.listdir("."):
-        logging.info("Using existing redacted-paths.txt")
+    if I3_RED in os.listdir(".") and NON_I3_RED in os.listdir("."):
+        logging.info(f"Using existing './{I3_RED}' and './{NON_I3_RED}'")
     elif not args.file:
-        logging.critical(f"must have './{I3RP}' and './{NON_I3RP}'; OR use --file")
-        raise RuntimeError(f"must have './{I3RP}' and './{NON_I3RP}'; OR use --file")
+        logging.critical(f"must have './{I3_RED}' and './{NON_I3_RED}'; OR use --file")
+        raise RuntimeError(
+            f"must have './{I3_RED}' and './{NON_I3_RED}'; OR use --file"
+        )
     else:
         redact(args.file)
 
-    for fname in [I3RP, NON_I3RP]:
+    for fname in [I3_RED, NON_I3_RED]:
         summarize(fname)
 
 
