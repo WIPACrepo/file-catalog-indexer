@@ -192,7 +192,7 @@ def summarize(fname: str) -> None:
 
     # YAMLfy pattern counts
     fpatterns_counts_yaml: str = f"{fname}.fpatterns-counts.yaml"
-    with open(fpatterns_counts_yaml + ".tmp") as f:
+    with open(fpatterns_counts_yaml + ".tmp", "w") as f:
         logging.debug(f"Dumping to {fpatterns_counts_yaml}.tmp...")
         pattern_counts = {
             sort_sum[0]: sort_sum[1]["count"] for sort_sum in sorted_summaries
