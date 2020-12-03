@@ -85,7 +85,8 @@ def redact(fpath: str) -> None:
     years_summary: Dict[int, int] = {k: 0 for k in YEARS}
     ics_summary: Dict[str, int] = {}
 
-    with open(f"{NON_I3_RED}.raw", "w") as nonf, open(f"{I3_RED}.raw", "w") as i3f:
+    # Write redactions
+    with open(f"{NON_I3_RED}.tmp", "w") as nonf, open(f"{I3_RED}.tmp", "w") as i3f:
         with open(fpath, "r") as f:
             for line in f:
                 redacted_line = line.strip()
@@ -125,20 +126,24 @@ def redact(fpath: str) -> None:
                     else:
                         print(f"{redacted_line}", file=nonf)
 
-    subprocess.check_call(f"sort {NON_I3_RED}.raw > {NON_I3_RED}", shell=True)
-    os.remove(f"{NON_I3_RED}.raw")
-    subprocess.check_call(f"sort {I3_RED}.raw > {I3_RED}", shell=True)
-    os.remove(f"{I3_RED}.raw")
+    # Sort & Cleanup
+    subprocess.check_call(f"sort {NON_I3_RED}.tmp > {NON_I3_RED}", shell=True)
+    os.remove(f"{NON_I3_RED}.tmp")
+    subprocess.check_call(f"sort {I3_RED}.tmp > {I3_RED}", shell=True)
+    os.remove(f"{I3_RED}.tmp")
 
+    # Dump IC summary
     with open(IC_SUMMARY_YAML, "w") as f:
-        logging.info(f"Dumping to {IC_SUMMARY_YAML}...")
+        logging.debug(f"Dumping to {IC_SUMMARY_YAML}...")
         yaml.dump(  # dump in descending order of frequency
             dict(sorted(ics_summary.items(), key=lambda ic: ic[1], reverse=True)),
             f,
             sort_keys=False,
         )
+
+    # Dump years summary
     with open(YEARS_SUMMARY_YAML, "w") as f:
-        logging.info(f"Dumping to {YEARS_SUMMARY_YAML}...")
+        logging.debug(f"Dumping to {YEARS_SUMMARY_YAML}...")
         yaml.dump(years_summary, f)
 
     logging.info(f"Redacted {fpath}: {IC_SUMMARY_YAML} & {YEARS_SUMMARY_YAML}")
@@ -155,7 +160,7 @@ def summarize(fname: str) -> None:
     fpattern_summaries: Dict[str, _FilenamePatternSummary] = {}
 
     with open(fname, "r") as f:
-        logging.info(f"Parsing {fname}...")
+        logging.debug(f"Parsing {fname}...")
         for line in f:
             match = re.match(r"(?P<dpath>.+)/(?P<fname_pattern>[^/]+)$", line.strip())
             if match:
@@ -173,24 +178,31 @@ def summarize(fname: str) -> None:
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    summary_yaml: str = f"{fname}.summary.yaml"
-    with open(summary_yaml + ".tmp", "w") as f:
-        logging.info(f"Dumping to {summary_yaml}.tmp...")
-        # dump in descending order of frequency
-        yaml.dump(
-            dict(
-                sorted(
-                    fpattern_summaries.items(),
-                    key=lambda ps: ps[1]["count"],
-                    reverse=True,
-                )
-            ),
-            f,
-            sort_keys=False,
-        )
+    sorted_summaries = sorted(
+        fpattern_summaries.items(), key=lambda ps: ps[1]["count"], reverse=True,
+    )
 
-    os.rename(summary_yaml + ".tmp", summary_yaml)
-    logging.info(f"Summarized {fname}: {summary_yaml}")
+    # YAMLfy pattern summaries
+    fpatterns_summary_yaml: str = f"{fname}.fpatterns-summary.yaml"
+    with open(fpatterns_summary_yaml + ".tmp", "w") as f:
+        logging.debug(f"Dumping to {fpatterns_summary_yaml}.tmp...")
+        # dump in descending order of frequency
+        yaml.dump(dict(sorted_summaries), f, sort_keys=False)
+    os.rename(fpatterns_summary_yaml + ".tmp", fpatterns_summary_yaml)
+
+    # YAMLfy pattern counts
+    fpatterns_counts_yaml: str = f"{fname}.fpatterns-counts.yaml"
+    with open(fpatterns_counts_yaml + ".tmp") as f:
+        logging.debug(f"Dumping to {fpatterns_counts_yaml}.tmp...")
+        pattern_counts = {
+            sort_sum[0]: sort_sum[1]["count"] for sort_sum in sorted_summaries
+        }
+        yaml.dump(pattern_counts, f, sort_keys=False)
+    os.rename(fpatterns_counts_yaml + ".tmp", fpatterns_counts_yaml)
+
+    logging.info(
+        f"Summarized {fname}: {fpatterns_summary_yaml} & {fpatterns_counts_yaml}"
+    )
 
 
 def main() -> None:
@@ -203,7 +215,6 @@ def main() -> None:
         "--file", help="file that contains a filepath on each line", type=get_full_path,
     )
     args = parser.parse_args()
-    coloredlogs.install(level="DEBUG")
 
     if I3_RED in os.listdir(".") and NON_I3_RED in os.listdir("."):
         logging.info(f"Using existing './{I3_RED}' and './{NON_I3_RED}'")
