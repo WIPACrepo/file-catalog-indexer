@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime as dt
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]
@@ -20,6 +20,11 @@ from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
     get_parser_w_common_args,
     get_full_path,
 )
+
+try:
+    from typing import TypedDict
+except:  # noqa: E722 # pylint: disable=W0702
+    TypedDict = Dict
 
 
 def check_call_and_log(
@@ -138,14 +143,18 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
         )
         return
 
-    def _chunk_it(i: int, chunk_lines: List[str]) -> str:
-        fname = f"chunk-{i}"
+    class _Chunk(TypedDict):
+        id_: int
+        size: int
+        lines: List[str]
+
+    def _write_chunk_file(chunk: _Chunk) -> str:
+        fname = f"chunk-{chunk['id_']}"
         with open(os.path.join(chunks_dir, fname), "w") as chunk_f:
-            chunk_f.writelines(chunk_lines)
+            chunk_f.writelines(chunk["lines"])
         return fname
 
-    _id = 0
-    queue_f_size, queue = 0, []
+    chunk: _Chunk = {"id_": 1, "size": 0, "lines": []}
     total_f_size = 0
     with open(traverse_file, "r") as f:
         for fpath_line in f:
@@ -156,22 +165,22 @@ def _chunk(traverse_staging_dir: str, chunk_size: int, traverse_file: str) -> No
                     f"Skipping file '{fpath_line.strip()}'--path was removed since traversal."
                 )
                 continue
-            # enqueue & increment
-            queue.append(fpath_line)
-            queue_f_size += f_size
+            # append & increment
+            chunk["lines"].append(fpath_line)
+            chunk["size"] += f_size
             total_f_size += f_size
             # time to chunk?
-            if queue_f_size >= chunk_size:
-                _id += 1
-                _chunk_it(_id, queue)
-                queue_f_size, queue = 0, []  # reset
+            if chunk["size"] >= chunk_size:
+                _write_chunk_file(chunk)
+                # reset for next chunking
+                next_id = chunk["id_"] + 1
+                chunk = {"id_": next_id, "size": 0, "lines": []}
     # chunk whatever is left over
-    if queue:
-        _id += 1
-        _chunk_it(_id, queue)
+    if chunk["lines"]:
+        _write_chunk_file(chunk)
 
     logging.info(
-        f"Chunked traverse into {_id} chunk-files"
+        f"Chunked traverse into {chunk['id_']} chunk-files"
         f" ~{bitmath.best_prefix(chunk_size).format('{value:.2f} {unit}')}"
         f" ({chunk_size} bytes) each @ {chunks_dir}."
         f" Total ~{bitmath.best_prefix(total_f_size).format('{value:.2f} {unit}')}."
