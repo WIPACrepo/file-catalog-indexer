@@ -110,10 +110,10 @@ def redact(fpath: str) -> None:
                     redacted_line = _replace_back_special_digit_substrs(redacted_line)
                     # .i3 file
                     if ".i3" in redacted_line:
-                        print(f"{redacted_line} {line.strip()}", file=i3f)
+                        print(f"{redacted_line}", file=i3f)
                     # non-i3 file
                     else:
-                        print(f"{redacted_line} {line.strip()}", file=nonf)
+                        print(f"{redacted_line}", file=nonf)
 
     subprocess.check_call(f"sort {NON_I3_RED}.raw > {NON_I3_RED}", shell=True)
     os.remove(f"{NON_I3_RED}.raw")
