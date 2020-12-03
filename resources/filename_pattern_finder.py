@@ -16,14 +16,24 @@ try:
 except:  # noqa: E722 # pylint: disable=W0702
     TypedDict = Dict
 
+
+coloredlogs.install(level="DEBUG")
+
+
+# CONSTANTS ----------------------------------------------------------------------------
+
 I3_RED = "i3-paths.redacted"
 NON_I3_RED = f"non-{I3_RED}"
+
 MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
 IC_SUMMARY_YAML = "ic-replacement.summary.yaml"
 YEARS_SUMMARY_YAML = "year-replacement.summary.yaml"
+
+
+# FUNCTIONS ----------------------------------------------------------------------------
 
 
 def get_full_path(path: str) -> str:
