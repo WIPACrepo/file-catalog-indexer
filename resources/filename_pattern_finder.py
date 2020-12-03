@@ -22,15 +22,16 @@ coloredlogs.install(level="DEBUG")
 
 # CONSTANTS ----------------------------------------------------------------------------
 
-I3_RED = "i3-paths.redacted"
-NON_I3_RED = f"non-{I3_RED}"
+I3_PATTERNS = "i3-patterns"
+NON_I3_PATTERNS = f"non-{I3_PATTERNS}"
 
 MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
-IC_SUMMARY_YAML = "ic-replacement.summary.yaml"
-YEARS_SUMMARY_YAML = "year-replacement.summary.yaml"
+TOKEN_SUMMARY_DIR = "token-summaries"
+IC_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "ICs.summary.yaml")
+YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "years.summary.yaml")
 
 
 # FUNCTIONS ----------------------------------------------------------------------------
@@ -86,7 +87,9 @@ def redact(fpath: str) -> None:
     ics_summary: Dict[str, int] = {}
 
     # Write redactions
-    with open(f"{NON_I3_RED}.tmp", "w") as nonf, open(f"{I3_RED}.tmp", "w") as i3f:
+    with open(f"{NON_I3_PATTERNS}.tmp", "w") as nonf, open(
+        f"{I3_PATTERNS}.tmp", "w"
+    ) as i3f:
         with open(fpath, "r") as f:
             for line in f:
                 redacted_line = line.strip()
@@ -127,12 +130,14 @@ def redact(fpath: str) -> None:
                         print(f"{redacted_line}", file=nonf)
 
     # Sort & Cleanup
-    subprocess.check_call(f"sort {NON_I3_RED}.tmp > {NON_I3_RED}", shell=True)
-    os.remove(f"{NON_I3_RED}.tmp")
-    subprocess.check_call(f"sort {I3_RED}.tmp > {I3_RED}", shell=True)
-    os.remove(f"{I3_RED}.tmp")
+    subprocess.check_call(f"sort {NON_I3_PATTERNS}.tmp > {NON_I3_PATTERNS}", shell=True)
+    os.remove(f"{NON_I3_PATTERNS}.tmp")
+    subprocess.check_call(f"sort {I3_PATTERNS}.tmp > {I3_PATTERNS}", shell=True)
+    os.remove(f"{I3_PATTERNS}.tmp")
 
-    # Dump IC summary
+    # Make Token Summaries
+    os.mkdir(TOKEN_SUMMARY_DIR)
+    # dump IC summary
     with open(IC_SUMMARY_YAML, "w") as f:
         logging.debug(f"Dumping to {IC_SUMMARY_YAML}...")
         yaml.dump(  # dump in descending order of frequency
@@ -140,8 +145,7 @@ def redact(fpath: str) -> None:
             f,
             sort_keys=False,
         )
-
-    # Dump years summary
+    # dump years summary
     with open(YEARS_SUMMARY_YAML, "w") as f:
         logging.debug(f"Dumping to {YEARS_SUMMARY_YAML}...")
         yaml.dump(years_summary, f)
@@ -152,6 +156,8 @@ def redact(fpath: str) -> None:
 def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Summarizing {fname}...")
+    dir_ = f"{fname}-summaries"
+    os.mkdir(dir_)
 
     class _FilenamePatternSummary(TypedDict):
         count: int
@@ -183,26 +189,24 @@ def summarize(fname: str) -> None:
     )
 
     # YAMLfy pattern summaries
-    fpatterns_summary_yaml: str = f"{fname}.fpatterns-summary.yaml"
-    with open(fpatterns_summary_yaml + ".tmp", "w") as f:
-        logging.debug(f"Dumping to {fpatterns_summary_yaml}.tmp...")
+    directories_yaml: str = os.path.join(dir_, f"{fname}.dir-patterns.yaml")
+    with open(directories_yaml + ".tmp", "w") as f:
+        logging.debug(f"Dumping to {directories_yaml}.tmp...")
         # dump in descending order of frequency
         yaml.dump(dict(sorted_summaries), f, sort_keys=False)
-    os.rename(fpatterns_summary_yaml + ".tmp", fpatterns_summary_yaml)
+    os.rename(directories_yaml + ".tmp", directories_yaml)
 
     # YAMLfy pattern counts
-    fpatterns_counts_yaml: str = f"{fname}.fpatterns-counts.yaml"
-    with open(fpatterns_counts_yaml + ".tmp", "w") as f:
-        logging.debug(f"Dumping to {fpatterns_counts_yaml}.tmp...")
+    counts_yaml: str = os.path.join(dir_, f"{fname}.counts.yaml")
+    with open(counts_yaml + ".tmp", "w") as f:
+        logging.debug(f"Dumping to {counts_yaml}.tmp...")
         pattern_counts = {
             sort_sum[0]: sort_sum[1]["count"] for sort_sum in sorted_summaries
         }
         yaml.dump(pattern_counts, f, sort_keys=False)
-    os.rename(fpatterns_counts_yaml + ".tmp", fpatterns_counts_yaml)
+    os.rename(counts_yaml + ".tmp", counts_yaml)
 
-    logging.info(
-        f"Summarized {fname}: {fpatterns_summary_yaml} & {fpatterns_counts_yaml}"
-    )
+    logging.info(f"Summarized {fname}: {directories_yaml} & {counts_yaml}")
 
 
 def main() -> None:
@@ -216,17 +220,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if I3_RED in os.listdir(".") and NON_I3_RED in os.listdir("."):
-        logging.info(f"Using existing './{I3_RED}' and './{NON_I3_RED}'")
+    if I3_PATTERNS in os.listdir(".") and NON_I3_PATTERNS in os.listdir("."):
+        logging.info(f"Using existing './{I3_PATTERNS}' and './{NON_I3_PATTERNS}'")
     elif not args.file:
-        logging.critical(f"must have './{I3_RED}' and './{NON_I3_RED}'; OR use --file")
+        logging.critical(
+            f"must have './{I3_PATTERNS}' and './{NON_I3_PATTERNS}'; OR use --file"
+        )
         raise RuntimeError(
-            f"must have './{I3_RED}' and './{NON_I3_RED}'; OR use --file"
+            f"must have './{I3_PATTERNS}' and './{NON_I3_PATTERNS}'; OR use --file"
         )
     else:
         redact(args.file)
 
-    for fname in [I3_RED, NON_I3_RED]:
+    for fname in [I3_PATTERNS, NON_I3_PATTERNS]:
         summarize(fname)
 
 
