@@ -1,4 +1,7 @@
-"""Given a filename pattern, produce the regex."""
+"""Given a filename pattern, produce the regex.
+
+Use with: grep -P `python filename_pattern_regexer.py <string>` <file>
+"""
 
 
 import sys
