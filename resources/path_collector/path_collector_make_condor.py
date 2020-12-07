@@ -56,7 +56,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         fast_forward_arg = "--fast-forward" if fast_forward else ""
 
         accounting_group_attr = (
-            f'\n+AccountingGroup="{accounting_group}.$ENV(USER)"\n'
+            f'+AccountingGroup="{accounting_group}.$ENV(USER)"'
             if accounting_group
             else ""
         )
@@ -71,7 +71,8 @@ log = {scratch}/path_collector.log
 +FileSystemDomain = "blah"
 should_transfer_files = YES
 transfer_input_files = {",".join([os.path.abspath(f) for f in transfer_input_files])}
-request_cpus = {cpus}{accounting_group_attr}
+request_cpus = {cpus}
+{accounting_group_attr}
 request_memory = {memory}
 notification = Error
 queue
