@@ -16,14 +16,25 @@ try:
 except:  # noqa: E722 # pylint: disable=W0702
     TypedDict = Dict
 
-I3RP = "i3-redacted-paths"
-NON_I3RP = f"non-{I3RP}"
+
+coloredlogs.install(level="DEBUG")
+
+
+# CONSTANTS ----------------------------------------------------------------------------
+
+I3_PATTERNS = "i3-patterns"
+NON_I3_PATTERNS = f"non-{I3_PATTERNS}"
+
 MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
-IC_SUMMARY_YAML = "ic-replacement-summary.yaml"
-YEARS_SUMMARY_YAML = "year-replacement-summary.yaml"
+TOKEN_SUMMARY_DIR = "token-summaries"
+IC_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "ICs.summary.yaml")
+YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "years.summary.yaml")
+
+
+# FUNCTIONS ----------------------------------------------------------------------------
 
 
 def get_full_path(path: str) -> str:
@@ -62,67 +73,81 @@ def redact(fpath: str) -> None:
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
-    def _temp_replace(line: str) -> str:
+    def _replace_special_digit_substrs(fpathline: str) -> str:
         for i, substr in enumerate(allowed_substrs):
-            line = line.replace(substr, chr(i))
-        return line
+            fpathline = fpathline.replace(substr, chr(i))
+        return fpathline
 
-    def _replace_temps_back(line: str) -> str:
+    def _replace_back_special_digit_substrs(fpathline: str) -> str:
         for i, substr in enumerate(allowed_substrs):
-            line = line.replace(chr(i), substr)
-        return line
+            fpathline = fpathline.replace(chr(i), substr)
+        return fpathline
 
     years_summary: Dict[int, int] = {k: 0 for k in YEARS}
     ics_summary: Dict[str, int] = {}
 
-    with open(f"{NON_I3RP}.raw", "w") as nonf, open(f"{I3RP}.raw", "w") as i3f:
+    # Write redactions
+    with open(f"{NON_I3_PATTERNS}.tmp", "w") as nonf, open(
+        f"{I3_PATTERNS}.tmp", "w"
+    ) as i3f:
         with open(fpath, "r") as f:
-            for line in f.readlines():
+            for line in f:
+                redacted_line = line.strip()
                 # weird file, probably some kind of backup file
-                if "#" in line:
-                    logging.warning(f'"#" in filepath: {line.strip()}')
+                if "#" in redacted_line:
+                    logging.warning(f'"#" in filepath: {redacted_line}')
+                # another weird file
+                elif "^" in redacted_line:
+                    logging.warning(f'"^" in filepath: {redacted_line}')
+                # a normal file
                 else:
-                    # special digit-substrings
-                    line = _temp_replace(line)
+                    redacted_line = _replace_special_digit_substrs(redacted_line)
+                    # year-like substrings
                     for i in YEARS:
-                        if f"/{i}/" in line:
-                            line = line.replace(f"/{i}/", "/YYYY/")
+                        if f"/{i}/" in redacted_line:
+                            redacted_line = redacted_line.replace(f"/{i}/", "/YYYY/")
                             years_summary[i] += 1
-                    if "IC" in line:
-                        for match in re.finditer(r"IC(-)?\d+(-\d+)?", line):
+                    # IC substrings
+                    if "IC" in redacted_line:
+                        for match in re.finditer(r"IC(-)?\d+(-\d+)?", redacted_line):
                             ic_str = match.group(0)
                             try:
                                 ics_summary[ic_str] += 1
                             except KeyError:
                                 ics_summary[ic_str] = 1
-                        line = re.sub(r"IC\d+-\d+", "IC^-^", line)
-                        line = re.sub(r"IC\d+", "IC^", line)
-                        line = re.sub(r"IC-\d+-\d+", "IC-^-^", line)
-                        line = re.sub(r"IC-\d+", "IC-^", line)
+                        redacted_line = re.sub(r"IC\d+-\d+", "IC^-^", redacted_line)
+                        redacted_line = re.sub(r"IC\d+", "IC^", redacted_line)
+                        redacted_line = re.sub(r"IC-\d+-\d+", "IC-^-^", redacted_line)
+                        redacted_line = re.sub(r"IC-\d+", "IC-^", redacted_line)
                     # strings of digits -> '#'
-                    line = re.sub(r"\d+", "#", line)
-                    line = _replace_temps_back(line)
+                    redacted_line = re.sub(r"\d+", "#", redacted_line)
+                    redacted_line = _replace_back_special_digit_substrs(redacted_line)
                     # .i3 file
-                    if ".i3" in line:
-                        i3f.write(line)
+                    if ".i3" in redacted_line:
+                        print(f"{redacted_line}", file=i3f)
                     # non-i3 file
                     else:
-                        nonf.write(line)
+                        print(f"{redacted_line}", file=nonf)
 
-    subprocess.check_call(f"sort {NON_I3RP}.raw > {NON_I3RP}", shell=True)
-    os.remove(f"{NON_I3RP}.raw")
-    subprocess.check_call(f"sort {I3RP}.raw > {I3RP}", shell=True)
-    os.remove(f"{I3RP}.raw")
+    # Sort & Cleanup
+    subprocess.check_call(f"sort {NON_I3_PATTERNS}.tmp > {NON_I3_PATTERNS}", shell=True)
+    os.remove(f"{NON_I3_PATTERNS}.tmp")
+    subprocess.check_call(f"sort {I3_PATTERNS}.tmp > {I3_PATTERNS}", shell=True)
+    os.remove(f"{I3_PATTERNS}.tmp")
 
+    # Make Token Summaries
+    os.mkdir(TOKEN_SUMMARY_DIR)
+    # dump IC summary
     with open(IC_SUMMARY_YAML, "w") as f:
-        logging.info(f"Dumping to {IC_SUMMARY_YAML}...")
+        logging.debug(f"Dumping to {IC_SUMMARY_YAML}...")
         yaml.dump(  # dump in descending order of frequency
             dict(sorted(ics_summary.items(), key=lambda ic: ic[1], reverse=True)),
             f,
             sort_keys=False,
         )
+    # dump years summary
     with open(YEARS_SUMMARY_YAML, "w") as f:
-        logging.info(f"Dumping to {YEARS_SUMMARY_YAML}...")
+        logging.debug(f"Dumping to {YEARS_SUMMARY_YAML}...")
         yaml.dump(years_summary, f)
 
     logging.info(f"Redacted {fpath}: {IC_SUMMARY_YAML} & {YEARS_SUMMARY_YAML}")
@@ -131,15 +156,17 @@ def redact(fpath: str) -> None:
 def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Summarizing {fname}...")
+    dir_ = f"{fname}-summaries"
+    os.mkdir(dir_)
 
     class _FilenamePatternSummary(TypedDict):
         count: int
         dirs: Dict[str, int]
 
-    pattern_summaries: Dict[str, _FilenamePatternSummary] = {}
+    fpattern_summaries: Dict[str, _FilenamePatternSummary] = {}
 
     with open(fname, "r") as f:
-        logging.info(f"Parsing {fname}...")
+        logging.debug(f"Parsing {fname}...")
         for line in f:
             match = re.match(r"(?P<dpath>.+)/(?P<fname_pattern>[^/]+)$", line.strip())
             if match:
@@ -147,32 +174,39 @@ def summarize(fname: str) -> None:
                 fname_pattern = match.groupdict()["fname_pattern"]
                 dpath = match.groupdict()["dpath"]
                 # allocate
-                if fname_pattern not in pattern_summaries:
-                    pattern_summaries[fname_pattern] = {"dirs": {}, "count": 0}
-                if dpath not in pattern_summaries[fname_pattern]["dirs"]:
-                    pattern_summaries[fname_pattern]["dirs"][dpath] = 0
+                if fname_pattern not in fpattern_summaries:
+                    fpattern_summaries[fname_pattern] = {"dirs": {}, "count": 0}
+                if dpath not in fpattern_summaries[fname_pattern]["dirs"]:
+                    fpattern_summaries[fname_pattern]["dirs"][dpath] = 0
                 # increment
-                pattern_summaries[fname_pattern]["dirs"][dpath] += 1
-                pattern_summaries[fname_pattern]["count"] += 1
+                fpattern_summaries[fname_pattern]["dirs"][dpath] += 1
+                fpattern_summaries[fname_pattern]["count"] += 1
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    summary_fname = f"{fname}.summary"
-    with open(summary_fname + ".tmp", "w") as f:
-        logging.info(f"Writing to {summary_fname}.tmp...")
-        for fname_pattern, summmary in sorted(
-            pattern_summaries.items(), key=lambda ps: ps[1]["count"], reverse=True
-        ):
-            print(".", end="")  # loading...
-            f.write(fname_pattern + "\n")
-            f.write(f"{' '*4}count: {summmary['count']}\n")
-            f.write(f"{' '*4}dirs:\n")
-            for dir_pattern, count in summmary["dirs"].items():
-                f.write(f"{' '*8}{dir_pattern}: {count}\n")
-    print()
+    sorted_summaries = sorted(
+        fpattern_summaries.items(), key=lambda ps: ps[1]["count"], reverse=True,
+    )
 
-    os.rename(summary_fname + ".tmp", summary_fname)
-    logging.info(f"Summarized {fname}: {summary_fname}")
+    # YAMLfy pattern summaries
+    directories_yaml: str = os.path.join(dir_, f"{fname}.dir-patterns.yaml")
+    with open(directories_yaml + ".tmp", "w") as f:
+        logging.debug(f"Dumping to {directories_yaml}.tmp...")
+        # dump in descending order of frequency
+        yaml.dump(dict(sorted_summaries), f, sort_keys=False)
+    os.rename(directories_yaml + ".tmp", directories_yaml)
+
+    # YAMLfy pattern counts
+    counts_yaml: str = os.path.join(dir_, f"{fname}.counts.yaml")
+    with open(counts_yaml + ".tmp", "w") as f:
+        logging.debug(f"Dumping to {counts_yaml}.tmp...")
+        pattern_counts = {
+            sort_sum[0]: sort_sum[1]["count"] for sort_sum in sorted_summaries
+        }
+        yaml.dump(pattern_counts, f, sort_keys=False)
+    os.rename(counts_yaml + ".tmp", counts_yaml)
+
+    logging.info(f"Summarized {fname}: {directories_yaml} & {counts_yaml}")
 
 
 def main() -> None:
@@ -185,17 +219,20 @@ def main() -> None:
         "--file", help="file that contains a filepath on each line", type=get_full_path,
     )
     args = parser.parse_args()
-    coloredlogs.install(level="DEBUG")
 
-    if I3RP in os.listdir(".") and NON_I3RP in os.listdir("."):
-        logging.info("Using existing redacted-paths.txt")
+    if I3_PATTERNS in os.listdir(".") and NON_I3_PATTERNS in os.listdir("."):
+        logging.info(f"Using existing './{I3_PATTERNS}' and './{NON_I3_PATTERNS}'")
     elif not args.file:
-        logging.critical(f"must have './{I3RP}' and './{NON_I3RP}'; OR use --file")
-        raise RuntimeError(f"must have './{I3RP}' and './{NON_I3RP}'; OR use --file")
+        logging.critical(
+            f"must have './{I3_PATTERNS}' and './{NON_I3_PATTERNS}'; OR use --file"
+        )
+        raise RuntimeError(
+            f"must have './{I3_PATTERNS}' and './{NON_I3_PATTERNS}'; OR use --file"
+        )
     else:
         redact(args.file)
 
-    for fname in [I3RP, NON_I3RP]:
+    for fname in [I3_PATTERNS, NON_I3_PATTERNS]:
         summarize(fname)
 
 
