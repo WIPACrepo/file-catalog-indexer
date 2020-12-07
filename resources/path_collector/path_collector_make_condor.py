@@ -56,7 +56,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         fast_forward_arg = "--fast-forward" if fast_forward else ""
 
         accounting_group_attr = (
-            f'+AccountingGroup="{accounting_group}.$ENV(USER)"'
+            f'+AccountingGroup="{accounting_group}.{getpass.getuser()}"'
             if accounting_group
             else ""
         )
