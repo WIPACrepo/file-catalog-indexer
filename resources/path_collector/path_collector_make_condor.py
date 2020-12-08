@@ -36,6 +36,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     chunk_size: int,
     excluded_paths: List[str],
     fast_forward: bool,
+    accounting_group: str,
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -54,6 +55,12 @@ def make_condor_file(  # pylint: disable=R0913,R0914
         chunk_size_arg = f"--chunk-size {chunk_size}" if chunk_size else ""
         fast_forward_arg = "--fast-forward" if fast_forward else ""
 
+        accounting_group_attr = (
+            f'+AccountingGroup="{accounting_group}.{getpass.getuser()}"'
+            if accounting_group
+            else ""
+        )
+
         # write
         file.write(
             f"""executable = {os.path.abspath('../indexer_env.sh')}
@@ -65,6 +72,7 @@ log = {scratch}/path_collector.log
 should_transfer_files = YES
 transfer_input_files = {",".join([os.path.abspath(f) for f in transfer_input_files])}
 request_cpus = {cpus}
+{accounting_group_attr}
 request_memory = {memory}
 notification = Error
 queue
@@ -98,6 +106,12 @@ def main() -> None:
         action="store_true",
         help="does everything except submitting the condor job(s)",
     )
+    parser.add_argument(
+        "--accounting-group",
+        default="",
+        help="the accounting group to use, ex: 1_week. "
+        "By default no accounting group is used.",
+    )
     parser.add_argument("--cpus", type=int, help="number of CPUs", default=8)
     parser.add_argument("--memory", help="amount of memory", default="20GB")
     args = parser.parse_args()
@@ -118,6 +132,7 @@ def main() -> None:
         args.chunk_size,
         args.exclude,
         args.fast_forward,
+        args.accounting_group,
     )
 
     # Execute

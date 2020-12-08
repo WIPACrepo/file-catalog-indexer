@@ -57,7 +57,6 @@ def get_parser_w_common_args(
     if (not only) or ("--previous-traverse" in only):
         parser.add_argument(
             "--previous-traverse",
-            dest="previous_traverse",
             type=get_full_path,
             help="prior file with file paths, eg: /data/user/eevans/data-exp-2020-03-10T15:11:42."
             " These files will be skipped.",
@@ -75,7 +74,6 @@ def get_parser_w_common_args(
     if (not only) or ("--chunk-size" in only):
         parser.add_argument(
             "--chunk-size",
-            dest="chunk_size",
             type=_parse_to_bytes,
             default=0,
             help="aggregate file-size limit per chunk/job (bytes, KB, MB, ...), by default, one chunk is made.",
