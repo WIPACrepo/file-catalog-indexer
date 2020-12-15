@@ -31,7 +31,8 @@ YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
 TOKEN_SUMMARY_DIR = "token-summaries"
 IC_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "ICs.summary.yaml")
-YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "years.summary.yaml")
+DIR_YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "dir-years.summary.yaml")
+FNAME_YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "file-years.summary.yaml")
 
 
 # FUNCTIONS ----------------------------------------------------------------------------
@@ -83,7 +84,9 @@ def redact(fpath: str) -> None:
             fpathline = fpathline.replace(chr(i), substr)
         return fpathline
 
-    years_summary: Dict[int, int] = {k: 0 for k in YEARS}
+    # summaries
+    dir_years_summary: Dict[int, int] = {k: 0 for k in YEARS}
+    fname_years_summary: Dict[int, int] = {k: 0 for k in YEARS}
     ics_summary: Dict[str, int] = {}
 
     # Write redactions
@@ -92,51 +95,55 @@ def redact(fpath: str) -> None:
     ) as i3f:
         with open(fpath, "r") as f:
             for line in f:
-                redacted_line = line.strip()
+                red_line = line.strip()
                 # weird file, probably some kind of backup file
-                if "#" in redacted_line:
-                    logging.warning(f'"#" in filepath: {redacted_line}')
+                if "#" in red_line:
+                    logging.warning(f'"#" in filepath: {red_line}')
                 # another weird file
-                elif "^" in redacted_line:
-                    logging.warning(f'"^" in filepath: {redacted_line}')
+                elif "^" in red_line:
+                    logging.warning(f'"^" in filepath: {red_line}')
                 # a normal file
                 else:
-                    redacted_line = _replace_special_digit_substrs(redacted_line)
+                    red_line = _replace_special_digit_substrs(red_line)
                     # year-like substrings
                     for i in YEARS:
-                        if f"/{i}/" in redacted_line:
-                            redacted_line = redacted_line.replace(f"/{i}/", "/YYYY/")
-                            years_summary[i] += 1
+                        if f"{i}" in red_line:
+                            red_line = red_line.replace(str(i), "YYYY")
+                            if "/YYYY/" in red_line:
+                                dir_years_summary[i] += 1
+                            if re.match(r".*YYYY[^/]*$", red_line):
+                                fname_years_summary[i] += 1
                     # IC substrings
-                    if "IC" in redacted_line:
-                        for match in re.finditer(r"IC(-)?\d+(-\d+)?", redacted_line):
+                    if "IC" in red_line:
+                        for match in re.finditer(r"(IC|ic)(-)?\d+(-\d+)?", red_line):
                             ic_str = match.group(0)
                             try:
                                 ics_summary[ic_str] += 1
                             except KeyError:
                                 ics_summary[ic_str] = 1
-                        redacted_line = re.sub(r"IC\d+-\d+", "IC^-^", redacted_line)
-                        redacted_line = re.sub(r"IC\d+", "IC^", redacted_line)
-                        redacted_line = re.sub(r"IC-\d+-\d+", "IC-^-^", redacted_line)
-                        redacted_line = re.sub(r"IC-\d+", "IC-^", redacted_line)
+                        for ic in ["ic", "IC"]:  # pylint: disable=C0103
+                            red_line = re.sub(rf"{ic}\d+-\d+", f"{ic}^-^", red_line)
+                            red_line = re.sub(rf"{ic}\d+", f"{ic}^", red_line)
+                            red_line = re.sub(rf"{ic}-\d+-\d+", f"{ic}-^-^", red_line)
+                            red_line = re.sub(rf"{ic}-\d+", f"{ic}-^", red_line)
                     # strings of digits -> '#'
-                    redacted_line = re.sub(r"\d+", "#", redacted_line)
-                    redacted_line = _replace_back_special_digit_substrs(redacted_line)
+                    red_line = re.sub(r"\d+", "#", red_line)
+                    red_line = _replace_back_special_digit_substrs(red_line)
                     # .i3 file
-                    if ".i3" in redacted_line:
-                        print(f"{redacted_line}", file=i3f)
+                    if ".i3" in red_line:
+                        print(f"{red_line}", file=i3f)
                     # non-i3 file
                     else:
-                        print(f"{redacted_line}", file=nonf)
+                        print(f"{red_line}", file=nonf)
 
     # Sort & Cleanup
-    subprocess.check_call(f"sort {NON_I3_PATTERNS}.tmp > {NON_I3_PATTERNS}", shell=True)
-    os.remove(f"{NON_I3_PATTERNS}.tmp")
-    subprocess.check_call(f"sort {I3_PATTERNS}.tmp > {I3_PATTERNS}", shell=True)
-    os.remove(f"{I3_PATTERNS}.tmp")
+    for summary_fname in [NON_I3_PATTERNS, I3_PATTERNS]:
+        subprocess.check_call(f"sort {summary_fname}.tmp > {summary_fname}", shell=True)
+        os.remove(f"{summary_fname}.tmp")
 
     # Make Token Summaries
     os.mkdir(TOKEN_SUMMARY_DIR)
+
     # dump IC summary
     with open(IC_SUMMARY_YAML, "w") as f:
         logging.debug(f"Dumping to {IC_SUMMARY_YAML}...")
@@ -145,12 +152,16 @@ def redact(fpath: str) -> None:
             f,
             sort_keys=False,
         )
-    # dump years summary
-    with open(YEARS_SUMMARY_YAML, "w") as f:
-        logging.debug(f"Dumping to {YEARS_SUMMARY_YAML}...")
-        yaml.dump(years_summary, f)
+    # dump years summaries
+    for fname, summary in [
+        (FNAME_YEARS_SUMMARY_YAML, dir_years_summary),
+        (DIR_YEARS_SUMMARY_YAML, fname_years_summary),
+    ]:
+        with open(fname, "w") as f:
+            logging.debug(f"Dumping to {fname}...")
+            yaml.dump(summary, f)
 
-    logging.info(f"Redacted {fpath}: {IC_SUMMARY_YAML} & {YEARS_SUMMARY_YAML}")
+    logging.info(f"Redacted {fpath}: {IC_SUMMARY_YAML} & {DIR_YEARS_SUMMARY_YAML}")
 
 
 def summarize(fname: str) -> None:
