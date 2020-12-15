@@ -145,18 +145,17 @@ def redact(fpath: str) -> None:
     os.mkdir(TOKEN_SUMMARY_DIR)
 
     # Dump summaries
-    for fname, summary in [
+    for yaml_fname, summary in [
         (IC_SUMMARY_YAML, sorted(ics.items(), key=lambda ic: ic[1], reverse=True)),
         (FNAME_YEARS_SUMMARY_YAML, dir_years),
         (DIR_YEARS_SUMMARY_YAML, fname_years),
     ]:
-        with open(fname, "w") as f:
-            logging.debug(f"Dumping to {fname}...")
-            yaml.dump(dict(summary), f, sort_keys=(fname != IC_SUMMARY_YAML))  # type: ignore[call-overload]
+        with open(yaml_fname, "w") as f:
+            logging.debug(f"Dumping to {yaml_fname}...")
+            yaml.dump(dict(summary), f, sort_keys=(yaml_fname != IC_SUMMARY_YAML))  # type: ignore[call-overload]
+        logging.debug(f"Dumped {yaml_fname}.")
 
-    logging.info(
-        f"Redacted {fpath}: {IC_SUMMARY_YAML}, {FNAME_YEARS_SUMMARY_YAML}, & {DIR_YEARS_SUMMARY_YAML}"
-    )
+    logging.info(f"Redacted {fpath}.")
 
 
 def summarize(fname: str) -> None:
@@ -190,29 +189,25 @@ def summarize(fname: str) -> None:
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    sorted_summaries = sorted(
+    # Prep for yamls
+    dir_patterns = sorted(
         fpattern_summaries.items(), key=lambda ps: ps[1]["count"], reverse=True,
     )
+    counts = {sort_sum[0]: sort_sum[1]["count"] for sort_sum in dir_patterns}
 
-    # YAMLfy pattern summaries
-    directories_yaml: str = os.path.join(dir_, f"{fname}.dir-patterns.yaml")
-    with open(directories_yaml + ".tmp", "w") as f:
-        logging.debug(f"Dumping to {directories_yaml}.tmp...")
-        # dump in descending order of frequency
-        yaml.dump(dict(sorted_summaries), f, sort_keys=False)
-    os.rename(directories_yaml + ".tmp", directories_yaml)
+    # Dump summaries
+    for yaml_fname, summary in [
+        (os.path.join(dir_, f"{fname}.dir-patterns.yaml"), dir_patterns),
+        (os.path.join(dir_, f"{fname}.counts.yaml"), counts),
+    ]:
+        with open(yaml_fname + ".tmp", "w") as f:
+            logging.debug(f"Dumping to {yaml_fname}.tmp...")
+            # dump in descending order of frequency
+            yaml.dump(dict(summary), f, sort_keys=False)  # type: ignore[call-overload]
+        os.rename(yaml_fname + ".tmp", yaml_fname)
+        logging.debug(f"Dumped {yaml_fname}.")
 
-    # YAMLfy pattern counts
-    counts_yaml: str = os.path.join(dir_, f"{fname}.counts.yaml")
-    with open(counts_yaml + ".tmp", "w") as f:
-        logging.debug(f"Dumping to {counts_yaml}.tmp...")
-        pattern_counts = {
-            sort_sum[0]: sort_sum[1]["count"] for sort_sum in sorted_summaries
-        }
-        yaml.dump(pattern_counts, f, sort_keys=False)
-    os.rename(counts_yaml + ".tmp", counts_yaml)
-
-    logging.info(f"Summarized {fname}: {directories_yaml} & {counts_yaml}")
+    logging.info(f"Summarized {fname}.")
 
 
 def main() -> None:
