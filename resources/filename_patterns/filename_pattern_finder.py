@@ -85,9 +85,9 @@ def redact(fpath: str) -> None:
         return fpathline
 
     # summaries
-    dir_years_summary: Dict[int, int] = {k: 0 for k in YEARS}
-    fname_years_summary: Dict[int, int] = {k: 0 for k in YEARS}
-    ics_summary: Dict[str, int] = {}
+    dir_years: Dict[int, int] = {k: 0 for k in YEARS}
+    fname_years: Dict[int, int] = {k: 0 for k in YEARS}
+    ics: Dict[str, int] = {}
 
     # Write redactions
     with open(f"{NON_I3_PATTERNS}.tmp", "w") as nonf, open(
@@ -110,17 +110,17 @@ def redact(fpath: str) -> None:
                         if f"{i}" in red_line:
                             red_line = red_line.replace(str(i), "YYYY")
                             if "/YYYY/" in red_line:
-                                dir_years_summary[i] += 1
+                                dir_years[i] += 1
                             if re.match(r".*YYYY[^/]*$", red_line):
-                                fname_years_summary[i] += 1
+                                fname_years[i] += 1
                     # IC substrings
                     if "IC" in red_line:
                         for match in re.finditer(r"(IC|ic)(-)?\d+(-\d+)?", red_line):
                             ic_str = match.group(0)
                             try:
-                                ics_summary[ic_str] += 1
+                                ics[ic_str] += 1
                             except KeyError:
-                                ics_summary[ic_str] = 1
+                                ics[ic_str] = 1
                         for ic in ["ic", "IC"]:  # pylint: disable=C0103
                             red_line = re.sub(rf"{ic}\d+-\d+", f"{ic}^-^", red_line)
                             red_line = re.sub(rf"{ic}\d+", f"{ic}^", red_line)
@@ -144,24 +144,19 @@ def redact(fpath: str) -> None:
     # Make Token Summaries
     os.mkdir(TOKEN_SUMMARY_DIR)
 
-    # dump IC summary
-    with open(IC_SUMMARY_YAML, "w") as f:
-        logging.debug(f"Dumping to {IC_SUMMARY_YAML}...")
-        yaml.dump(  # dump in descending order of frequency
-            dict(sorted(ics_summary.items(), key=lambda ic: ic[1], reverse=True)),
-            f,
-            sort_keys=False,
-        )
-    # dump years summaries
+    # Dump summaries
     for fname, summary in [
-        (FNAME_YEARS_SUMMARY_YAML, dir_years_summary),
-        (DIR_YEARS_SUMMARY_YAML, fname_years_summary),
+        (IC_SUMMARY_YAML, sorted(ics.items(), key=lambda ic: ic[1], reverse=True)),
+        (FNAME_YEARS_SUMMARY_YAML, dir_years),
+        (DIR_YEARS_SUMMARY_YAML, fname_years),
     ]:
         with open(fname, "w") as f:
             logging.debug(f"Dumping to {fname}...")
-            yaml.dump(summary, f)
+            yaml.dump(dict(summary), f, sort_keys=(fname != IC_SUMMARY_YAML))  # type: ignore[call-overload]
 
-    logging.info(f"Redacted {fpath}: {IC_SUMMARY_YAML} & {DIR_YEARS_SUMMARY_YAML}")
+    logging.info(
+        f"Redacted {fpath}: {IC_SUMMARY_YAML}, {FNAME_YEARS_SUMMARY_YAML}, & {DIR_YEARS_SUMMARY_YAML}"
+    )
 
 
 def summarize(fname: str) -> None:
