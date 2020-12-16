@@ -196,6 +196,8 @@ def summarize(fname: str) -> None:
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
+    # TODO coalesce r"(\.|_)eff#"
+
     # Prep for yamls
     dir_patterns = sorted(
         fpattern_summaries.items(), key=lambda ps: ps[1]["count"], reverse=True,
