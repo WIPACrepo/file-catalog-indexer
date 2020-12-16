@@ -208,7 +208,7 @@ def _coalesce_effnum_patterns(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> N
                 new[dir_ct] = two[dir_ct]
         return new
 
-    for fnpat in fnpat_infos.keys():
+    for fnpat in list(fnpat_infos.keys()):
         for eff in eff_nums:
             if eff["before"] + eff["after"] in fnpat:
                 try:
