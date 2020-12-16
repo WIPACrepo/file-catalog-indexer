@@ -20,6 +20,9 @@ string = string.replace("YYYY", r"\d\d\d\d")
 string = string.replace("#", r"\d+")
 string = string.replace("^", r"\d+")
 
+string = string.replace("DATNUM", r"DAT\d+")
+string = string.replace("VNUM", r"V\d+")
+
 I3_EXT_REGEX = "(" + "|".join(x.replace(".", r"\.") for x in I3_EXTENSIONS) + ")$"
 string = string.replace(I3_EXT_TOKEN, I3_EXT_REGEX)
 

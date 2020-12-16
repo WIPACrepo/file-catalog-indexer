@@ -133,9 +133,12 @@ def redact(fpath: str) -> None:
                             red_line = re.sub(rf"{ic}\d+", f"{ic}^", red_line)
                             red_line = re.sub(rf"{ic}-\d+-\d+", f"{ic}-^-^", red_line)
                             red_line = re.sub(rf"{ic}-\d+", f"{ic}-^", red_line)
-                    # DAT substrings
+                    # DAT-num substrings
                     if "DAT" in red_line:
                         red_line = re.sub(r"DAT\d+", "DATNUM", red_line)
+                    # V-num substrings
+                    if "V" in red_line:  # ignore MeV#-types
+                        red_line = re.sub(r"[^e]V\d+", "VNUM", red_line)
                     # strings of digits -> '#'
                     red_line = re.sub(r"\d+", "#", red_line)
                     for bad_year in ["#YYYY#", "#YYYY", "YYYY#"]:
