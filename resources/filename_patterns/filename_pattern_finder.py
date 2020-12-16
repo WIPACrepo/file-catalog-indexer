@@ -22,6 +22,9 @@ coloredlogs.install(level="DEBUG")
 
 # CONSTANTS ----------------------------------------------------------------------------
 
+I3_EXTENSIONS = [".i3", ".i3.gz", ".i3.bz2", ".i3.zst"]  # excl: .log, .err, .out, .json
+I3_EXT_REGEX = "(" + "|".join(x.replace(".", r"\.") for x in I3_EXTENSIONS) + ")$"
+
 I3_PATTERNS = "i3-patterns"
 NON_I3_PATTERNS = f"non-{I3_PATTERNS}"
 
@@ -131,10 +134,14 @@ def redact(fpath: str) -> None:
                     red_line = _replace_back_special_digit_substrs(red_line)
                     # .i3 file
                     if ".i3" in red_line:
-                        print(f"{red_line}", file=i3f)
+                        # regex-ify i3 extensions
+                        for ext in I3_EXTENSIONS:
+                            if red_line.endswith(ext):
+                                red_line = red_line.replace(ext, I3_EXT_REGEX)
+                        print(red_line, file=i3f)
                     # non-i3 file
                     else:
-                        print(f"{red_line}", file=nonf)
+                        print(red_line, file=nonf)
 
     # Sort & Cleanup
     for summary_fname in [NON_I3_PATTERNS, I3_PATTERNS]:
