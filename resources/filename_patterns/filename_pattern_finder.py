@@ -25,7 +25,7 @@ coloredlogs.install(level="DEBUG")
 
 I3_EXTENSIONS = [".i3", ".i3.gz", ".i3.bz2", ".i3.zst"]  # excl: .log, .err, .out, .json
 logging.info(f"Using i3 extensions: {I3_EXTENSIONS}")
-I3_EXT_TOKEN = ".I3EXT$"
+I3_EXT_TOKEN = "DOTI3EXT$"
 EFF_NUM_OPT = "EFFNUM?"
 EFF_NUM_REGEX = r"(\.|_)eff#"
 
