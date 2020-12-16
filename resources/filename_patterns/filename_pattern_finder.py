@@ -3,10 +3,11 @@
 import argparse
 import logging
 import os
+import pprint
 import re
 import subprocess
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 import coloredlogs  # type: ignore[import]
 import yaml
@@ -25,6 +26,8 @@ coloredlogs.install(level="DEBUG")
 I3_EXTENSIONS = [".i3", ".i3.gz", ".i3.bz2", ".i3.zst"]  # excl: .log, .err, .out, .json
 logging.info(f"Using i3 extensions: {I3_EXTENSIONS}")
 I3_EXT_TOKEN = ".I3EXT$"
+EFF_NUM_OPT = "EFFNUM?"
+EFF_NUM_REGEX = r"(\.|_)eff#"
 
 I3_PATTERNS = "i3-patterns"
 NON_I3_PATTERNS = f"non-{I3_PATTERNS}"
@@ -166,17 +169,61 @@ def redact(fpath: str) -> None:
     logging.info(f"Redacted {fpath}.")
 
 
+class _FilenamePatternSummary(TypedDict):
+    count: int
+    dirs: Dict[str, int]
+
+
+def _coalesce_effnum_patterns(
+    fpattern_info: Dict[str, _FilenamePatternSummary]
+) -> None:
+    r"""Coalesce patterns with r"(\.|_)eff#" w/ patterns that are similar."""
+    eff_nums: List[str] = []
+    for pattern in fpattern_info.keys():
+        match = re.match(rf".*{EFF_NUM_REGEX}.*", pattern)
+        if not match:
+            continue
+        eff_nums.append(pattern)
+
+    def _coallesce_dir_counts(
+        one: Dict[str, int], two: Dict[str, int]
+    ) -> Dict[str, int]:
+        new = {k: v for k, v in one.items()}  # pylint: disable=R1721
+        for dir_ct in two.keys():
+            try:
+                new[dir_ct] += two[dir_ct]
+            except KeyError:
+                new[dir_ct] = two[dir_ct]
+        return new
+
+    for pattern in fpattern_info.keys():
+        for eff in eff_nums:
+            match = re.match(r"(?P<before>.*)(\.|_)eff#(?P<after>.*)", eff)
+            if match.groupdict()["before"] + match.groupdict()["after"] in pattern:  # type: ignore[union-attr]
+                try:
+                    eff_opt = f'{match.groupdict()["before"]}{EFF_NUM_OPT}{match.groupdict()["after"]}'  # type: ignore[union-attr]
+                    fpattern_info[eff_opt]["count"] = (
+                        fpattern_info[eff]["count"] + fpattern_info[pattern]["count"]
+                    )
+                    fpattern_info[eff_opt]["dirs"] = _coallesce_dir_counts(
+                        fpattern_info[eff]["dirs"], fpattern_info[pattern]["dirs"]
+                    )
+                    del fpattern_info[eff]
+                    del fpattern_info[pattern]
+                except KeyError:
+                    pprint.pprint(eff_nums)
+                    raise Exception(
+                        f"Pattern matches multiple eff#'s: {pattern}; newest eff#: {eff}"
+                    )
+
+
 def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Summarizing {fname}...")
     dir_ = f"{fname}-summaries"
     os.mkdir(dir_)
 
-    class _FilenamePatternSummary(TypedDict):
-        count: int
-        dirs: Dict[str, int]
-
-    fpattern_summaries: Dict[str, _FilenamePatternSummary] = {}
+    fpattern_info: Dict[str, _FilenamePatternSummary] = {}
 
     with open(fname, "r") as f:
         logging.debug(f"Parsing {fname}...")
@@ -187,21 +234,22 @@ def summarize(fname: str) -> None:
                 fname_pattern = match.groupdict()["fname_pattern"]
                 dpath = match.groupdict()["dpath"]
                 # allocate
-                if fname_pattern not in fpattern_summaries:
-                    fpattern_summaries[fname_pattern] = {"dirs": {}, "count": 0}
-                if dpath not in fpattern_summaries[fname_pattern]["dirs"]:
-                    fpattern_summaries[fname_pattern]["dirs"][dpath] = 0
+                if fname_pattern not in fpattern_info:
+                    fpattern_info[fname_pattern] = {"dirs": {}, "count": 0}
+                if dpath not in fpattern_info[fname_pattern]["dirs"]:
+                    fpattern_info[fname_pattern]["dirs"][dpath] = 0
                 # increment
-                fpattern_summaries[fname_pattern]["dirs"][dpath] += 1
-                fpattern_summaries[fname_pattern]["count"] += 1
+                fpattern_info[fname_pattern]["dirs"][dpath] += 1
+                fpattern_info[fname_pattern]["count"] += 1
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    # TODO coalesce r"(\.|_)eff#"
+    # Coalesce r"(\.|_)eff#"
+    _coalesce_effnum_patterns(fpattern_info)
 
     # Prep for yamls
     dir_patterns = sorted(
-        fpattern_summaries.items(), key=lambda ps: ps[1]["count"], reverse=True,
+        fpattern_info.items(), key=lambda ps: ps[1]["count"], reverse=True
     )
     counts = {sort_sum[0]: sort_sum[1]["count"] for sort_sum in dir_patterns}
 
