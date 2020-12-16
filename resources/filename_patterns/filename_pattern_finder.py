@@ -171,21 +171,31 @@ def redact(fpath: str) -> None:
     logging.info(f"Redacted {fpath}.")
 
 
-class _FilenamePatternSummary(TypedDict):
+class _FilenamePatternInfo(TypedDict):
     count: int
     dirs: Dict[str, int]
 
 
-def _coalesce_effnum_patterns(
-    fpattern_info: Dict[str, _FilenamePatternSummary]
-) -> None:
+def _coalesce_effnum_patterns(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
     r"""Coalesce patterns with r"(\.|_)eff#" w/ patterns that are similar."""
-    eff_nums: List[str] = []
-    for pattern in fpattern_info.keys():
-        match = re.match(rf".*{EFF_NUM_REGEX}.*", pattern)
+
+    class _EffNumFilenamePattern(TypedDict):
+        fnpat: str
+        before: str
+        after: str
+
+    eff_nums: List[_EffNumFilenamePattern] = []
+    for fnpat in fnpat_infos.keys():
+        match = re.match(rf"(?P<before>.*){EFF_NUM_REGEX}(?P<after>.*)", fnpat)
         if not match:
             continue
-        eff_nums.append(pattern)
+        eff_nums.append(
+            {
+                "fnpat": fnpat,
+                "before": match.groupdict()["before"],
+                "after": match.groupdict()["after"],
+            }
+        )
 
     def _coallesce_dir_counts(
         one: Dict[str, int], two: Dict[str, int]
@@ -198,25 +208,27 @@ def _coalesce_effnum_patterns(
                 new[dir_ct] = two[dir_ct]
         return new
 
-    for pattern in fpattern_info.keys():
+    for fnpat in fnpat_infos.keys():
         for eff in eff_nums:
-            match = re.match(r"(?P<before>.*)(\.|_)eff#(?P<after>.*)", eff)
-            if match.groupdict()["before"] + match.groupdict()["after"] in pattern:  # type: ignore[union-attr]
+            if eff["before"] + eff["after"] in fnpat:
                 try:
-                    eff_opt = f'{match.groupdict()["before"]}{EFF_NUM_OPT}{match.groupdict()["after"]}'  # type: ignore[union-attr]
-                    fpattern_info[eff_opt]["count"] = (
-                        fpattern_info[eff]["count"] + fpattern_info[pattern]["count"]
-                    )
-                    fpattern_info[eff_opt]["dirs"] = _coallesce_dir_counts(
-                        fpattern_info[eff]["dirs"], fpattern_info[pattern]["dirs"]
-                    )
-                    del fpattern_info[eff]
-                    del fpattern_info[pattern]
+                    eff_opt_pattern = f'{eff["before"]}{EFF_NUM_OPT}{eff["after"]}'
+                    fnpat_infos[eff_opt_pattern] = {
+                        "count": fnpat_infos[eff["fnpat"]]["count"]
+                        + fnpat_infos[fnpat]["count"],
+                        "dirs": _coallesce_dir_counts(
+                            fnpat_infos[eff["fnpat"]]["dirs"],
+                            fnpat_infos[fnpat]["dirs"],
+                        ),
+                    }
+                    del fnpat_infos[eff["fnpat"]]
+                    del fnpat_infos[fnpat]
                 except KeyError:
                     pprint.pprint(eff_nums)
-                    raise Exception(
-                        f"Pattern matches multiple eff#'s: {pattern}; newest eff#: {eff}"
+                    logging.critical(
+                        f"Pattern matches multiple eff#'s: {fnpat}; newest eff#: {eff}"
                     )
+                    raise
 
 
 def summarize(fname: str) -> None:
@@ -225,33 +237,33 @@ def summarize(fname: str) -> None:
     dir_ = f"{fname}-summaries"
     os.mkdir(dir_)
 
-    fpattern_info: Dict[str, _FilenamePatternSummary] = {}
+    fnpat_infos: Dict[str, _FilenamePatternInfo] = {}
 
     with open(fname, "r") as f:
         logging.debug(f"Parsing {fname}...")
         for line in f:
-            match = re.match(r"(?P<dpath>.+)/(?P<fname_pattern>[^/]+)$", line.strip())
+            match = re.match(r"(?P<dpath>.+)/(?P<fnpat>[^/]+)$", line.strip())
             if match:
                 # get substrings
-                fname_pattern = match.groupdict()["fname_pattern"]
+                fnpat = match.groupdict()["fnpat"]
                 dpath = match.groupdict()["dpath"]
                 # allocate
-                if fname_pattern not in fpattern_info:
-                    fpattern_info[fname_pattern] = {"dirs": {}, "count": 0}
-                if dpath not in fpattern_info[fname_pattern]["dirs"]:
-                    fpattern_info[fname_pattern]["dirs"][dpath] = 0
+                if fnpat not in fnpat_infos:
+                    fnpat_infos[fnpat] = {"dirs": {}, "count": 0}
+                if dpath not in fnpat_infos[fnpat]["dirs"]:
+                    fnpat_infos[fnpat]["dirs"][dpath] = 0
                 # increment
-                fpattern_info[fname_pattern]["dirs"][dpath] += 1
-                fpattern_info[fname_pattern]["count"] += 1
+                fnpat_infos[fnpat]["dirs"][dpath] += 1
+                fnpat_infos[fnpat]["count"] += 1
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
     # Coalesce r"(\.|_)eff#"
-    _coalesce_effnum_patterns(fpattern_info)
+    _coalesce_effnum_patterns(fnpat_infos)
 
     # Prep for yamls
     dir_patterns = sorted(
-        fpattern_info.items(), key=lambda ps: ps[1]["count"], reverse=True
+        fnpat_infos.items(), key=lambda ps: ps[1]["count"], reverse=True
     )
     counts = {sort_sum[0]: sort_sum[1]["count"] for sort_sum in dir_patterns}
 
