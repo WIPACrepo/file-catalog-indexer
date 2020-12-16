@@ -121,7 +121,7 @@ def redact(fpath: str) -> None:
                             if re.match(r".*YYYY[^/]*$", red_line):
                                 fname_years[i] += 1
                     # IC substrings
-                    if "IC" in red_line:
+                    if "IC" in red_line or "ic" in red_line:
                         for match in re.finditer(r"(IC|ic)(-)?\d+(-\d+)?", red_line):
                             ic_str = match.group(0)
                             try:
