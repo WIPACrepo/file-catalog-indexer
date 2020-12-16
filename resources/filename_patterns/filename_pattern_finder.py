@@ -135,6 +135,8 @@ def redact(fpath: str) -> None:
                             red_line = re.sub(rf"{ic}-\d+", f"{ic}-^", red_line)
                     # strings of digits -> '#'
                     red_line = re.sub(r"\d+", "#", red_line)
+                    for bad_year in ["#YYYY#", "#YYYY", "YYYY#"]:
+                        red_line = red_line.replace(bad_year, "#")
                     red_line = _replace_back_special_digit_substrs(red_line)
                     # .i3 file
                     if ".i3" in red_line:
