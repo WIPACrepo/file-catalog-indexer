@@ -121,11 +121,11 @@ def stage_1_redact(fpath: str) -> None:
                     # year-like substrings
                     for i in YEARS:
                         if f"{i}" in red_line:
-                            red_line = red_line.replace(str(i), "YYYY")
-                            if "/YYYY/" in red_line:
+                            if f"/{i}/" in red_line:
                                 dir_years[i] += 1
-                            if re.match(r".*YYYY[^/]*$", red_line):
+                            if re.match(rf".*{i}[^/]*$", red_line):
                                 fname_years[i] += 1
+                            red_line = red_line.replace(str(i), "YYYY")
                     # IC substrings
                     if "IC" in red_line or "ic" in red_line:
                         for match in re.finditer(r"(IC|ic)(-)?\d+(-\d+)?", red_line):
