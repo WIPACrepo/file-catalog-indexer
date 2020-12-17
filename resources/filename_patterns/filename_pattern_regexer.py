@@ -10,6 +10,7 @@ sys.path.append(".")
 from filename_pattern_finder import (  # isort:skip  # noqa # pylint: disable=C0413
     I3_EXT_TOKEN,
     I3_EXTENSIONS,
+    SPECIAL_NUM_STRINGS,
 )
 
 
@@ -30,12 +31,10 @@ string = string.replace(I3_EXT_TOKEN, I3_EXT_REGEX)
 
 string = string.replace("EFFNUM?", r"((\.|_)eff\d+)?")
 
-string = string.replace("DATNUM", r"DAT\d+")
-string = string.replace("VNUM", r"V\d+")
-string = string.replace("STEPNUM", r"(S|s)tep\d+")
-string = string.replace("EFFNUM", r"(\.|_)eff\d+")
-string = string.replace("PASSNUM", r"(P|p)ass\d+")
-string = string.replace("DENUMPNUM", r"DE\d+P\d+")
+for special_num_string in SPECIAL_NUM_STRINGS:
+    string = string.replace(
+        special_num_string["num_token"], special_num_string["normal_regex"]
+    )
 
 
 #
