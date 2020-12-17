@@ -26,14 +26,14 @@ I3_EXTENSIONS = [".i3", ".i3.gz", ".i3.bz2", ".i3.zst"]  # excl: .log, .err, .ou
 logging.info(f"Using i3 extensions: {I3_EXTENSIONS}")
 I3_EXT_TOKEN = "DOTI3EXT"
 
-I3_PATTERNS = "i3-patterns"
-NON_I3_PATTERNS = f"non-{I3_PATTERNS}"
+I3_PATTERNS = "stage-1-i3-patterns"
+NON_I3_PATTERNS = "stage-1-non-i3-patterns"
 
 MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
-TOKEN_SUMMARY_DIR = "first-stage-token-summaries"
+TOKEN_SUMMARY_DIR = "stage-1-token-summaries"
 IC_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "ICs.summary.yaml")
 DIR_YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "dir-years.summary.yaml")
 FNAME_YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "file-years.summary.yaml")
@@ -247,7 +247,7 @@ SPECIAL_SUFFIXES = [
 def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Stage 2: Summarizing {fname}...")
-    dir_ = f"{fname}-summaries"
+    dir_ = f"stage-2-{fname}-summaries"
     os.mkdir(dir_)
 
     fnpat_infos: Dict[str, _FilenamePatternInfo] = {}
