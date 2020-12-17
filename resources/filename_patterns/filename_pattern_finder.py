@@ -133,12 +133,6 @@ def redact(fpath: str) -> None:
                             red_line = re.sub(rf"{ic}\d+", f"{ic}^", red_line)
                             red_line = re.sub(rf"{ic}-\d+-\d+", f"{ic}-^-^", red_line)
                             red_line = re.sub(rf"{ic}-\d+", f"{ic}-^", red_line)
-                    # DAT-num substrings
-                    if "DAT" in red_line:
-                        red_line = re.sub(r"DAT\d+", "DATNUM", red_line)
-                    # V-num substrings
-                    if "V" in red_line:  # ignore MeV#-types
-                        red_line = re.sub(r"[^e]V\d+", "VNUM", red_line)
                     # strings of digits -> '#'
                     red_line = re.sub(r"\d+", "#", red_line)
                     for bad_year in ["#YYYY#", "#YYYY", "YYYY#"]:
@@ -266,6 +260,16 @@ def summarize(fname: str) -> None:
 
     # Coalesce r"(\.|_)eff#"
     _coalesce_effnum_patterns(fnpat_infos)
+    # DAT-num substrings
+    for fnpat in list(fnpat_infos.keys()):
+        if "DAT" in fnpat:
+            new_fnpat = re.sub(r"DAT\d+", "DATNUM", fnpat)
+            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+    # V-num substrings
+    for fnpat in list(fnpat_infos.keys()):
+        if "V" in fnpat:
+            new_fnpat = re.sub(r"[^e]V\d+", "VNUM", fnpat)  # ignore MeV#-types
+            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
 
     # Prep for yamls
     dir_patterns = sorted(
