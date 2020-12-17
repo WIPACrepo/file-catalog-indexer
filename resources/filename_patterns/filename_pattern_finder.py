@@ -283,6 +283,12 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
         "num_token": "PNUM",
         "normal_regex": r"P\d+",
     },  # # #
+    {
+        "find": "sibyll#",
+        "hash_regex": r"sibyll#\.#[a-z]?",
+        "num_token": "SIBYLNUM",
+        "normal_regex": r"sibyll\d\.\d[a-z]?",
+    },
 ]
 
 
