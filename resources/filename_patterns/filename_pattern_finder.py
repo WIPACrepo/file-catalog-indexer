@@ -3,7 +3,6 @@
 import argparse
 import logging
 import os
-import pprint
 import re
 import subprocess
 from datetime import datetime
@@ -26,8 +25,6 @@ coloredlogs.install(level="DEBUG")
 I3_EXTENSIONS = [".i3", ".i3.gz", ".i3.bz2", ".i3.zst"]  # excl: .log, .err, .out, .json
 logging.info(f"Using i3 extensions: {I3_EXTENSIONS}")
 I3_EXT_TOKEN = "DOTI3EXT"
-EFF_NUM_OPT = "EFFNUM?"
-EFF_NUM_REGEX = r"(\.|_)eff#"
 
 I3_PATTERNS = "i3-patterns"
 NON_I3_PATTERNS = f"non-{I3_PATTERNS}"
@@ -237,6 +234,15 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
     },
 ]
 
+SPECIAL_SUFFIXES = [
+    "as.flasher",
+    "clsim-",
+    "err_s",
+    "only_muons",
+    "base",
+    "untriggered",
+]
+
 
 def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
@@ -267,7 +273,7 @@ def stage_2_summarize(fname: str) -> None:
 
     # num-strings
     for special_num_string in SPECIAL_NUM_STRINGS:
-        for fnpat in list(fnpat_infos.keys()):
+        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
             if special_num_string["find"] in fnpat:
                 new_fnpat = re.sub(
                     special_num_string["hash_regex"],
@@ -275,6 +281,26 @@ def stage_2_summarize(fname: str) -> None:
                     fnpat,
                 )
                 fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+
+    # suffixes
+    for suffix in SPECIAL_SUFFIXES:
+        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
+            if suffix not in fnpat:
+                continue
+            match = re.match(rf"(?P<before>.*)({suffix}.*)DOTI3EXT$", fnpat)
+            if not match:
+                continue
+            red_fnpat = f"{match.groupdict()['before']}SUFFIXDOTI3EXT"
+            try:  # assume red_fnpat has already been added, so increment counts
+                fnpat_infos[red_fnpat]["count"] += fnpat_infos[fnpat]["count"]
+                for dir_, count in fnpat_infos[fnpat]["dirs"].items():
+                    try:  # assume dir as already been added
+                        fnpat_infos[red_fnpat]["dirs"][dir_] += count
+                    except KeyError:  # new dir
+                        fnpat_infos[red_fnpat]["dirs"][dir_] = count
+                del fnpat_infos[fnpat]
+            except KeyError:  # red_fnpat has NOT already been added
+                fnpat_infos[red_fnpat] = fnpat_infos.pop(fnpat)
 
     # Prep for yamls
     dir_patterns = sorted(
