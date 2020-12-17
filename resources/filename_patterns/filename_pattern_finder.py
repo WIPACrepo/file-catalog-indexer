@@ -57,9 +57,9 @@ def get_full_path(path: str) -> str:
     return full_path
 
 
-def redact(fpath: str) -> None:
+def stage_1_redact(fpath: str) -> None:
     """Write out basic patterns."""
-    logging.info(f"Redacting {fpath}...")
+    logging.info(f"Stage 1: Redacting {fpath}...")
 
     allowed_substrs = [
         "i3.bz2",
@@ -177,7 +177,7 @@ def redact(fpath: str) -> None:
             yaml.dump(dict(summary), f, sort_keys=(yaml_fname != IC_SUMMARY_YAML))  # type: ignore[call-overload]
         logging.debug(f"Dumped {yaml_fname}.")
 
-    logging.info(f"Redacted {fpath}.")
+    logging.info(f"Stage 1: Redacted {fpath}.")
 
 
 class _FilenamePatternInfo(TypedDict):
@@ -238,9 +238,9 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
 ]
 
 
-def summarize(fname: str) -> None:
+def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
-    logging.info(f"Summarizing {fname}...")
+    logging.info(f"Stage 2: Summarizing {fname}...")
     dir_ = f"{fname}-summaries"
     os.mkdir(dir_)
 
@@ -294,7 +294,7 @@ def summarize(fname: str) -> None:
         os.rename(yaml_fname + ".tmp", yaml_fname)
         logging.debug(f"Dumped {yaml_fname}.")
 
-    logging.info(f"Summarized {fname}.")
+    logging.info(f"Stage 2: Summarized {fname}.")
 
 
 def main() -> None:
@@ -318,10 +318,12 @@ def main() -> None:
             f"must have './{I3_PATTERNS}' and './{NON_I3_PATTERNS}'; OR use --file"
         )
     else:
-        redact(args.file)
+        stage_1_redact(args.file)
 
     for fname in [I3_PATTERNS, NON_I3_PATTERNS]:
-        summarize(fname)
+        stage_2_summarize(fname)
+
+    logging.info("Done.")
 
 
 if __name__ == "__main__":
