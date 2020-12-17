@@ -247,7 +247,7 @@ SPECIAL_SUFFIXES = [
 def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Stage 2: Summarizing {fname}...")
-    dir_ = f"stage-2-{fname}-summaries"
+    dir_ = f"stage-2-{fname.split('stage-1-')[1]}-summaries"
     os.mkdir(dir_)
 
     fnpat_infos: Dict[str, _FilenamePatternInfo] = {}
