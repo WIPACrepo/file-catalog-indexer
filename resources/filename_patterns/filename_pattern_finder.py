@@ -25,7 +25,7 @@ coloredlogs.install(level="DEBUG")
 
 I3_EXTENSIONS = [".i3", ".i3.gz", ".i3.bz2", ".i3.zst"]  # excl: .log, .err, .out, .json
 logging.info(f"Using i3 extensions: {I3_EXTENSIONS}")
-I3_EXT_TOKEN = "DOTI3EXT$"
+I3_EXT_TOKEN = "DOTI3EXT"
 EFF_NUM_OPT = "EFFNUM?"
 EFF_NUM_REGEX = r"(\.|_)eff#"
 
@@ -269,8 +269,11 @@ def summarize(fname: str) -> None:
     for find, pattern, repl in [
         ("DAT", "DAT#", "DATNUM"),
         ("V", r"[^e]V#", "VNUM"),  # ignore MeV#-types
-        ("Step#", "Step#", "STEPNUM"),
+        ("tep#", r"(S|s)tep#", "STEPNUM"),
         ("eff#", r"(\.|_)eff#", "EFFNUM"),
+        ("ass#", r"(P|p)ass#", "PASSNUM"),
+        ("DE#P#", "DE#P#", "DENUMPNUM"),
+        ("DEP#", "DEP#", "DEPNUM"),
     ]:
         for fnpat in list(fnpat_infos.keys()):
             if find in fnpat:

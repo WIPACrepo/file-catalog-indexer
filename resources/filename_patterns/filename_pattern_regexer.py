@@ -21,7 +21,7 @@ string = string.replace("YYYY", r"\d\d\d\d")
 string = string.replace("#", r"\d+")
 string = string.replace("^", r"\d+")
 
-I3_EXT_REGEX = "(" + "|".join(x.replace(".", r"\.") for x in I3_EXTENSIONS) + ")$"
+I3_EXT_REGEX = "(" + "|".join(x.replace(".", r"\.") for x in I3_EXTENSIONS) + ")"
 string = string.replace(I3_EXT_TOKEN, I3_EXT_REGEX)
 
 
@@ -32,8 +32,10 @@ string = string.replace("EFFNUM?", r"((\.|_)eff\d+)?")
 
 string = string.replace("DATNUM", r"DAT\d+")
 string = string.replace("VNUM", r"V\d+")
-string = string.replace("STEPNUM", r"Step\d+")
+string = string.replace("STEPNUM", r"(S|s)tep\d+")
 string = string.replace("EFFNUM", r"(\.|_)eff\d+")
+string = string.replace("PASSNUM", r"(P|p)ass\d+")
+string = string.replace("DENUMPNUM", r"DE\d+P\d+")
 
 
 #
