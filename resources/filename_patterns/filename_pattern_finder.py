@@ -83,6 +83,7 @@ def redact(fpath: str) -> None:
         "SPICE-1",
         "SPASE-2",
         "Gen2",
+        "KYG1",
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
