@@ -244,6 +244,39 @@ SPECIAL_SUFFIXES = [
 ]
 
 
+def _special_num_strings(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
+    for special_num_string in SPECIAL_NUM_STRINGS:
+        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
+            if special_num_string["find"] in fnpat:
+                new_fnpat = re.sub(
+                    special_num_string["hash_regex"],
+                    special_num_string["num_token"],
+                    fnpat,
+                )
+                fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+
+
+def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
+    for suffix in SPECIAL_SUFFIXES:
+        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
+            if suffix not in fnpat:
+                continue
+            match = re.match(rf"(?P<before>.*)({suffix}.*)DOTI3EXT$", fnpat)
+            if not match:
+                continue
+            red_fnpat = f"{match.groupdict()['before']}SUFFIXDOTI3EXT"
+            try:  # assume red_fnpat has already been added, so increment counts
+                fnpat_infos[red_fnpat]["count"] += fnpat_infos[fnpat]["count"]
+                for dir_, count in fnpat_infos[fnpat]["dirs"].items():
+                    try:  # assume dir as already been added
+                        fnpat_infos[red_fnpat]["dirs"][dir_] += count
+                    except KeyError:  # new dir
+                        fnpat_infos[red_fnpat]["dirs"][dir_] = count
+                del fnpat_infos[fnpat]
+            except KeyError:  # red_fnpat has NOT already been added
+                fnpat_infos[red_fnpat] = fnpat_infos.pop(fnpat)
+
+
 def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Stage 2: Summarizing {fname}...")
@@ -271,36 +304,9 @@ def stage_2_summarize(fname: str) -> None:
             else:
                 logging.debug(f"no match: '{line.strip()}'")
 
-    # num-strings
-    for special_num_string in SPECIAL_NUM_STRINGS:
-        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
-            if special_num_string["find"] in fnpat:
-                new_fnpat = re.sub(
-                    special_num_string["hash_regex"],
-                    special_num_string["num_token"],
-                    fnpat,
-                )
-                fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
-
-    # suffixes
-    for suffix in SPECIAL_SUFFIXES:
-        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
-            if suffix not in fnpat:
-                continue
-            match = re.match(rf"(?P<before>.*)({suffix}.*)DOTI3EXT$", fnpat)
-            if not match:
-                continue
-            red_fnpat = f"{match.groupdict()['before']}SUFFIXDOTI3EXT"
-            try:  # assume red_fnpat has already been added, so increment counts
-                fnpat_infos[red_fnpat]["count"] += fnpat_infos[fnpat]["count"]
-                for dir_, count in fnpat_infos[fnpat]["dirs"].items():
-                    try:  # assume dir as already been added
-                        fnpat_infos[red_fnpat]["dirs"][dir_] += count
-                    except KeyError:  # new dir
-                        fnpat_infos[red_fnpat]["dirs"][dir_] = count
-                del fnpat_infos[fnpat]
-            except KeyError:  # red_fnpat has NOT already been added
-                fnpat_infos[red_fnpat] = fnpat_infos.pop(fnpat)
+    # special-string tokenization
+    _special_num_strings(fnpat_infos)
+    _special_suffixes(fnpat_infos)
 
     # Prep for yamls
     dir_patterns = sorted(
