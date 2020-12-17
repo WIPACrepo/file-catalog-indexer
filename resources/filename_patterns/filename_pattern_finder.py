@@ -84,6 +84,7 @@ def redact(fpath: str) -> None:
         "SPASE-2",
         "Gen2",
         "KYG1",
+        "DE1P",
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
@@ -237,6 +238,53 @@ class _FilenamePatternInfo(TypedDict):
 #                     raise
 
 
+class _SpecialNumStrings(TypedDict):
+    find: str
+    hash_regex: str
+    num_token: str
+    normal_regex: str
+
+
+SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
+    {
+        "find": "DAT",
+        "hash_regex": "DAT#",
+        "num_token": "DATNUM",
+        "normal_regex": r"DAT\d+",
+    },
+    {
+        "find": "V",
+        "hash_regex": r"[^e]V#",  # ignore MeV#-types
+        "num_token": "VNUM",
+        "normal_regex": r"V\d+",
+    },
+    {
+        "find": "tep#",
+        "hash_regex": r"(S|s)tep#",
+        "num_token": "STEPNUM",
+        "normal_regex": r"(S|s)tep\d+",
+    },
+    {
+        "find": "eff#",
+        "hash_regex": r"(\.|_)eff#",
+        "num_token": "EFFNUM",
+        "normal_regex": r"(\.|_)eff\d+",
+    },
+    {
+        "find": "ass#",
+        "hash_regex": r"(P|p)ass#",
+        "num_token": "PASSNUM",
+        "normal_regex": r"(P|p)ass\d+",
+    },
+    {
+        "find": "P#",
+        "hash_regex": "P#",
+        "num_token": "PNUM",
+        "normal_regex": r"P\d+",
+    },  # # #
+]
+
+
 def summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Summarizing {fname}...")
@@ -267,18 +315,14 @@ def summarize(fname: str) -> None:
     # Coalesce r"(\.|_)eff#"
     # _coalesce_effnum_patterns(fnpat_infos)
     # num-strings
-    for find, pattern, repl in [
-        ("DAT", "DAT#", "DATNUM"),
-        ("V", r"[^e]V#", "VNUM"),  # ignore MeV#-types
-        ("tep#", r"(S|s)tep#", "STEPNUM"),
-        ("eff#", r"(\.|_)eff#", "EFFNUM"),
-        ("ass#", r"(P|p)ass#", "PASSNUM"),
-        ("DE#P#", "DE#P#", "DENUMPNUM"),
-        ("DEP#", "DEP#", "DEPNUM"),
-    ]:
+    for special_num_string in SPECIAL_NUM_STRINGS:
         for fnpat in list(fnpat_infos.keys()):
-            if find in fnpat:
-                new_fnpat = re.sub(pattern, repl, fnpat)
+            if special_num_string["find"] in fnpat:
+                new_fnpat = re.sub(
+                    special_num_string["hash_regex"],
+                    special_num_string["num_token"],
+                    fnpat,
+                )
                 fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
 
     # Prep for yamls
