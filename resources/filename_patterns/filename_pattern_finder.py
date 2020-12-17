@@ -181,59 +181,59 @@ class _FilenamePatternInfo(TypedDict):
     dirs: Dict[str, int]
 
 
-def _coalesce_effnum_patterns(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
-    r"""Coalesce patterns with r"(\.|_)eff#" w/ patterns that are similar."""
+# def _coalesce_effnum_patterns(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
+#     r"""Coalesce patterns with r"(\.|_)eff#" w/ patterns that are similar."""
 
-    class _EffNumFilenamePattern(TypedDict):
-        fnpat: str
-        before: str
-        after: str
+#     class _EffNumFilenamePattern(TypedDict):
+#         fnpat: str
+#         before: str
+#         after: str
 
-    eff_nums: List[_EffNumFilenamePattern] = []
-    for fnpat in fnpat_infos.keys():
-        match = re.match(rf"(?P<before>.*){EFF_NUM_REGEX}(?P<after>.*)", fnpat)
-        if not match:
-            continue
-        eff_nums.append(
-            {
-                "fnpat": fnpat,
-                "before": match.groupdict()["before"],
-                "after": match.groupdict()["after"],
-            }
-        )
+#     eff_nums: List[_EffNumFilenamePattern] = []
+#     for fnpat in fnpat_infos.keys():
+#         match = re.match(rf"(?P<before>.*){EFF_NUM_REGEX}(?P<after>.*)", fnpat)
+#         if not match:
+#             continue
+#         eff_nums.append(
+#             {
+#                 "fnpat": fnpat,
+#                 "before": match.groupdict()["before"],
+#                 "after": match.groupdict()["after"],
+#             }
+#         )
 
-    def _coallesce_dir_counts(
-        one: Dict[str, int], two: Dict[str, int]
-    ) -> Dict[str, int]:
-        new = {k: v for k, v in one.items()}  # pylint: disable=R1721
-        for dir_ct in two.keys():
-            try:
-                new[dir_ct] += two[dir_ct]
-            except KeyError:
-                new[dir_ct] = two[dir_ct]
-        return new
+#     def _coallesce_dir_counts(
+#         one: Dict[str, int], two: Dict[str, int]
+#     ) -> Dict[str, int]:
+#         new = {k: v for k, v in one.items()}  # pylint: disable=R1721
+#         for dir_ct in two.keys():
+#             try:
+#                 new[dir_ct] += two[dir_ct]
+#             except KeyError:
+#                 new[dir_ct] = two[dir_ct]
+#         return new
 
-    for fnpat in list(fnpat_infos.keys()):
-        for eff in eff_nums:
-            if eff["before"] + eff["after"] in fnpat:
-                try:
-                    eff_opt_pattern = f'{eff["before"]}{EFF_NUM_OPT}{eff["after"]}'
-                    fnpat_infos[eff_opt_pattern] = {
-                        "count": fnpat_infos[eff["fnpat"]]["count"]
-                        + fnpat_infos[fnpat]["count"],
-                        "dirs": _coallesce_dir_counts(
-                            fnpat_infos[eff["fnpat"]]["dirs"],
-                            fnpat_infos[fnpat]["dirs"],
-                        ),
-                    }
-                    del fnpat_infos[eff["fnpat"]]
-                    del fnpat_infos[fnpat]
-                except KeyError:
-                    pprint.pprint(eff_nums)
-                    logging.critical(
-                        f"Pattern matches multiple eff#'s: {fnpat}; newest eff#: {eff}"
-                    )
-                    raise
+#     for fnpat in list(fnpat_infos.keys()):
+#         for eff in eff_nums:
+#             if eff["before"] + eff["after"] in fnpat:
+#                 try:
+#                     eff_opt_pattern = f'{eff["before"]}{EFF_NUM_OPT}{eff["after"]}'
+#                     fnpat_infos[eff_opt_pattern] = {
+#                         "count": fnpat_infos[eff["fnpat"]]["count"]
+#                         + fnpat_infos[fnpat]["count"],
+#                         "dirs": _coallesce_dir_counts(
+#                             fnpat_infos[eff["fnpat"]]["dirs"],
+#                             fnpat_infos[fnpat]["dirs"],
+#                         ),
+#                     }
+#                     del fnpat_infos[eff["fnpat"]]
+#                     del fnpat_infos[fnpat]
+#                 except KeyError:
+#                     pprint.pprint(eff_nums)
+#                     logging.critical(
+#                         f"Pattern matches multiple eff#'s: {fnpat}; newest eff#: {eff}"
+#                     )
+#                     raise
 
 
 def summarize(fname: str) -> None:
@@ -264,13 +264,13 @@ def summarize(fname: str) -> None:
                 logging.debug(f"no match: '{line.strip()}'")
 
     # Coalesce r"(\.|_)eff#"
-    _coalesce_effnum_patterns(fnpat_infos)
-    # DAT-num substrings
-    # V-num substrings
+    # _coalesce_effnum_patterns(fnpat_infos)
+    # num-strings
     for find, pattern, repl in [
         ("DAT", "DAT#", "DATNUM"),
         ("V", r"[^e]V#", "VNUM"),  # ignore MeV#-types
         ("Step#", "Step#", "STEPNUM"),
+        ("eff#", r"(\.|_)eff#", "EFFNUM"),
     ]:
         for fnpat in list(fnpat_infos.keys()):
             if find in fnpat:
