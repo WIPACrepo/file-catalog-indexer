@@ -33,7 +33,7 @@ MIN_YEAR, MAX_YEAR = 2000, datetime.now().year + 5
 logging.info(f"Using year range {MIN_YEAR}-{MAX_YEAR}")
 YEARS = list(range(MIN_YEAR, MAX_YEAR))
 
-TOKEN_SUMMARY_DIR = "token-summaries"
+TOKEN_SUMMARY_DIR = "first-stage-token-summaries"
 IC_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "ICs.summary.yaml")
 DIR_YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "dir-years.summary.yaml")
 FNAME_YEARS_SUMMARY_YAML = os.path.join(TOKEN_SUMMARY_DIR, "file-years.summary.yaml")
