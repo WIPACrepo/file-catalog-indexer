@@ -280,7 +280,8 @@ def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
 def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Stage 2: Summarizing {fname}...")
-    dir_ = f"stage-2-{fname.split('stage-1-')[1]}-summaries"
+    prefix = f"stage-2-{fname.split('stage-1-')[1]}"
+    dir_ = f"{prefix}-summaries"
     os.mkdir(dir_)
 
     fnpat_infos: Dict[str, _FilenamePatternInfo] = {}
@@ -316,8 +317,8 @@ def stage_2_summarize(fname: str) -> None:
 
     # Dump summaries
     for yaml_fname, summary in [
-        (os.path.join(dir_, f"{fname}.dir-patterns.yaml"), dir_patterns),
-        (os.path.join(dir_, f"{fname}.counts.yaml"), counts),
+        (os.path.join(dir_, f"{prefix}.dir-patterns.yaml"), dir_patterns),
+        (os.path.join(dir_, f"{prefix}.counts.yaml"), counts),
     ]:
         with open(yaml_fname + ".tmp", "w") as f:
             logging.debug(f"Dumping to {yaml_fname}.tmp...")
