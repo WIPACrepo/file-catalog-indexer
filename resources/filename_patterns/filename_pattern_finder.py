@@ -261,15 +261,16 @@ def summarize(fname: str) -> None:
     # Coalesce r"(\.|_)eff#"
     _coalesce_effnum_patterns(fnpat_infos)
     # DAT-num substrings
-    for fnpat in list(fnpat_infos.keys()):
-        if "DAT" in fnpat:
-            new_fnpat = re.sub(r"DAT\d+", "DATNUM", fnpat)
-            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
     # V-num substrings
-    for fnpat in list(fnpat_infos.keys()):
-        if "V" in fnpat:
-            new_fnpat = re.sub(r"[^e]V\d+", "VNUM", fnpat)  # ignore MeV#-types
-            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+    for find, pattern, repl in [
+        ("DAT", "DAT#", "DATNUM"),
+        ("V", r"[^e]V#", "VNUM"),  # ignore MeV#-types
+        ("Step#", "Step#", "STEPNUM"),
+    ]:
+        for fnpat in list(fnpat_infos.keys()):
+            if find in fnpat:
+                new_fnpat = re.sub(pattern, repl, fnpat)
+                fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
 
     # Prep for yamls
     dir_patterns = sorted(
