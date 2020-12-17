@@ -86,6 +86,7 @@ def redact(fpath: str) -> None:
         "KYG1",
         "DE1P",
         "_os100",  # Ex: epos_os100, sibyll-fluka_os100
+        "corsika_5comp",
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
