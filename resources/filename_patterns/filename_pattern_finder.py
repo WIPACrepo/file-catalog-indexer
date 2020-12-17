@@ -257,24 +257,33 @@ def _special_num_strings(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
 
 
 def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
-    for suffix in SPECIAL_SUFFIXES:
-        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
-            if suffix not in fnpat:
-                continue
-            match = re.match(rf"(?P<before>.*)({suffix}.*)DOTI3EXT$", fnpat)
-            if not match:
-                continue
-            red_fnpat = f"{match.groupdict()['before']}SUFFIXDOTI3EXT"
-            try:  # assume red_fnpat has already been added, so increment counts
-                fnpat_infos[red_fnpat]["count"] += fnpat_infos[fnpat]["count"]
-                for dir_, count in fnpat_infos[fnpat]["dirs"].items():
-                    try:  # assume dir as already been added
-                        fnpat_infos[red_fnpat]["dirs"][dir_] += count
-                    except KeyError:  # new dir
-                        fnpat_infos[red_fnpat]["dirs"][dir_] = count
-                del fnpat_infos[fnpat]
-            except KeyError:  # red_fnpat has NOT already been added
-                fnpat_infos[red_fnpat] = fnpat_infos.pop(fnpat)
+    while True:  # repeat for nested suffixes
+        made_changes = False
+        for suffix in SPECIAL_SUFFIXES:
+            for fnpat in list(
+                fnpat_infos.keys()
+            ):  # collection changes size during iter'n
+                if suffix not in fnpat:
+                    continue
+                match = re.match(rf"(?P<before>.*)({suffix}.*)DOTI3EXT$", fnpat)
+                if not match:
+                    continue
+                made_changes = True
+                red_fnpat = f"{match.groupdict()['before']}SUFFIXDOTI3EXT"
+                try:  # assume red_fnpat has already been added, so increment counts
+                    fnpat_infos[red_fnpat]["count"] += fnpat_infos[fnpat]["count"]
+                    for dir_, count in fnpat_infos[fnpat]["dirs"].items():
+                        try:  # assume dir as already been added
+                            fnpat_infos[red_fnpat]["dirs"][dir_] += count
+                        except KeyError:  # new dir
+                            fnpat_infos[red_fnpat]["dirs"][dir_] = count
+                    del fnpat_infos[fnpat]
+                    logging.debug(f"Coalesced Suffix: {fnpat} -> {red_fnpat}")
+                except KeyError:  # red_fnpat has NOT already been added
+                    fnpat_infos[red_fnpat] = fnpat_infos.pop(fnpat)
+                    logging.debug(f"New Suffix: {fnpat} -> {red_fnpat}")
+        if not made_changes:
+            return
 
 
 def stage_2_summarize(fname: str) -> None:
