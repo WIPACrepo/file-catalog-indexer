@@ -13,6 +13,7 @@ from filename_pattern_finder import (  # isort:skip  # noqa # pylint: disable=C0
     I3_EXTENSIONS,
     SPECIAL_NUM_STRINGS,
     SPECIAL_SUFFIXES,
+    NUM_SEQUENCES,
 )
 
 #
@@ -20,7 +21,6 @@ from filename_pattern_finder import (  # isort:skip  # noqa # pylint: disable=C0
 
 string = sys.argv[1]
 string = string.replace(".", r"\.")
-
 
 #
 # First-stage tokenization
@@ -38,13 +38,19 @@ string = string.replace(I3_EXT_TOKEN.replace(".", r"\."), I3_EXT_REGEX)
 
 for special_num_string in SPECIAL_NUM_STRINGS:
     string = string.replace(
-        special_num_string["num_token"], special_num_string["normal_regex"]
+        special_num_string["token"], special_num_string["normal_regex"]
     )
 
 SPECIAL_SUFFIXES_REGEX = (
     "(" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ")"
 )
 string = string.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
+
+for num_sequence in NUM_SEQUENCES:
+    string = string.replace(
+        num_sequence["token"],
+        f"(?P<{num_sequence['token'].lower()}>{num_sequence['normal_regex']})",
+    )
 
 
 #

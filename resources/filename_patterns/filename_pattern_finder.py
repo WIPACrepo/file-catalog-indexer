@@ -186,7 +186,7 @@ class _FilenamePatternInfo(TypedDict):
 class _SpecialNumStrings(TypedDict):
     quick_find: str
     hash_regex: str
-    num_token: str
+    token: str
     normal_regex: str
 
 
@@ -194,103 +194,103 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
     {
         "quick_find": "DAT",
         "hash_regex": "DAT#",
-        "num_token": "DATNUM",
+        "token": "DATNUM",
         "normal_regex": r"DAT\d+",
     },
     {
         "quick_find": "MeV",
         "hash_regex": "#MeV",
-        "num_token": r"MEVPRENUM",
+        "token": r"MEVPRENUM",
         "normal_regex": r"DAT\d+",
     },
     {
         "quick_find": "V",
         "hash_regex": r"(v|V)#",  # ignore MeV#-types
-        "num_token": "VICTORNUM",  # phonetic alphabet
+        "token": "VICTORNUM",  # phonetic alphabet
         "normal_regex": r"(v|V)\d+",
     },
     {
         "quick_find": "v",
         "hash_regex": r"(v|V)#",  # ignore MeV#-types
-        "num_token": "VICTORNUM",  # phonetic alphabet
+        "token": "VICTORNUM",  # phonetic alphabet
         "normal_regex": r"(v|V)\d+",
     },
     {
         "quick_find": "tep#",
         "hash_regex": r"(S|s)tep#",
-        "num_token": "STEPNUM",
+        "token": "STEPNUM",
         "normal_regex": r"(S|s)tep\d+",
     },
     {
         "quick_find": "eff#",
         "hash_regex": r"(\.|_)eff#",
-        "num_token": "EFFNUM",
+        "token": "EFFNUM",
         "normal_regex": r"(\.|_)eff\d+",
     },
     {
         "quick_find": "ass#",
         "hash_regex": r"(P|p)ass#",
-        "num_token": "PASSNUM",
+        "token": "PASSNUM",
         "normal_regex": r"(P|p)ass\d+",
     },
     {
         "quick_find": "P#",
         "hash_regex": r"(P|p)#",
-        "num_token": "PAPANUM",  # phonetic alphabet
+        "token": "PAPANUM",  # phonetic alphabet
         "normal_regex": r"(P|p)\d+",
     },
     {
         "quick_find": "p#",
         "hash_regex": r"(P|p)#",
-        "num_token": "PAPANUM",  # phonetic alphabet
+        "token": "PAPANUM",  # phonetic alphabet
         "normal_regex": r"(P|p)\d+",
     },
     {
         "quick_find": "sibyll#",
         "hash_regex": r"sibyll#\.#[a-z]?",
-        "num_token": "SIBYLNUM",
+        "token": "SIBYLNUM",
         "normal_regex": r"sibyll\d\.\d[a-z]?",
     },
     {
         "quick_find": "KYG1_distr_#",
         "hash_regex": "KYG1_distr_#",
-        "num_token": "KYG1DISTRNUM",
+        "token": "KYG1DISTRNUM",
         "normal_regex": r"KYG1_distr_\d+",
     },
     {
         "quick_find": "ICYYYY",
         "hash_regex": r"ICYYYY",
-        "num_token": "INDIACHARLIEYANKEEFOURNUM",  # phonetic alphabet
+        "token": "INDIACHARLIEYANKEEFOURNUM",  # phonetic alphabet
         "normal_regex": r"IC\d\d\d\d",
     },
     {
         "quick_find": "YYYY",
         "hash_regex": r"IC\^\.YYYY",
-        "num_token": "INDIACHARLIENUMYANKEEFOURNUM",  # phonetic alphabet
+        "token": "INDIACHARLIENUMYANKEEFOURNUM",  # phonetic alphabet
         "normal_regex": r"IC\d+\.\d\d\d\d",
     },
     {
         "quick_find": "m#",
         "hash_regex": "m#",
-        "num_token": "MIKENUM",  # phonetic alphabet
+        "token": "MIKENUM",  # phonetic alphabet
         "normal_regex": r"m\d+",
     },
     {
         "quick_find": "ch#",
         "hash_regex": r"ch#",
-        "num_token": "CHARLIEHOTELNUM",  # phonetic alphabet
+        "token": "CHARLIEHOTELNUM",  # phonetic alphabet
         "normal_regex": r"ch\d+",
     },
 ]
-# must use good 'num_token's
+# must use good 'token's
 for s in SPECIAL_NUM_STRINGS:
-    assert len(s["num_token"]) > 4 and s["num_token"].endswith("NUM")
+    assert len(s["token"]) > 4 and s["token"].endswith("NUM")
     for s2 in SPECIAL_NUM_STRINGS:
         assert (
-            s["num_token"] == s2["num_token"]
+            s["token"] == s2["token"]
             and s["hash_regex"] == s2["hash_regex"]
             and s["normal_regex"] == s2["normal_regex"]
-        ) or s["num_token"] not in s2["num_token"]
+        ) or s["token"] not in s2["token"]
 
 SPECIAL_SUFFIXES = [
     "as.flasher",
@@ -308,7 +308,7 @@ def _special_num_strings(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
             if special_num_string["quick_find"] in fnpat:
                 new_fnpat = re.sub(
                     special_num_string["hash_regex"],
-                    special_num_string["num_token"],
+                    special_num_string["token"],
                     fnpat,
                 )
                 fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
@@ -344,6 +344,39 @@ def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
             return
 
 
+NUM_SEQUENCES: List[_SpecialNumStrings] = [
+    {
+        "quick_find": "#",
+        "hash_regex": r"(#\.#\.#\.#)|(#_#_#_#)",
+        "token": "FOURHASH",
+        "normal_regex": r"(\d\.\d\.\d\.\d)|(\d_\d_\d_\d)",
+    },
+    {
+        "quick_find": "#",
+        "hash_regex": r"(#\.#\.#)|(#_#_#)",
+        "token": "THREEHASH",
+        "normal_regex": r"(\d\.\d\.\d)|(\d_\d_\d)",
+    },
+    {
+        "quick_find": "#",
+        "hash_regex": r"(#\.#\.#)|(#_#_#)",
+        "token": "TWOHASH",
+        "normal_regex": r"(\d\.\d)|(\d_\d)",
+    },
+]
+
+
+def _hash_strings(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
+    for hash_str in NUM_SEQUENCES:
+        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
+            if "#.#" not in fnpat and "#_#" not in fnpat:
+                continue
+            new_fnpat = re.sub(hash_str["hash_regex"], hash_str["token"], fnpat)
+            if new_fnpat in fnpat_infos:
+                raise KeyError(f"'{new_fnpat}' has already been added")
+            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+
+
 def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Stage 2: Summarizing {fname}...")
@@ -375,6 +408,7 @@ def stage_2_summarize(fname: str) -> None:
     # special-string tokenization
     _special_num_strings(fnpat_infos)
     _special_suffixes(fnpat_infos)
+    _hash_strings(fnpat_infos)
 
     # Prep for yamls
     dir_patterns = sorted(
