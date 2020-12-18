@@ -64,7 +64,7 @@ for string in strings:
 
     # suffixes
     SPECIAL_SUFFIXES_REGEX = (
-        "(" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ").*)"
+        "((" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ").*)"
     )
     pattern = pattern.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
 
