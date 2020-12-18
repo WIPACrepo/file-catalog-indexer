@@ -305,11 +305,11 @@ def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
             ):  # collection changes size during iter'n
                 if suffix not in fnpat:
                     continue
-                match = re.match(rf"(?P<before>.*)({suffix}.*)DOTI3EXT$", fnpat)
+                match = re.match(rf"(?P<before>.*)({suffix}.*)\.I3EXT$", fnpat)
                 if not match:
                     continue
                 made_changes = True
-                red_fnpat = f"{match.groupdict()['before']}SUFFIXDOTI3EXT"
+                red_fnpat = rf"{match.groupdict()['before']}SUFFIX\.I3EXT"
                 try:  # assume red_fnpat has already been added, so increment counts
                     fnpat_infos[red_fnpat]["count"] += fnpat_infos[fnpat]["count"]
                     for dir_, count in fnpat_infos[fnpat]["dirs"].items():
