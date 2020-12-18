@@ -53,7 +53,7 @@ for fpat, count in fpats_cts.items():
         hash_endings["1"]["count"] += count
     # 0
     else:
-        logging.warning(f"fpat doesn't have '#':{f}")
+        logging.warning(f"fpat doesn't have '#':{fpat}")
         hash_endings["0"]["matches"].append({fpat: count})
         hash_endings["0"]["count"] += count
 
