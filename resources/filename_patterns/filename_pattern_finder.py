@@ -235,10 +235,16 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
     },
     {
         "find": "P#",
-        "hash_regex": "P#",
+        "hash_regex": r"(P|p)#",
         "num_token": "PAPANUM",  # phonetic alphabet
-        "normal_regex": r"P\d+",
-    },  # # #
+        "normal_regex": r"(P|p)\d+",
+    },
+    {
+        "find": "p#",
+        "hash_regex": r"(P|p)#",
+        "num_token": "PAPANUM",  # phonetic alphabet
+        "normal_regex": r"(P|p)\d+",
+    },
     {
         "find": "sibyll#",
         "hash_regex": r"sibyll#\.#[a-z]?",
@@ -262,6 +268,18 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
         "hash_regex": r"IC\^\.YYYY",
         "num_token": "INDIACHARLIENUMYANKEEFOURNUM",  # phonetic alphabet
         "normal_regex": r"IC\d+\.\d\d\d\d",
+    },
+    {
+        "find": "m#",
+        "hash_regex": "m#",
+        "num_token": "MIKENUM",  # phonetic alphabet
+        "normal_regex": r"m\d+",
+    },
+    {
+        "find": "ch#",
+        "hash_regex": r"ch#",
+        "num_token": "CHARLIEHOTELNUM",  # phonetic alphabet
+        "normal_regex": r"ch\d+",
     },
 ]
 # must use good 'num_token's
