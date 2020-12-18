@@ -251,6 +251,12 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
         "num_token": "KYG1DISTRNUM",
         "normal_regex": r"KYG1_distr_\d+",
     },
+    {
+        "find": "YYYY",
+        "hash_regex": r"IC(\^\.)+YYYY",
+        "num_token": "INDIACHARLIEYANKEEFOURNUM",  # phonetic alphabet
+        "normal_regex": r"IC(\d+\.)+\d\d\d\d",
+    },
 ]
 # must use good 'num_token's
 for s in SPECIAL_NUM_STRINGS:
