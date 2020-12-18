@@ -306,40 +306,22 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
 
 NUM_SEQUENCES: List[_SpecialNumStrings] = [
     {
-        "quick_find": "#.#.#.#",
-        "hash_regex": r"(#\.#\.#\.#)|(#_#_#_#)",
+        "quick_find": "#",
+        "hash_regex": r"(#\.#\.#\.#)|(#_#_#_#)",  # stricter on generating patterns
         "token": "FOURSEQNUM",
-        "normal_regex": r"(\d\.\d\.\d\.\d)|(\d_\d_\d_\d)",
+        "normal_regex": r"(?P<alpha>\d+)(_|\.)(?P<beta>\d+)(_|\.)\d+(_|\.)\d+",  # more general on matching
     },
     {
-        "quick_find": "#_#_#_#",
-        "hash_regex": r"(#\.#\.#\.#)|(#_#_#_#)",
-        "token": "FOURSEQNUM",
-        "normal_regex": r"(\d\.\d\.\d\.\d)|(\d_\d_\d_\d)",
-    },
-    {
-        "quick_find": "#.#.#",
-        "hash_regex": r"(#\.#\.#)|(#_#_#)",
+        "quick_find": "#",
+        "hash_regex": r"(#\.#\.#)|(#_#_#)",  # stricter on generating patterns
         "token": "THREESEQNUM",
-        "normal_regex": r"(\d\.\d\.\d)|(\d_\d_\d)",
+        "normal_regex": r"(?P<alpha>\d+)(_|\.)(?P<beta>\d+)(_|\.)\d+",  # more general on matching
     },
     {
-        "quick_find": "#_#_#",
-        "hash_regex": r"(#\.#\.#)|(#_#_#)",
-        "token": "THREESEQNUM",
-        "normal_regex": r"(\d\.\d\.\d)|(\d_\d_\d)",
-    },
-    {
-        "quick_find": "#.#",
-        "hash_regex": r"(#\.#)|(#_#)",
+        "quick_find": "#",
+        "hash_regex": r"(#\.#)|(#_#)",  # stricter on generating patterns
         "token": "TWOSEQNUM",
-        "normal_regex": r"(\d\.\d)|(\d_\d)",
-    },
-    {
-        "quick_find": "#_#",
-        "hash_regex": r"(#\.#)|(#_#)",
-        "token": "TWOSEQNUM",
-        "normal_regex": r"(\d\.\d)|(\d_\d)",
+        "normal_regex": r"(?P<alpha>\d+)(_|\.)(?P<beta>\d+)",  # more general on matching
     },
 ]
 

@@ -5,6 +5,7 @@ Use with: grep -P `python filename_pattern_regexer.py <string>` <file>
 
 
 import logging
+import re
 import sys
 from typing import List
 
@@ -40,46 +41,55 @@ else:
 
 # Regex-ify!
 for string in strings:
-    string = string.replace(".", r"\.")
+    pattern = string.replace(".", r"\.")
 
     #
     # First-stage tokenization
 
-    string = string.replace("YYYY", r"\d\d\d\d")
-    string = string.replace("#", r"\d+")
-    string = string.replace("^", r"\d+")
+    pattern = pattern.replace("YYYY", r"\d\d\d\d")
+    pattern = pattern.replace("#", r"\d+")
+    pattern = pattern.replace("^", r"\d+")
 
     I3_EXT_REGEX = "(" + "|".join(x.replace(".", r"\.") for x in I3_EXTENSIONS) + ")"
-    string = string.replace(I3_EXT_TOKEN.replace(".", r"\."), I3_EXT_REGEX)
+    pattern = pattern.replace(I3_EXT_TOKEN.replace(".", r"\."), I3_EXT_REGEX)
 
     #
     # Second-stage tokenization
 
+    # special num strings
     for special_num_string in SPECIAL_NUM_STRINGS:
-        string = string.replace(
-            special_num_string["token"],
-            f"(<{special_num_string['token'].lower()}>{special_num_string['normal_regex']})",
+        pattern = pattern.replace(
+            special_num_string["token"], f"({special_num_string['normal_regex']})",
         )
 
+    # suffixes
     SPECIAL_SUFFIXES_REGEX = (
         "(" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ").*)"
     )
-    string = string.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
+    pattern = pattern.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
 
+    # num sequences
     for num_sequence in NUM_SEQUENCES:
-        string = string.replace(
-            num_sequence["token"],
-            f"(?P<{num_sequence['token'].lower()}>{num_sequence['normal_regex']})",
+        pattern = pattern.replace(
+            num_sequence["token"], f"({num_sequence['normal_regex']})"
         )
+    # each string should only have 1 alpha&beta num-seq groups each
+    # keep the last one, AKA remove others names
+    for group_name in ["?P<alpha>", "?P<beta>"]:
+        if pattern.count(group_name) < 2:
+            continue
+        parts = pattern.split(group_name)
+        pattern = "".join(parts[:-1]) + group_name + parts[-1]
+        logging.debug(f"Removed duplicate '{group_name}' group names: {pattern}.")
 
-    string = string + "$"
+    pattern = pattern + "$"
 
     #
-    # Cleanup
-    # TODO for each repeated group name, only keep the last
+    # Sanity Check
+    re.compile(pattern)
 
     #
     # Print
 
-    logging.info(string)
-    print(string)
+    logging.info(pattern)
+    print(pattern)
