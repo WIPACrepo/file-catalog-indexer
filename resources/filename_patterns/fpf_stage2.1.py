@@ -60,4 +60,4 @@ for fpat, count in fpats_cts.items():
 prefix = yaml_file.split(".counts.yaml")[0]
 prefix = prefix.replace("2", "2.1")
 with open(prefix + ".endings.counts.yaml", "w") as f:
-    fpats_cts = yaml.dump(f)
+    yaml.dump(hash_endings, f)
