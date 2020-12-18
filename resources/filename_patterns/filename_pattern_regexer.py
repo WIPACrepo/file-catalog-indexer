@@ -62,7 +62,9 @@ for string in strings:
         )
 
     SPECIAL_SUFFIXES_REGEX = (
-        "(" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ").*"
+        "(?P<suffix>("
+        + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES)
+        + ").*)"
     )
     string = string.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
 
@@ -71,6 +73,8 @@ for string in strings:
             num_sequence["token"],
             f"(?P<{num_sequence['token'].lower()}>{num_sequence['normal_regex']})",
         )
+
+    string = string + "$"
 
     #
     # Print
