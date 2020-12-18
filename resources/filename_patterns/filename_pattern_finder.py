@@ -359,7 +359,7 @@ NUM_SEQUENCES: List[_SpecialNumStrings] = [
     },
     {
         "quick_find": "#",
-        "hash_regex": r"(#\.#\.#)|(#_#_#)",
+        "hash_regex": r"(#\.#)|(#_#)",
         "token": "TWOHASH",
         "normal_regex": r"(\d\.\d)|(\d_\d)",
     },
