@@ -282,15 +282,72 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
         "normal_regex": r"ch\d+",
     },
 ]
-# must use good 'token's
-for s in SPECIAL_NUM_STRINGS:
-    assert len(s["token"]) > 4 and s["token"].endswith("NUM")
-    for s2 in SPECIAL_NUM_STRINGS:
-        assert (
-            s["token"] == s2["token"]
-            and s["hash_regex"] == s2["hash_regex"]
-            and s["normal_regex"] == s2["normal_regex"]
-        ) or s["token"] not in s2["token"]
+
+NUM_SEQUENCES: List[_SpecialNumStrings] = [
+    {
+        "quick_find": "#.#.#.#",
+        "hash_regex": r"(#\.#\.#\.#)|(#_#_#_#)",
+        "token": "FOURSEQNUM",
+        "normal_regex": r"(\d\.\d\.\d\.\d)|(\d_\d_\d_\d)",
+    },
+    {
+        "quick_find": "#_#_#_#",
+        "hash_regex": r"(#\.#\.#\.#)|(#_#_#_#)",
+        "token": "FOURSEQNUM",
+        "normal_regex": r"(\d\.\d\.\d\.\d)|(\d_\d_\d_\d)",
+    },
+    {
+        "quick_find": "#.#.#",
+        "hash_regex": r"(#\.#\.#)|(#_#_#)",
+        "token": "THREESEQNUM",
+        "normal_regex": r"(\d\.\d\.\d)|(\d_\d_\d)",
+    },
+    {
+        "quick_find": "#_#_#",
+        "hash_regex": r"(#\.#\.#)|(#_#_#)",
+        "token": "THREESEQNUM",
+        "normal_regex": r"(\d\.\d\.\d)|(\d_\d_\d)",
+    },
+    {
+        "quick_find": "#.#",
+        "hash_regex": r"(#\.#)|(#_#)",
+        "token": "TWOSEQNUM",
+        "normal_regex": r"(\d\.\d)|(\d_\d)",
+    },
+    {
+        "quick_find": "#_#",
+        "hash_regex": r"(#\.#)|(#_#)",
+        "token": "TWOSEQNUM",
+        "normal_regex": r"(\d\.\d)|(\d_\d)",
+    },
+]
+
+# must use good tokens
+for sn_strs in [SPECIAL_NUM_STRINGS, NUM_SEQUENCES]:
+    for s in sn_strs:
+        assert len(s["token"]) > 4 and s["token"].endswith("NUM")
+        for s2 in sn_strs:
+            assert (
+                s["token"] == s2["token"]
+                and s["hash_regex"] == s2["hash_regex"]
+                and s["normal_regex"] == s2["normal_regex"]
+            ) or s["token"] not in s2["token"]
+
+
+def _special_num_strings(
+    fnpat_infos: Dict[str, _FilenamePatternInfo],
+    special_num_strings: List[_SpecialNumStrings],
+) -> None:
+    for spec_num_str in special_num_strings:
+        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
+            if spec_num_str["quick_find"] in fnpat:
+                new_fnpat = re.sub(
+                    spec_num_str["hash_regex"], spec_num_str["token"], fnpat
+                )
+                if new_fnpat in fnpat_infos:
+                    raise KeyError(f"'{new_fnpat}' has already been added")
+                fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+
 
 SPECIAL_SUFFIXES = [
     "as.flasher",
@@ -300,18 +357,6 @@ SPECIAL_SUFFIXES = [
     "base",
     "untriggered",
 ]
-
-
-def _special_num_strings(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
-    for special_num_string in SPECIAL_NUM_STRINGS:
-        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
-            if special_num_string["quick_find"] in fnpat:
-                new_fnpat = re.sub(
-                    special_num_string["hash_regex"],
-                    special_num_string["token"],
-                    fnpat,
-                )
-                fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
 
 
 def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
@@ -344,39 +389,6 @@ def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
             return
 
 
-NUM_SEQUENCES: List[_SpecialNumStrings] = [
-    {
-        "quick_find": "#",
-        "hash_regex": r"(#\.#\.#\.#)|(#_#_#_#)",
-        "token": "FOURHASH",
-        "normal_regex": r"(\d\.\d\.\d\.\d)|(\d_\d_\d_\d)",
-    },
-    {
-        "quick_find": "#",
-        "hash_regex": r"(#\.#\.#)|(#_#_#)",
-        "token": "THREEHASH",
-        "normal_regex": r"(\d\.\d\.\d)|(\d_\d_\d)",
-    },
-    {
-        "quick_find": "#",
-        "hash_regex": r"(#\.#)|(#_#)",
-        "token": "TWOHASH",
-        "normal_regex": r"(\d\.\d)|(\d_\d)",
-    },
-]
-
-
-def _hash_strings(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
-    for hash_str in NUM_SEQUENCES:
-        for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
-            if "#.#" not in fnpat and "#_#" not in fnpat:
-                continue
-            new_fnpat = re.sub(hash_str["hash_regex"], hash_str["token"], fnpat)
-            if new_fnpat in fnpat_infos:
-                raise KeyError(f"'{new_fnpat}' has already been added")
-            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
-
-
 def stage_2_summarize(fname: str) -> None:
     """Create a YAML summary with filename patterns."""
     logging.info(f"Stage 2: Summarizing {fname}...")
@@ -406,9 +418,9 @@ def stage_2_summarize(fname: str) -> None:
                 logging.debug(f"no match: '{line.strip()}'")
 
     # special-string tokenization
-    _special_num_strings(fnpat_infos)
+    _special_num_strings(fnpat_infos, SPECIAL_NUM_STRINGS)
     _special_suffixes(fnpat_infos)
-    _hash_strings(fnpat_infos)
+    _special_num_strings(fnpat_infos, NUM_SEQUENCES)
 
     # Prep for yamls
     dir_patterns = sorted(
