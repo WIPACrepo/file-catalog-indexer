@@ -84,6 +84,7 @@ def stage_1_redact(fpath: str) -> None:
         "DE1P",
         "_os100",  # Ex: epos_os100, sibyll-fluka_os100
         "corsika_5comp",
+        "corsika_scat_absorption_m7.1",
     ]
     assert len(allowed_substrs) < 32  # there are only 32 non-printable chars
 
@@ -197,10 +198,22 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
         "normal_regex": r"DAT\d+",
     },
     {
+        "find": "MeV",
+        "hash_regex": "#MeV",
+        "num_token": r"MEVPRENUM",
+        "normal_regex": r"DAT\d+",
+    },
+    {
         "find": "V",
-        "hash_regex": r"[^e]V#",  # ignore MeV#-types
-        "num_token": "VNUM",
-        "normal_regex": r"V\d+",
+        "hash_regex": r"(v|V)#",  # ignore MeV#-types
+        "num_token": "VICTORNUM",  # phonetic alphabet
+        "normal_regex": r"(v|V)\d+",
+    },
+    {
+        "find": "v",
+        "hash_regex": r"(v|V)#",  # ignore MeV#-types
+        "num_token": "VICTORNUM",  # phonetic alphabet
+        "normal_regex": r"(v|V)\d+",
     },
     {
         "find": "tep#",
@@ -223,7 +236,7 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
     {
         "find": "P#",
         "hash_regex": "P#",
-        "num_token": "PNUM",
+        "num_token": "PAPANUM",  # phonetic alphabet
         "normal_regex": r"P\d+",
     },  # # #
     {
@@ -233,6 +246,11 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
         "normal_regex": r"sibyll\d\.\d[a-z]?",
     },
 ]
+# must use good 'num_token's
+for s in SPECIAL_NUM_STRINGS:
+    assert len(s["num_token"]) > 4 and s["num_token"].endswith("NUM")
+    for s2 in SPECIAL_NUM_STRINGS:
+        assert s == s2 or s["num_token"] not in s2["num_token"]
 
 SPECIAL_SUFFIXES = [
     "as.flasher",
