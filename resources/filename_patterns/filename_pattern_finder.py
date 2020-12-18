@@ -340,15 +340,16 @@ def _special_num_strings(
 ) -> None:
     for spec_num_str in special_num_strings:
         for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
-            if spec_num_str["quick_find"] in fnpat:
-                new_fnpat = re.sub(
-                    spec_num_str["hash_regex"], spec_num_str["token"], fnpat
+            if spec_num_str["quick_find"] not in fnpat:
+                continue
+            new_fnpat = re.sub(spec_num_str["hash_regex"], spec_num_str["token"], fnpat)
+            if new_fnpat == fnpat:
+                continue
+            if new_fnpat in fnpat_infos:
+                raise KeyError(
+                    f"'{new_fnpat}' has already been added: {spec_num_str['token']}"
                 )
-                if new_fnpat in fnpat_infos:
-                    raise KeyError(
-                        f"'{new_fnpat}' has already been added: {spec_num_str['token']}"
-                    )
-                fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
 
 
 SPECIAL_SUFFIXES = [
