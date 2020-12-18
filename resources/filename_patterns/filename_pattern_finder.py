@@ -183,6 +183,27 @@ class _FilenamePatternInfo(TypedDict):
     dirs: Dict[str, int]
 
 
+def _replace_coallesce(
+    fnpat_infos: Dict[str, _FilenamePatternInfo], fnpat: str, new_fnpat: str
+) -> None:
+    """Replace the old `fnpat` entry with `new_fnpat` entry.
+
+    If it's already there, increment the contents.
+    """
+    try:  # assume new_fnpat has already been added, so increment counts
+        fnpat_infos[new_fnpat]["count"] += fnpat_infos[fnpat]["count"]
+        for dir_, count in fnpat_infos[fnpat]["dirs"].items():
+            try:  # assume dir as already been added
+                fnpat_infos[new_fnpat]["dirs"][dir_] += count
+            except KeyError:  # new dir
+                fnpat_infos[new_fnpat]["dirs"][dir_] = count
+        del fnpat_infos[fnpat]
+        logging.debug(f"Coalesced: {fnpat} -> {new_fnpat}")
+    except KeyError:  # new_fnpat has NOT already been added
+        fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+        logging.debug(f"Replaced: {fnpat} -> {new_fnpat}")
+
+
 class _SpecialNumStrings(TypedDict):
     quick_find: str
     hash_regex: str
@@ -345,11 +366,7 @@ def _special_num_strings(
             new_fnpat = re.sub(spec_num_str["hash_regex"], spec_num_str["token"], fnpat)
             if new_fnpat == fnpat:
                 continue
-            if new_fnpat in fnpat_infos:
-                raise KeyError(
-                    f"'{new_fnpat}' has already been added: {spec_num_str['token']}"
-                )
-            fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
+            _replace_coallesce(fnpat_infos, fnpat, new_fnpat)
 
 
 SPECIAL_SUFFIXES = [
@@ -375,19 +392,8 @@ def _special_suffixes(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
                 if not match:
                     continue
                 made_changes = True
-                red_fnpat = f"{match.groupdict()['before']}SUFFIX.I3EXT"
-                try:  # assume red_fnpat has already been added, so increment counts
-                    fnpat_infos[red_fnpat]["count"] += fnpat_infos[fnpat]["count"]
-                    for dir_, count in fnpat_infos[fnpat]["dirs"].items():
-                        try:  # assume dir as already been added
-                            fnpat_infos[red_fnpat]["dirs"][dir_] += count
-                        except KeyError:  # new dir
-                            fnpat_infos[red_fnpat]["dirs"][dir_] = count
-                    del fnpat_infos[fnpat]
-                    logging.debug(f"Coalesced Suffix: {fnpat} -> {red_fnpat}")
-                except KeyError:  # red_fnpat has NOT already been added
-                    fnpat_infos[red_fnpat] = fnpat_infos.pop(fnpat)
-                    logging.debug(f"New Suffix: {fnpat} -> {red_fnpat}")
+                new_fnpat = f"{match.groupdict()['before']}SUFFIX.I3EXT"
+                _replace_coallesce(fnpat_infos, fnpat, new_fnpat)
         if not made_changes:
             return
 
