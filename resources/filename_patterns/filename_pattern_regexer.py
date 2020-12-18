@@ -4,6 +4,7 @@ Use with: grep -P `python filename_pattern_regexer.py <string>` <file>
 """
 
 
+import logging
 import sys
 
 sys.path.append(".")
@@ -49,4 +50,5 @@ string = string.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
 #
 # Print
 
+logging.info(string)
 print(string)
