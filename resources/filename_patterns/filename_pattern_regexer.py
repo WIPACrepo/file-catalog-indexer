@@ -14,11 +14,16 @@ from filename_pattern_finder import (  # isort:skip  # noqa # pylint: disable=C0
     SPECIAL_SUFFIXES,
 )
 
+#
+# Prep
+
+string = sys.argv[1]
+string = string.replace(".", r"\.")
+
 
 #
 # First-stage tokenization
 
-string = sys.argv[1]
 string = string.replace("YYYY", r"\d\d\d\d")
 string = string.replace("#", r"\d+")
 string = string.replace("^", r"\d+")
