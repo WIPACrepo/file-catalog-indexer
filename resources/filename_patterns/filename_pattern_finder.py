@@ -250,7 +250,11 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
 for s in SPECIAL_NUM_STRINGS:
     assert len(s["num_token"]) > 4 and s["num_token"].endswith("NUM")
     for s2 in SPECIAL_NUM_STRINGS:
-        assert s == s2 or s["num_token"] not in s2["num_token"]
+        assert (
+            s["num_token"] == s2["num_token"]
+            and s["hash_regex"] == s2["hash_regex"]
+            and s["normal_regex"] == s2["normal_regex"]
+        ) or s["num_token"] not in s2["num_token"]
 
 SPECIAL_SUFFIXES = [
     "as.flasher",
