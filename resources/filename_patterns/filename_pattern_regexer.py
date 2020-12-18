@@ -30,7 +30,7 @@ string = string.replace("#", r"\d+")
 string = string.replace("^", r"\d+")
 
 I3_EXT_REGEX = "(" + "|".join(x.replace(".", r"\.") for x in I3_EXTENSIONS) + ")"
-string = string.replace(I3_EXT_TOKEN, I3_EXT_REGEX)
+string = string.replace(I3_EXT_TOKEN.replace(".", r"\."), I3_EXT_REGEX)
 
 
 #
