@@ -22,6 +22,7 @@ from filename_pattern_finder import (  # isort:skip  # noqa # pylint: disable=C0
 string = sys.argv[1]
 string = string.replace(".", r"\.")
 
+
 #
 # First-stage tokenization
 
@@ -42,7 +43,7 @@ for special_num_string in SPECIAL_NUM_STRINGS:
     )
 
 SPECIAL_SUFFIXES_REGEX = (
-    "(" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ")"
+    "(" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ").*"
 )
 string = string.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
 
