@@ -229,9 +229,9 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
     },
     {
         "quick_find": "ass#",
-        "hash_regex": r"(P|p)ass#",
+        "hash_regex": r"(Pass|pass|PASS)#",
         "token": "PASSNUM",
-        "normal_regex": r"(P|p)ass\d+",
+        "normal_regex": r"(Pass|pass|PASS)\d+",
     },
     {
         "quick_find": "P#",
@@ -345,7 +345,9 @@ def _special_num_strings(
                     spec_num_str["hash_regex"], spec_num_str["token"], fnpat
                 )
                 if new_fnpat in fnpat_infos:
-                    raise KeyError(f"'{new_fnpat}' has already been added")
+                    raise KeyError(
+                        f"'{new_fnpat}' has already been added: {spec_num_str['token']}"
+                    )
                 fnpat_infos[new_fnpat] = fnpat_infos.pop(fnpat)
 
 
