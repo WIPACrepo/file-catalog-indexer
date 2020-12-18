@@ -245,6 +245,12 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
         "num_token": "SIBYLNUM",
         "normal_regex": r"sibyll\d\.\d[a-z]?",
     },
+    {
+        "find": "KYG1_distr_#",
+        "hash_regex": "KYG1_distr_#",
+        "num_token": "KYG1DISTRNUM",
+        "normal_regex": r"KYG1_distr_\d+",
+    },
 ]
 # must use good 'num_token's
 for s in SPECIAL_NUM_STRINGS:
