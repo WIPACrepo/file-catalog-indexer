@@ -58,13 +58,11 @@ for string in strings:
     for special_num_string in SPECIAL_NUM_STRINGS:
         string = string.replace(
             special_num_string["token"],
-            f"(?P<{special_num_string['token'].lower()}>{special_num_string['normal_regex']})",
+            f"(<{special_num_string['token'].lower()}>{special_num_string['normal_regex']})",
         )
 
     SPECIAL_SUFFIXES_REGEX = (
-        "(?P<suffix>("
-        + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES)
-        + ").*)"
+        "(" + "|".join(x.replace(".", r"\.") for x in SPECIAL_SUFFIXES) + ").*)"
     )
     string = string.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
 
@@ -75,6 +73,10 @@ for string in strings:
         )
 
     string = string + "$"
+
+    #
+    # Cleanup
+    # TODO for each repeated group name, only keep the last
 
     #
     # Print
