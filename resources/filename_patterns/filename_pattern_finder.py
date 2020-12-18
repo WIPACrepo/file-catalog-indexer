@@ -184,7 +184,7 @@ class _FilenamePatternInfo(TypedDict):
 
 
 class _SpecialNumStrings(TypedDict):
-    find: str
+    quick_find: str
     hash_regex: str
     num_token: str
     normal_regex: str
@@ -192,91 +192,91 @@ class _SpecialNumStrings(TypedDict):
 
 SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
     {
-        "find": "DAT",
+        "quick_find": "DAT",
         "hash_regex": "DAT#",
         "num_token": "DATNUM",
         "normal_regex": r"DAT\d+",
     },
     {
-        "find": "MeV",
+        "quick_find": "MeV",
         "hash_regex": "#MeV",
         "num_token": r"MEVPRENUM",
         "normal_regex": r"DAT\d+",
     },
     {
-        "find": "V",
+        "quick_find": "V",
         "hash_regex": r"(v|V)#",  # ignore MeV#-types
         "num_token": "VICTORNUM",  # phonetic alphabet
         "normal_regex": r"(v|V)\d+",
     },
     {
-        "find": "v",
+        "quick_find": "v",
         "hash_regex": r"(v|V)#",  # ignore MeV#-types
         "num_token": "VICTORNUM",  # phonetic alphabet
         "normal_regex": r"(v|V)\d+",
     },
     {
-        "find": "tep#",
+        "quick_find": "tep#",
         "hash_regex": r"(S|s)tep#",
         "num_token": "STEPNUM",
         "normal_regex": r"(S|s)tep\d+",
     },
     {
-        "find": "eff#",
+        "quick_find": "eff#",
         "hash_regex": r"(\.|_)eff#",
         "num_token": "EFFNUM",
         "normal_regex": r"(\.|_)eff\d+",
     },
     {
-        "find": "ass#",
+        "quick_find": "ass#",
         "hash_regex": r"(P|p)ass#",
         "num_token": "PASSNUM",
         "normal_regex": r"(P|p)ass\d+",
     },
     {
-        "find": "P#",
+        "quick_find": "P#",
         "hash_regex": r"(P|p)#",
         "num_token": "PAPANUM",  # phonetic alphabet
         "normal_regex": r"(P|p)\d+",
     },
     {
-        "find": "p#",
+        "quick_find": "p#",
         "hash_regex": r"(P|p)#",
         "num_token": "PAPANUM",  # phonetic alphabet
         "normal_regex": r"(P|p)\d+",
     },
     {
-        "find": "sibyll#",
+        "quick_find": "sibyll#",
         "hash_regex": r"sibyll#\.#[a-z]?",
         "num_token": "SIBYLNUM",
         "normal_regex": r"sibyll\d\.\d[a-z]?",
     },
     {
-        "find": "KYG1_distr_#",
+        "quick_find": "KYG1_distr_#",
         "hash_regex": "KYG1_distr_#",
         "num_token": "KYG1DISTRNUM",
         "normal_regex": r"KYG1_distr_\d+",
     },
     {
-        "find": "ICYYYY",
+        "quick_find": "ICYYYY",
         "hash_regex": r"ICYYYY",
         "num_token": "INDIACHARLIEYANKEEFOURNUM",  # phonetic alphabet
         "normal_regex": r"IC\d\d\d\d",
     },
     {
-        "find": "YYYY",
+        "quick_find": "YYYY",
         "hash_regex": r"IC\^\.YYYY",
         "num_token": "INDIACHARLIENUMYANKEEFOURNUM",  # phonetic alphabet
         "normal_regex": r"IC\d+\.\d\d\d\d",
     },
     {
-        "find": "m#",
+        "quick_find": "m#",
         "hash_regex": "m#",
         "num_token": "MIKENUM",  # phonetic alphabet
         "normal_regex": r"m\d+",
     },
     {
-        "find": "ch#",
+        "quick_find": "ch#",
         "hash_regex": r"ch#",
         "num_token": "CHARLIEHOTELNUM",  # phonetic alphabet
         "normal_regex": r"ch\d+",
@@ -305,7 +305,7 @@ SPECIAL_SUFFIXES = [
 def _special_num_strings(fnpat_infos: Dict[str, _FilenamePatternInfo]) -> None:
     for special_num_string in SPECIAL_NUM_STRINGS:
         for fnpat in list(fnpat_infos.keys()):  # collection changes size during iter'n
-            if special_num_string["find"] in fnpat:
+            if special_num_string["quick_find"] in fnpat:
                 new_fnpat = re.sub(
                     special_num_string["hash_regex"],
                     special_num_string["num_token"],
