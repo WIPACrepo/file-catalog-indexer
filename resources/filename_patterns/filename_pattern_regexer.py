@@ -52,11 +52,10 @@ for string in strings:
 
     pattern = pattern.replace("YYYY", r"\d\d\d\d")
     if not has_num_sequences:  # make a named group for the last #
-        if "#" not in pattern:
-            break
-        hash_parts = pattern.split("#")
-        pattern = "#".join(hash_parts[:-1]) + "(?P<single>#)" + hash_parts[-1]
-        logging.debug(f"Added 'single' group: {pattern}")
+        if "#" in pattern:
+            hash_parts = pattern.split("#")
+            pattern = "#".join(hash_parts[:-1]) + "(?P<single>#)" + hash_parts[-1]
+            logging.debug(f"Added 'single' group: {pattern}")
     pattern = pattern.replace("#", r"\d+")
     pattern = pattern.replace("^", r"\d+")
 
