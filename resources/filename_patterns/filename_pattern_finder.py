@@ -285,13 +285,13 @@ SPECIAL_NUM_STRINGS: List[_SpecialNumStrings] = [
     {
         "quick_find": "ICYYYY",
         "hash_regex": r"ICYYYY",
-        "token": "INDIACHARLIEYANKEEFOURNUM",  # phonetic alphabet
+        "token": "ICECUBEY4NUM",
         "normal_regex": r"IC\d\d\d\d",
     },
     {
         "quick_find": "YYYY",
         "hash_regex": r"IC\^\.YYYY",
-        "token": "INDIACHARLIENUMYANKEEFOURNUM",  # phonetic alphabet
+        "token": "ICECUBENUMY4NUM",
         "normal_regex": r"IC\d+\.\d\d\d\d",
     },
     {
