@@ -145,12 +145,16 @@ def stage_1_redact(fpath: str) -> None:
                     for bad_year in ["#YYYY#", "#YYYY", "YYYY#"]:
                         red_line = red_line.replace(bad_year, "#")
                     red_line = _replace_back_special_digit_substrs(red_line)
-                    # .i3 file
+                    # test .i3 file
+                    is_i3 = False
                     if ".i3" in red_line:
                         # regex-ify i3 extensions
                         for ext in I3_EXTENSIONS:
                             if red_line.endswith(ext):
                                 red_line = red_line.replace(ext, I3_EXT_TOKEN)
+                                is_i3 = True
+                    # .i3 file
+                    if is_i3:
                         print(red_line, file=i3f)
                     # non-i3 file
                     else:
