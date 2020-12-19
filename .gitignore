@@ -121,3 +121,5 @@ test-traverse*
 # copied to root for testing
 common_args.py
 traverser.py
+
+resources/filename_patterns/*.yaml
