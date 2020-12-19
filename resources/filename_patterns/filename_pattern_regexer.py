@@ -43,10 +43,20 @@ else:
 for string in strings:
     pattern = string.replace(".", r"\.")
 
+    has_num_sequences = any(
+        num_sequence["token"] in pattern for num_sequence in NUM_SEQUENCES
+    )
+
     #
     # First-stage tokenization
 
     pattern = pattern.replace("YYYY", r"\d\d\d\d")
+    if not has_num_sequences:  # make a named group for the last #
+        if "#" not in pattern:
+            break
+        hash_parts = pattern.split("#")
+        pattern = "#".join(hash_parts[:-1]) + "(?P<single>#)" + hash_parts[-1]
+        logging.debug(f"Added 'single' group: {pattern}")
     pattern = pattern.replace("#", r"\d+")
     pattern = pattern.replace("^", r"\d+")
 
@@ -69,18 +79,19 @@ for string in strings:
     pattern = pattern.replace("SUFFIX", SPECIAL_SUFFIXES_REGEX)
 
     # num sequences
-    for num_sequence in NUM_SEQUENCES:
-        pattern = pattern.replace(
-            num_sequence["token"], f"({num_sequence['normal_regex']})"
-        )
-    # each string should only have 1 alpha&beta num-seq groups each
-    # keep the last one, AKA remove others names
-    for group_name in ["?P<alpha>", "?P<beta>"]:
-        if pattern.count(group_name) < 2:
-            continue
-        parts = pattern.split(group_name)
-        pattern = "".join(parts[:-1]) + group_name + parts[-1]
-        logging.debug(f"Removed duplicate '{group_name}' group names: {pattern}.")
+    if has_num_sequences:
+        for num_sequence in NUM_SEQUENCES:
+            pattern = pattern.replace(
+                num_sequence["token"], f"({num_sequence['normal_regex']})"
+            )
+        # each string should only have 1 alpha&beta num-seq groups each
+        # keep the last one, AKA remove others names
+        for group_name in ["?P<alpha>", "?P<beta>"]:
+            if pattern.count(group_name) < 2:
+                continue
+            parts = pattern.split(group_name)
+            pattern = "".join(parts[:-1]) + group_name + parts[-1]
+            logging.debug(f"Removed duplicate '{group_name}' group names: {pattern}.")
 
     pattern = pattern + "$"
 
