@@ -12,6 +12,9 @@ try:
 except:  # noqa: E722 # pylint: disable=W0702
     TypedDict = Dict
 
+raise Exception(
+    "Deprecated since introducing num-sequences in filename_pattern_finder.py"
+)
 
 yaml_file = sys.argv[1]
 if ".counts.yaml" not in yaml_file:
