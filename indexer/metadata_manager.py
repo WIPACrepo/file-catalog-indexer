@@ -12,7 +12,7 @@ from typing import Any, Dict
 import xmltodict  # type: ignore[import]
 import yaml
 
-from .metadata import BasicFileMetadata, I3FileMetadata, real
+from .metadata import basic, i3, real
 from .utils import utils
 
 
@@ -73,7 +73,7 @@ class MetadataManager:  # pylint: disable=R0903
             # GCD Files (one per run)
             # Ex. Level2_IC86.2017_data_Run00130484_0101_71_375_GCD.i3.zst
             elif "GCD" in dir_entry.name:
-                run = I3FileMetadata.parse_run_number(dir_entry.name)
+                run = i3.I3FileMetadata.parse_run_number(dir_entry.name)
                 gcd_files[str(run)] = dir_entry.path
                 logging.debug(f"Grabbed GCD file for run {run}, {dir_entry.name}.")
 
@@ -81,7 +81,7 @@ class MetadataManager:  # pylint: disable=R0903
         self.l2_dir_metadata["gaps_files"] = gaps_files
         self.l2_dir_metadata["gcd_files"] = gcd_files
 
-    def new_file(self, filepath: str) -> BasicFileMetadata:
+    def new_file(self, filepath: str) -> basic.BasicFileMetadata:
         """Return different metadata-file objects.
 
         Factory method.
@@ -89,7 +89,7 @@ class MetadataManager:  # pylint: disable=R0903
         file = utils.FileInfo(filepath)
         if not self.basic_only:
             # L2
-            if real.L2FileMetadata.is_valid_filename(file.name):
+            if real.l2.L2FileMetadata.is_valid_filename(file.name):
                 # get directory's metadata
                 file_dir_path = os.path.dirname(os.path.abspath(file.path))
                 if (not self.l2_dir_metadata) or (file_dir_path != self.dir_path):
@@ -101,27 +101,27 @@ class MetadataManager:  # pylint: disable=R0903
                 except KeyError:
                     gaps = {}
                 try:
-                    run = I3FileMetadata.parse_run_number(file.name)
+                    run = i3.I3FileMetadata.parse_run_number(file.name)
                     gcd = self.l2_dir_metadata["gcd_files"][str(run)]
                 except KeyError:
                     gcd = ""
                 logging.debug(f"Gathering L2 metadata for {file.name}...")
-                return real.L2FileMetadata(
+                return real.l2.L2FileMetadata(
                     file, self.site, self.l2_dir_metadata["dir_meta_xml"], gaps, gcd
                 )
             # PFFilt
-            if real.PFFiltFileMetadata.is_valid_filename(file.name):
+            if real.pffilt.PFFiltFileMetadata.is_valid_filename(file.name):
                 logging.debug(f"Gathering PFFilt metadata for {file.name}...")
-                return real.PFFiltFileMetadata(file, self.site)
+                return real.pffilt.PFFiltFileMetadata(file, self.site)
             # PFDST
-            if real.PFDSTFileMetadata.is_valid_filename(file.name):
+            if real.pfdst.PFDSTFileMetadata.is_valid_filename(file.name):
                 logging.debug(f"Gathering PFDST metadata for {file.name}...")
-                return real.PFDSTFileMetadata(file, self.site)
+                return real.pfdst.PFDSTFileMetadata(file, self.site)
             # PFRaw
-            if real.PFRawFileMetadata.is_valid_filename(file.name):
+            if real.pfraw.PFRawFileMetadata.is_valid_filename(file.name):
                 logging.debug(f"Gathering PFRaw metadata for {file.name}...")
-                return real.PFRawFileMetadata(file, self.site)
+                return real.pfraw.PFRawFileMetadata(file, self.site)
             # if no match, fall-through to real.BasicFileMetadata...
         # Other/ Basic
         logging.debug(f"Gathering basic metadata for {file.name}...")
-        return BasicFileMetadata(file, self.site)
+        return basic.BasicFileMetadata(file, self.site)
