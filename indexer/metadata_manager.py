@@ -23,11 +23,20 @@ class MetadataManager:  # pylint: disable=R0903
         self.dir_path = ""
         self.site = site
         self.basic_only = basic_only
-        self.l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
+        self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
 
-    def _prep_l2_dir_metadata(self) -> None:
+    def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
+        """Return basic metadata-file object for files.
+
+        Factory method.
+        """
+        file = utils.FileInfo(filepath)
+        logging.debug(f"Gathering basic metadata for {file.name}...")
+        return basic.BasicFileMetadata(file, self.site)
+
+    def _real_prep_l2_dir_metadata(self) -> None:
         """Get metadata files for later processing with individual i3 files."""
-        self.l2_dir_metadata = {}
+        self.real_l2_dir_metadata = {}
         dir_meta_xml = None
         gaps_files = {}  # gaps_files[<filename w/o extension>]
         gcd_files = {}  # gcd_files[<run id w/o leading zeros>]
@@ -77,9 +86,9 @@ class MetadataManager:  # pylint: disable=R0903
                 gcd_files[str(run)] = dir_entry.path
                 logging.debug(f"Grabbed GCD file for run {run}, {dir_entry.name}.")
 
-        self.l2_dir_metadata["dir_meta_xml"] = dir_meta_xml if dir_meta_xml else {}
-        self.l2_dir_metadata["gaps_files"] = gaps_files
-        self.l2_dir_metadata["gcd_files"] = gcd_files
+        self.real_l2_dir_metadata["dir_meta_xml"] = dir_meta_xml if dir_meta_xml else {}
+        self.real_l2_dir_metadata["gaps_files"] = gaps_files
+        self.real_l2_dir_metadata["gcd_files"] = gcd_files
 
     def _new_file_real(self, filepath: str) -> basic.BasicFileMetadata:
         """Return different metadata-file objects for `/data/exp/` files.
@@ -87,26 +96,27 @@ class MetadataManager:  # pylint: disable=R0903
         Factory method.
         """
         file = utils.FileInfo(filepath)
+
         # L2
         if real.l2.L2FileMetadata.is_valid_filename(file.name):
             # get directory's metadata
             file_dir_path = os.path.dirname(os.path.abspath(file.path))
-            if (not self.l2_dir_metadata) or (file_dir_path != self.dir_path):
+            if (not self.real_l2_dir_metadata) or (file_dir_path != self.dir_path):
                 self.dir_path = file_dir_path
-                self._prep_l2_dir_metadata()
+                self._real_prep_l2_dir_metadata()
             try:
                 no_extension = file.name.split(".i3")[0]
-                gaps = self.l2_dir_metadata["gaps_files"][no_extension]
+                gaps = self.real_l2_dir_metadata["gaps_files"][no_extension]
             except KeyError:
                 gaps = {}
             try:
                 run = i3.I3FileMetadata.parse_run_number(file.name)
-                gcd = self.l2_dir_metadata["gcd_files"][str(run)]
+                gcd = self.real_l2_dir_metadata["gcd_files"][str(run)]
             except KeyError:
                 gcd = ""
             logging.debug(f"Gathering L2 metadata for {file.name}...")
             return real.l2.L2FileMetadata(
-                file, self.site, self.l2_dir_metadata["dir_meta_xml"], gaps, gcd
+                file, self.site, self.real_l2_dir_metadata["dir_meta_xml"], gaps, gcd
             )
         # PFFilt
         if real.pffilt.PFFiltFileMetadata.is_valid_filename(file.name):
@@ -120,7 +130,38 @@ class MetadataManager:  # pylint: disable=R0903
         if real.pfraw.PFRawFileMetadata.is_valid_filename(file.name):
             logging.debug(f"Gathering PFRaw metadata for {file.name}...")
             return real.pfraw.PFRawFileMetadata(file, self.site)
-        # if no match, fall-through to basic.BasicFileMetadata...
-        # Other/ Basic
-        logging.debug(f"Gathering basic metadata for {file.name}...")
-        return basic.BasicFileMetadata(file, self.site)
+        #
+        # If no match, fall-through to basic.BasicFileMetadata...
+        return self._new_file_basic_only(filepath)
+
+    def _new_file_simulation(self, filepath: str) -> basic.BasicFileMetadata:
+        """Return different metadata-file objects for `/data/sim/` files.
+
+        Factory method.
+        """
+        file = utils.FileInfo(filepath)
+
+        # TODO
+
+        #
+        # If no match, fall-through to basic.BasicFileMetadata...
+        return self._new_file_basic_only(filepath)
+
+    def new_file(self, filepath: str) -> basic.BasicFileMetadata:
+        """Return different metadata-file objects for files.
+
+        Factory method.
+        """
+        if self.basic_only:
+            return self._new_file_basic_only(filepath)
+
+        if "/data/sim/" in filepath:
+            return self._new_file_simulation(filepath)
+
+        if "/data/exp/" in filepath:
+            return self._new_file_real(filepath)
+
+        raise RuntimeError(
+            f"Unaccounted for filepath type: {filepath}. "
+            "Run with --basic-only for basic metadata collection."
+        )
