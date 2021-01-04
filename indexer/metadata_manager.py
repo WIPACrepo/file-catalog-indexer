@@ -81,7 +81,7 @@ class MetadataManager:  # pylint: disable=R0903
         self.l2_dir_metadata["gaps_files"] = gaps_files
         self.l2_dir_metadata["gcd_files"] = gcd_files
 
-    def new_file(self, filepath: str) -> basic.BasicFileMetadata:
+    def new_file_real(self, filepath: str) -> basic.BasicFileMetadata:
         """Return different metadata-file objects.
 
         Factory method.
@@ -121,7 +121,7 @@ class MetadataManager:  # pylint: disable=R0903
             if real.pfraw.PFRawFileMetadata.is_valid_filename(file.name):
                 logging.debug(f"Gathering PFRaw metadata for {file.name}...")
                 return real.pfraw.PFRawFileMetadata(file, self.site)
-            # if no match, fall-through to real.BasicFileMetadata...
+            # if no match, fall-through to basic.BasicFileMetadata...
         # Other/ Basic
         logging.debug(f"Gathering basic metadata for {file.name}...")
         return basic.BasicFileMetadata(file, self.site)
