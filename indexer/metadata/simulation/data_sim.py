@@ -10,10 +10,18 @@ from ..i3 import I3FileMetadata
 class DataSimI3FileMetadata(I3FileMetadata):
     """Metadata for /data/sim/ i3 files."""
 
-    def __init__(
-        self, file: utils.FileInfo, site: str, processing_level: utils.ProcessingLevel
-    ):
-        super().__init__(file, site, processing_level, "simulation")
+    def __init__(self, file: utils.FileInfo, site: str):
+        super().__init__(
+            file,
+            site,
+            DataSimI3FileMetadata.figure_processing_level(file),
+            "simulation",
+        )
+
+    @staticmethod
+    def figure_processing_level(file: utils.FileInfo) -> utils.ProcessingLevel:
+        """Get the processing level from the filename."""
+        return utils.ProcessingLevel.TODO  # TODO
 
     @staticmethod
     def is_valid_filename(filename: str, regexes: List[re.Pattern[str]]) -> bool:

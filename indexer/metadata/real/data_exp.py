@@ -48,23 +48,20 @@ class DataExpI3FileMetadata(I3FileMetadata):
         metadata = super().generate()
 
         start_dt, end_dt, create_date, software = self._parse_xml()
-        first_event, last_event, event_count, status = self._get_events_data()
 
         metadata["create_date"] = create_date  # Override BasicFileMetadata's value
-        metadata["content_status"] = status
         metadata["software"] = software
 
-        if data_type == "real":
-            metadata["run"] = {
-                "run_number": self.run,
-                "subrun_number": self.subrun,
-                "part_number": self.part,
-                "start_datetime": start_dt,
-                "end_datetime": end_dt,
-                "first_event": first_event,
-                "last_event": last_event,
-                "event_count": event_count,
-            }
+        metadata["run"] = {
+            "run_number": self.run,
+            "subrun_number": self.subrun,
+            "part_number": self.part,
+            "start_datetime": start_dt,
+            "end_datetime": end_dt,
+            "first_event": self._get_events_data()["first_event"],
+            "last_event": self._get_events_data()["last_event"],
+            "event_count": self._get_events_data()["event_count"],
+        }
         return metadata
 
     @staticmethod

@@ -145,7 +145,7 @@ class MetadataManager:  # pylint: disable=R0903
 
         # read-in regex file
         if not self.sim_regexes:
-            with open("xxx", "r") as f:
+            with open("xxx", "r") as f:  # TODO
                 for line in f:
                     self.sim_regexes.append(re.compile(line.strip()))
 

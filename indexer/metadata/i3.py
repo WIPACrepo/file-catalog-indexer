@@ -8,7 +8,7 @@ import re
 import tarfile
 import typing
 from datetime import date
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, TypedDict
 
 from ..utils import types, utils
 from .basic import BasicFileMetadata
@@ -16,6 +16,12 @@ from .basic import BasicFileMetadata
 
 class I3FileMetadata(BasicFileMetadata):
     """Metadata for i3 files."""
+
+    class _EventsData(TypedDict):
+        first_event: Optional[int]
+        last_event: Optional[int]
+        event_count: int
+        status: str
 
     def __init__(
         self,
@@ -27,13 +33,25 @@ class I3FileMetadata(BasicFileMetadata):
         super().__init__(file, site)
         self.processing_level = processing_level
         self.data_type = data_type
+        self._events_data: Optional[I3FileMetadata._EventsData] = None
 
-    def _get_events_data(self) -> Tuple[Optional[int], Optional[int], int, str]:
-        """Return events data as a tuple.
+    def generate(self) -> types.Metadata:
+        """Gather the file's metadata."""
+        metadata = super().generate()
+        metadata["data_type"] = self.data_type
+        metadata["processing_level"] = self.processing_level.value
+        metadata["content_status"] = self._get_events_data()["status"]
+        return metadata
+
+    def _get_events_data(self) -> "I3FileMetadata._EventsData":
+        """Return events data as a TypedDict.
 
         AKA: the first event id, last event id, number of events, and content
         status.
         """
+        if self._events_data:
+            return self._events_data
+
         first = float("inf")
         last = float("-inf")
         count = 0
@@ -55,18 +73,10 @@ class I3FileMetadata(BasicFileMetadata):
         except:  # noqa: E722  # pylint: disable=W0702
             status = "bad"
 
-        return (
-            None if first == float("inf") else typing.cast(int, first),
-            None if last == float("-inf") else typing.cast(int, last),
-            count,
-            status,
-        )
-
-    def generate(self) -> types.Metadata:
-        """Gather the file's metadata."""
-        metadata = super().generate()
-
-        metadata["data_type"] = self.data_type
-        metadata["processing_level"] = self.processing_level.value
-
-        return metadata
+        self._events_data = {
+            "first_event": None if first == float("inf") else typing.cast(int, first),
+            "last_event": None if last == float("-inf") else typing.cast(int, last),
+            "event_count": count,
+            "status": status,
+        }
+        return self._events_data
