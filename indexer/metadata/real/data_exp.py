@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import tarfile
-import typing
 import xml
 import zlib
 from datetime import date
@@ -28,8 +27,7 @@ class DataExpI3FileMetadata(I3FileMetadata):
         processing_level: utils.ProcessingLevel,
         filename_patterns_: List[str],
     ):
-        super().__init__(file, site)
-        self.processing_level = processing_level
+        super().__init__(file, site, processing_level, "real")
         self.meta_xml: Dict[str, Any] = {}
         try:
             (
@@ -50,12 +48,9 @@ class DataExpI3FileMetadata(I3FileMetadata):
         metadata = super().generate()
 
         start_dt, end_dt, create_date, software = self._parse_xml()
-        data_type = self._get_data_type()
         first_event, last_event, event_count, status = self._get_events_data()
 
         metadata["create_date"] = create_date  # Override BasicFileMetadata's value
-        metadata["data_type"] = data_type
-        metadata["processing_level"] = self.processing_level.value
         metadata["content_status"] = status
         metadata["software"] = software
 
@@ -131,14 +126,6 @@ class DataExpI3FileMetadata(I3FileMetadata):
         except Exception:
             raise Exception(f"No run number found in filename, {filename}.")
 
-    def _get_data_type(self) -> Optional[str]:
-        """Return the file data type, real or simulation."""
-        if "/exp/" in self.file.path:
-            return "real"
-        if "/sim/" in self.file.path:
-            return "simulation"
-        return None
-
     def _parse_xml(
         self,
     ) -> Tuple[Optional[str], Optional[str], str, Optional[List[types.SoftwareEntry]]]:
@@ -200,40 +187,6 @@ class DataExpI3FileMetadata(I3FileMetadata):
             )
 
         return software_list
-
-    def _get_events_data(self) -> Tuple[Optional[int], Optional[int], int, str]:
-        """Return events data as a tuple.
-
-        AKA: the first event id, last event id, number of events, and content
-        status.
-        """
-        first = float("inf")
-        last = float("-inf")
-        count = 0
-        status = "good"
-
-        from icecube import dataio  # type: ignore[import] # pylint: disable=C0415,E0401
-
-        try:
-            for frame in dataio.I3File(self.file.path):
-                if "I3EventHeader" in frame:
-                    count = count + 1
-                    event_id = int(frame["I3EventHeader"].event_id)
-                    # check if event_id precedes `first`
-                    if first > event_id:
-                        first = event_id
-                    # check if event_id succeeds `last`
-                    if last < event_id:
-                        last = event_id
-        except:  # noqa: E722  # pylint: disable=W0702
-            status = "bad"
-
-        return (
-            None if first == float("inf") else typing.cast(int, first),
-            None if last == float("-inf") else typing.cast(int, last),
-            count,
-            status,
-        )
 
     def _grab_meta_xml_from_tar(self) -> None:
         """Get the meta-xml dict form the tar file.
