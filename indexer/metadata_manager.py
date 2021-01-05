@@ -7,12 +7,13 @@ import re
 import tarfile
 import typing
 import xml
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import xmltodict  # type: ignore[import]
 import yaml
 
 from .metadata import basic, i3, real
+from .metadata.simulation.data_sim import DataSimI3FileMetadata
 from .utils import utils
 
 
@@ -24,6 +25,7 @@ class MetadataManager:  # pylint: disable=R0903
         self.site = site
         self.basic_only = basic_only
         self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
+        self.sim_regexes: List[re.Pattern[str]] = []
 
     def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
         """Return basic metadata-file object for files.
@@ -141,10 +143,15 @@ class MetadataManager:  # pylint: disable=R0903
         """
         file = utils.FileInfo(filepath)
 
-        # TODO
+        # read-in regex file
+        if not self.sim_regexes:
+            with open("xxx", "r") as f:
+                for line in f:
+                    self.sim_regexes.append(re.compile(line.strip()))
 
-        #
-        # If no match, fall-through to basic.BasicFileMetadata...
+        if DataSimI3FileMetadata.is_valid_filename(file.name, self.sim_regexes):
+            logging.debug(f"Gathering Sim metadata for {file.name}...")
+            return DataSimI3FileMetadata(file, self.site)
         return self._new_file_basic_only(filepath)
 
     def new_file(self, filepath: str) -> basic.BasicFileMetadata:
