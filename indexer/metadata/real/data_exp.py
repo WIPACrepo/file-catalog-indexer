@@ -1,4 +1,4 @@
-"""Class for collecting i3 file metadata."""
+"""Class for collecting real (/data/exp/) i3 file metadata."""
 
 
 import collections
@@ -14,12 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import xmltodict  # type: ignore[import]
 
-from ..utils import types, utils
-from .basic import BasicFileMetadata
+from ...utils import types, utils
+from ..i3 import I3FileMetadata
 
 
-class I3FileMetadata(BasicFileMetadata):
-    """Metadata for i3 files."""
+class DataExpI3FileMetadata(I3FileMetadata):
+    """Metadata for /data/exp/ i3 files."""
 
     def __init__(
         self,

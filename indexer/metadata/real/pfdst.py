@@ -5,11 +5,11 @@ import re
 from typing import Final, List
 
 from ...utils import utils
-from ..i3 import I3FileMetadata
 from . import filename_patterns
+from .data_exp import DataExpI3FileMetadata
 
 
-class PFDSTFileMetadata(I3FileMetadata):
+class PFDSTFileMetadata(DataExpI3FileMetadata):
     """Metadata for PFDST i3 files."""
 
     FILENAME_PATTERNS: Final[List[str]] = filename_patterns.PFDST["patterns"]

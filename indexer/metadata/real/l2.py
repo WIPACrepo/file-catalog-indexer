@@ -5,11 +5,11 @@ import re
 from typing import Any, Dict, Final, List, Optional, Tuple
 
 from ...utils import types, utils
-from ..i3 import I3FileMetadata
 from . import filename_patterns
+from .data_exp import DataExpI3FileMetadata
 
 
-class L2FileMetadata(I3FileMetadata):
+class L2FileMetadata(DataExpI3FileMetadata):
     """Metadata for L2 i3 files."""
 
     FILENAME_PATTERNS: Final[List[str]] = filename_patterns.L2["patterns"]
