@@ -37,7 +37,7 @@ class DataExpI3FileMetadata(I3FileMetadata):
                 self.run,
                 self.subrun,
                 self.part,
-            ) = I3FileMetadata.parse_year_run_subrun_part(
+            ) = DataExpI3FileMetadata.parse_year_run_subrun_part(
                 filename_patterns_, self.file.name
             )
         except ValueError:

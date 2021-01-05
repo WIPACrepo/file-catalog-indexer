@@ -11,12 +11,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
     """Metadata for /data/sim/ i3 files."""
 
     def __init__(self, file: utils.FileInfo, site: str):
-        super().__init__(
-            file,
-            site,
-            utils.ProcessingLevel.PFFilt,
-            PFFiltFileMetadata.FILENAME_PATTERNS,
-        )
+        super().__init__(file, site)
 
     @staticmethod
     def is_valid_filename(filename: str, regexes: List[re.Pattern[str]]) -> bool:
