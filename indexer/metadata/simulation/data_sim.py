@@ -36,6 +36,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
             utils.ProcessingLevel.Propagated: ["hits", "hit", "propagated"],
             utils.ProcessingLevel.Generated: [
                 "corsika",
+                "unweighted",
                 "nugen",
                 "injector",  # MCSNInjector, SimpleInjector, lepton-injector
                 "genie",
