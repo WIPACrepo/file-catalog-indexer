@@ -28,6 +28,10 @@ class DataExpI3FileMetadata(I3FileMetadata):
         filename_patterns_: List[str],
     ):
         super().__init__(file, site, processing_level, "real")
+        if not self.processing_level:
+            raise TypeError(
+                "Processing level cannot be None for DataExpI3FileMetadata and derived instances."
+            )
         self.meta_xml: Dict[str, Any] = {}
         try:
             (

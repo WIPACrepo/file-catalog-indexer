@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 import xmltodict  # type: ignore[import]
 import yaml
 
-from .metadata import basic, i3, real
+from .metadata import basic, real
 from .metadata.simulation.data_sim import DataSimI3FileMetadata
 from .utils import utils
 
@@ -84,7 +84,9 @@ class MetadataManager:  # pylint: disable=R0903
             # GCD Files (one per run)
             # Ex. Level2_IC86.2017_data_Run00130484_0101_71_375_GCD.i3.zst
             elif "GCD" in dir_entry.name:
-                run = i3.I3FileMetadata.parse_run_number(dir_entry.name)
+                run = real.data_exp.DataExpI3FileMetadata.parse_run_number(
+                    dir_entry.name
+                )
                 gcd_files[str(run)] = dir_entry.path
                 logging.debug(f"Grabbed GCD file for run {run}, {dir_entry.name}.")
 
@@ -112,7 +114,7 @@ class MetadataManager:  # pylint: disable=R0903
             except KeyError:
                 gaps = {}
             try:
-                run = i3.I3FileMetadata.parse_run_number(file.name)
+                run = real.data_exp.DataExpI3FileMetadata.parse_run_number(file.name)
                 gcd = self.real_l2_dir_metadata["gcd_files"][str(run)]
             except KeyError:
                 gcd = ""
@@ -149,9 +151,10 @@ class MetadataManager:  # pylint: disable=R0903
                 for line in f:
                     self.sim_regexes.append(re.compile(line.strip()))
 
-        if DataSimI3FileMetadata.is_valid_filename(file.name, self.sim_regexes):
+        if DataSimI3FileMetadata.is_valid_filename(file.name):
             logging.debug(f"Gathering Sim metadata for {file.name}...")
-            return DataSimI3FileMetadata(file, self.site)
+            return DataSimI3FileMetadata(file, self.site, self.sim_regexes)
+
         return self._new_file_basic_only(filepath)
 
     def new_file(self, filepath: str) -> basic.BasicFileMetadata:

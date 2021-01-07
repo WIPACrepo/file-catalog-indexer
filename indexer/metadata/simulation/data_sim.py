@@ -10,13 +10,15 @@ from ..i3 import I3FileMetadata
 class DataSimI3FileMetadata(I3FileMetadata):
     """Metadata for /data/sim/ i3 files."""
 
-    def __init__(self, file: utils.FileInfo, site: str):
+    def __init__(self, file: utils.FileInfo, site: str, regexes: List[re.Pattern[str]]):
         super().__init__(
             file,
             site,
             DataSimI3FileMetadata.figure_processing_level(file),
             "simulation",
         )
+        self.regexes = regexes
+        raise Exception(f"Unaccounted for /data/sim/ filename pattern: {filename}")
 
     @staticmethod
     def figure_processing_level(
@@ -64,7 +66,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         return metadata
 
     @staticmethod
-    def is_valid_filename(filename: str, regexes: List[re.Pattern[str]]) -> bool:
+    def is_valid_filename(filename: str) -> bool:
         """Return `True` if the file is a valid simulation i3 filename.
 
         Check if `filename` matches the base filename pattern for
@@ -81,5 +83,3 @@ class DataSimI3FileMetadata(I3FileMetadata):
             return False
 
         return True
-
-        raise Exception(f"Unaccounted for /data/sim/ filename pattern: {filename}")
