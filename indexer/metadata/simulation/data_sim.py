@@ -1,7 +1,7 @@
 """Class for collecting simulation (/data/sim/) i3 file metadata."""
 
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from ...utils import types, utils
 from ..i3 import I3FileMetadata
@@ -17,8 +17,15 @@ class DataSimI3FileMetadata(I3FileMetadata):
             DataSimI3FileMetadata.figure_processing_level(file),
             "simulation",
         )
-        self.regexes = regexes
-        raise Exception(f"Unaccounted for /data/sim/ filename pattern: {filename}")
+        try:
+            (
+                self.iceprod_dataset_id,
+                self.iceprod_job_id,
+            ) = DataSimI3FileMetadata.parse_iceprod_dataset_job_ids(
+                regexes, self.file.name
+            )
+        except ValueError:
+            raise Exception(f"Unaccounted for /data/sim/ filename pattern: {file.name}")
 
     @staticmethod
     def figure_processing_level(
@@ -56,6 +63,32 @@ class DataSimI3FileMetadata(I3FileMetadata):
                 return proc_level
 
         return None
+
+    @staticmethod
+    def parse_iceprod_dataset_job_ids(
+        regexes: List[re.Pattern[str]], filename: str
+    ) -> Tuple[Optional[int], Optional[int]]:
+        """Return the iceprod dataset and job ids by parsing w/ `regexes`.
+
+        Uses named groups: `alpha` & `beta`; or `single`.
+        """
+        for p in regexes:
+            match = re.match(p, filename)
+            if not match:
+                continue
+
+            values = match.groupdict()
+            # pattern w/ no groups
+            if not values:
+                return None, None
+            # pattern w/ 'single' group
+            if "single" in values:
+                return int(values["single"]), None
+            # pattern w/ 'alpha' & 'beta' groups
+            return int(values["alpha"]), int(values["beta"])
+
+        # fall-through
+        raise ValueError(f"Filename does not match any pattern, {filename}.")
 
     def generate(self) -> types.Metadata:
         """Gather the file's metadata."""
