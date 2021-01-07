@@ -64,9 +64,14 @@ class IceCubeSeason:
 class ProcessingLevel(Enum):
     """Enum for processing-level constants."""
 
-    PFRaw = "PFRaw"
-    PFFilt = "PFFilt"
-    PFDST = "PFDST"
+    PFRaw = "PFRaw"  # exp
+    PFFilt = "PFFilt"  # exp
+    PFDST = "PFDST"  # exp
+    Generated = "Generated"  # sim
+    Propagated = "Propagated"  # sim
+    Triggered = "Triggered"  # sim
+    L1 = "L1"  # sim
     L2 = "L2"
     L3 = "L3"
     L4 = "L4"
+    L5 = "L5"

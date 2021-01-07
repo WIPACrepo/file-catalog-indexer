@@ -1,9 +1,9 @@
 """Class for collecting simulation (/data/sim/) i3 file metadata."""
 
 import re
-from typing import List
+from typing import List, Optional
 
-from ...utils import utils
+from ...utils import types, utils
 from ..i3 import I3FileMetadata
 
 
@@ -19,9 +19,48 @@ class DataSimI3FileMetadata(I3FileMetadata):
         )
 
     @staticmethod
-    def figure_processing_level(file: utils.FileInfo) -> utils.ProcessingLevel:
+    def figure_processing_level(
+        file: utils.FileInfo,
+    ) -> Optional[utils.ProcessingLevel]:
         """Get the processing level from the filename."""
-        return utils.ProcessingLevel.TODO  # TODO
+        fname_upper = file.name.upper()
+
+        # L5 - L1 -> Triggered -> Propagated -> Generated
+        proc_level_strings = {
+            utils.ProcessingLevel.L5: ["L5"],
+            utils.ProcessingLevel.L4: ["L4"],
+            utils.ProcessingLevel.L3: ["L3"],
+            utils.ProcessingLevel.L2: ["L2"],
+            utils.ProcessingLevel.L1: ["L1"],
+            utils.ProcessingLevel.Triggered: ["detector"],
+            utils.ProcessingLevel.Propagated: ["hits", "hit", "propagated"],
+            utils.ProcessingLevel.Generated: [
+                "corsika",
+                "nugen",
+                "injector",  # MCSNInjector, SimpleInjector, lepton-injector
+                "genie",
+                "generated",
+                "numu",
+                "nue",
+                "nutau",
+                "muongun",
+                "Monopole",
+                "MonoSim",
+            ],
+        }
+        for proc_level, strings in proc_level_strings.items():
+            if any(t.upper() in fname_upper for t in strings):
+                return proc_level
+
+        return None
+
+    def generate(self) -> types.Metadata:
+        """Gather the file's metadata."""
+        metadata = super().generate()
+
+        # TODO
+
+        return metadata
 
     @staticmethod
     def is_valid_filename(filename: str, regexes: List[re.Pattern[str]]) -> bool:

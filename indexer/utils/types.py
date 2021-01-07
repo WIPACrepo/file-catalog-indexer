@@ -94,7 +94,7 @@ class Metadata(TypedDict, total=False):
     # i3 File:
     meta_modify_date: Date
     data_type: Optional[str]
-    processing_level: str
+    processing_level: Optional[str]
     content_status: str
     software: Optional[List[SoftwareEntry]]
     run: Run

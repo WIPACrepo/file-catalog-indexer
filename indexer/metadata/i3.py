@@ -1,14 +1,8 @@
 """Class for collecting i3 file metadata."""
 
 
-import collections
-import logging
-import os
-import re
-import tarfile
 import typing
-from datetime import date
-from typing import Any, List, Optional, Tuple, TypedDict
+from typing import Optional, TypedDict
 
 from ..utils import types, utils
 from .basic import BasicFileMetadata
@@ -27,7 +21,7 @@ class I3FileMetadata(BasicFileMetadata):
         self,
         file: utils.FileInfo,
         site: str,
-        processing_level: utils.ProcessingLevel,
+        processing_level: Optional[utils.ProcessingLevel],
         data_type: str,
     ):
         super().__init__(file, site)
@@ -39,7 +33,8 @@ class I3FileMetadata(BasicFileMetadata):
         """Gather the file's metadata."""
         metadata = super().generate()
         metadata["data_type"] = self.data_type
-        metadata["processing_level"] = self.processing_level.value
+        if self.processing_level:
+            metadata["processing_level"] = self.processing_level.value
         metadata["content_status"] = self._get_events_data()["status"]
         return metadata
 
