@@ -2,7 +2,7 @@
 
 
 import typing
-from typing import Optional, TypedDict
+from typing import Optional
 
 from ..utils import types, utils
 from .basic import BasicFileMetadata
@@ -10,12 +10,6 @@ from .basic import BasicFileMetadata
 
 class I3FileMetadata(BasicFileMetadata):
     """Metadata for i3 files."""
-
-    class _EventsData(TypedDict):
-        first_event: Optional[int]
-        last_event: Optional[int]
-        event_count: int
-        status: str
 
     def __init__(
         self,
@@ -27,7 +21,7 @@ class I3FileMetadata(BasicFileMetadata):
         super().__init__(file, site)
         self.processing_level = processing_level
         self.data_type = data_type
-        self._events_data: Optional[I3FileMetadata._EventsData] = None
+        self._events_data: Optional[types.EventsData] = None
 
     def generate(self) -> types.Metadata:
         """Gather the file's metadata."""
@@ -38,7 +32,7 @@ class I3FileMetadata(BasicFileMetadata):
         metadata["content_status"] = self._get_events_data()["status"]
         return metadata
 
-    def _get_events_data(self) -> "I3FileMetadata._EventsData":
+    def _get_events_data(self) -> types.EventsData:
         """Return events data as a TypedDict.
 
         AKA: the first event id, last event id, number of events, and content

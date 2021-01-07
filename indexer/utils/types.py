@@ -28,6 +28,15 @@ class SoftwareEntry(TypedDict, total=False):
     date: Date
 
 
+class EventsData(TypedDict):
+    """Events info."""
+
+    first_event: Optional[int]
+    last_event: Optional[int]
+    event_count: int
+    status: str
+
+
 class Run(TypedDict):
     """Run dict."""
 

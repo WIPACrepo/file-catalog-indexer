@@ -96,6 +96,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # TODO
 
+        # dataset_id < 20000 is iceprod v1 (the old one)
+
         return metadata
 
     @staticmethod
@@ -107,7 +109,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         """
         if not any(
             filename.endswith(x) for x in [".i3", ".i3.gz", ".i3.bz2", ".i3.zst"]
-        ):  # TODO -- test this
+        ):
             return False
 
         # hard-coded ignore
