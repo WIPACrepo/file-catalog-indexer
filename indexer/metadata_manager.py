@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 import xmltodict  # type: ignore[import]
 import yaml
 
-from .metadata import basic, real
+from .metadata import basic, real, simulation
 from .metadata.simulation.data_sim import DataSimI3FileMetadata
 from .utils import utils
 
@@ -147,9 +147,8 @@ class MetadataManager:  # pylint: disable=R0903
 
         # read-in regex file
         if not self.sim_regexes:
-            with open("xxx", "r") as f:  # TODO
-                for line in f:
-                    self.sim_regexes.append(re.compile(line.strip()))
+            for regex in simulation.filename_patterns.regex_patterns:
+                self.sim_regexes.append(re.compile(regex))
 
         if DataSimI3FileMetadata.is_valid_filename(file.name):
             logging.debug(f"Gathering Sim metadata for {file.name}...")
