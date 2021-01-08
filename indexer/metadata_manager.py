@@ -1,16 +1,18 @@
 """Class for managing metadata collection / interfacing with indexer.py."""
 
-
 import logging
 import os
 import re
 import tarfile
 import typing
 import xml
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import xmltodict  # type: ignore[import]
 import yaml
+
+# local imports
+from rest_tools.client import RestClient  # type: ignore[import]
 
 from .metadata import basic, real, simulation
 from .metadata.simulation.data_sim import DataSimI3FileMetadata
@@ -20,12 +22,17 @@ from .utils import utils
 class MetadataManager:  # pylint: disable=R0903
     """Commander class for handling metadata for different file types."""
 
-    def __init__(self, site: str, basic_only: bool = False):
+    def __init__(self, site: str, basic_only: bool = False, iceprod_rc_token: str = ""):
         self.dir_path = ""
         self.site = site
         self.basic_only = basic_only
         self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
         self.sim_regexes: List[re.Pattern[str]] = []
+        self.iceprod_rc: Optional[RestClient]
+        if iceprod_rc_token:
+            self.iceprod_rc = RestClient(
+                "https://iceprod2-api.icecube.wisc.edu", iceprod_rc_token
+            )
 
     def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
         """Return basic metadata-file object for files.
@@ -150,9 +157,15 @@ class MetadataManager:  # pylint: disable=R0903
             for regex in simulation.filename_patterns.regex_patterns:
                 self.sim_regexes.append(re.compile(regex))
 
+        # set up IceProd RestClient
+        if not self.iceprod_rc:
+            raise Exception("Missing IceProd REST Client.")
+
         if DataSimI3FileMetadata.is_valid_filename(file.name):
             logging.debug(f"Gathering Sim metadata for {file.name}...")
-            return DataSimI3FileMetadata(file, self.site, self.sim_regexes)
+            return DataSimI3FileMetadata(
+                file, self.site, self.sim_regexes, self.iceprod_rc
+            )
 
         return self._new_file_basic_only(filepath)
 

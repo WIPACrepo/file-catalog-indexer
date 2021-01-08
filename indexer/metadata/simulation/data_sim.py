@@ -1,26 +1,38 @@
 """Class for collecting simulation (/data/sim/) i3 file metadata."""
-
+import asyncio
 import re
 from typing import List, Optional, Tuple
 
+# local imports
+from rest_tools.client import RestClient  # type: ignore[import]
+
 from ...utils import types, utils
 from ..i3 import I3FileMetadata
+from . import iceprod_tools
 
 
 class DataSimI3FileMetadata(I3FileMetadata):
     """Metadata for /data/sim/ i3 files."""
 
-    def __init__(self, file: utils.FileInfo, site: str, regexes: List[re.Pattern[str]]):
+    def __init__(
+        self,
+        file: utils.FileInfo,
+        site: str,
+        regexes: List[re.Pattern[str]],
+        iceprod_rc: RestClient,
+    ):
         super().__init__(
             file,
             site,
             DataSimI3FileMetadata.figure_processing_level(file),
             "simulation",
         )
+        self.iceprod_task_id: Optional[int] = None
+        self.iceprod_rc = iceprod_rc
         try:
             (
-                self.iceprod_dataset_id,
-                self.iceprod_job_id,
+                self.iceprod_dataset_num,
+                self.iceprod_job_index,
             ) = DataSimI3FileMetadata.parse_iceprod_dataset_job_ids(
                 regexes, self.file.name
             )
@@ -96,27 +108,21 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # TODO -- grab what I can from i3Reader, should that go here or up in i3.py?
 
-        iceprod_task_id: Optional[int] = None
+        if not self.iceprod_dataset_num:
+            return metadata  # TODO
 
-        if not self.iceprod_dataset_id:
-            pass  # TODO
-        # IceProd v1 (the old one)
-        elif self.iceprod_dataset_id < 20000:
-            metadata["simulation"] = self.iceprod_1()  # TODO
-        # IceProd v2
-        else:
-            metadata["simulation"] = self.iceprod_2()  # TODO
+        # IceProd
+        metadata["iceprod"] = asyncio.run(
+            iceprod_tools.get_file_info(
+                self.iceprod_rc,
+                self.file.path,
+                dataset_num=self.iceprod_dataset_num,
+                job_index=self.iceprod_job_index,
+            )
+        )
 
-        if self.iceprod_dataset_id:
-            metadata["iceprod"] = {
-                "dataset": "",
-                "dataset_id": self.iceprod_dataset_id,
-                "job": "",
-                "job_id": self.iceprod_job_id,
-                "task": "",
-                "task_id": iceprod_task_id,
-                "config": "",
-            }
+        # Simulation
+        metadata["simulation"] = None  # TODO
 
         return metadata
 
