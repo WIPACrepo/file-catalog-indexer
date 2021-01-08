@@ -106,7 +106,7 @@ def _get_output_files_data(config: Dict[str, Any]) -> List[_FileData]:
     return files
 
 
-async def _request(
+async def _get_metadata(
     rest_client: RestClient, config: Dict[str, Any]
 ) -> types.IceProdMetadata:
     ret = await rest_client.request(
@@ -117,12 +117,16 @@ async def _request(
             "keys": "name|task_id|job_id|task_index",
         },
     )
+
+    # find matching task
     task = {}
     for task in ret.values():
         if task["name"] == config["options"]["task"]:
             break
     else:
-        raise Exception("cannot get task info")
+        raise Exception("cannot get task info")  # FIXME - what about non-matches?
+
+    # pack & return
     data: types.IceProdMetadata = {
         "dataset": config["options"]["dataset_num"],
         "dataset_id": config["options"]["dataset_id"],
@@ -135,21 +139,30 @@ async def _request(
     return data
 
 
-async def _metadata_search(
-    rest_client: RestClient,
+async def _add_file_data(
     filename: str,
     out_files_data: List[_FileData],
     config: Dict[str, Any],
-    job_search: List[int],
-) -> types.IceProdMetadata:
+    jobs_submitted: int,
+    job_index: Optional[int],
+) -> None:
+    """Add `"task"`, `"job"`, & `"iter"` values to `config["options"]`."""
+    if job_index:
+        job_search: List[int] = [job_index]
+    else:
+        job_search = list(range(jobs_submitted))
+
     parser = ExpParser()
     env = {"parameters": config["steering"]["parameters"]}
 
+    # search each file/task
     for f_data in reversed(out_files_data):
         logger.info(f'searching task {f_data["task"]}')
         config["options"]["task"] = f_data["task"]
+        # search each job
         for job in job_search:
             config["options"]["job"] = job
+            # search each iter
             for i in range(f_data["iters"]):
                 config["options"]["iter"] = i
                 url = parser.parse(f_data["url"], config, env)
@@ -160,7 +173,7 @@ async def _metadata_search(
                 logger.info(f"checking path {path}")
                 if path == filename:
                     logger.info(f"success on job_index: {job}, iter: {i}")
-                    return await _request(rest_client, config)
+                    return
 
     raise Exception("no path match found")
 
@@ -185,11 +198,6 @@ async def get_file_info(
             "jobs_submitted": jobs_submitted,
         }
     )
-    if job_index:
-        job_search: List[int] = [job_index]
-    else:
-        job_search = list(range(jobs_submitted))
 
-    return await _metadata_search(
-        rest_client, filename, out_files_data, config, job_search
-    )
+    await _add_file_data(filename, out_files_data, config, jobs_submitted, job_index)
+    return await _get_metadata(rest_client, config)
