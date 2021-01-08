@@ -5,9 +5,10 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 
 
 import logging
-from typing import cast, List, Optional, Tuple, TypedDict
+from typing import List, Optional, Tuple, TypedDict
 
 # local imports
+from iceprod.core import dataclasses  # type: ignore[import]
 from iceprod.core.parser import ExpParser  # type: ignore[import]
 from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
@@ -21,21 +22,29 @@ class _FileData(TypedDict):
     task: str
 
 
+class DatasetNotFound(Exception):
+    """Raise when an IceProd dataset cannot be found."""
+
+
+class TaskNotFound(Exception):
+    """Raise when an IceProd task cannot be found."""
+
+
 def _get_config_url(dataset_id: str) -> str:
     return f"https://iceprod2.icecube.wisc.edu/config?dataset_id={dataset_id}"
 
 
-def _get_dataset_num(filename: str) -> int:
-    parts = filename.split("/")
+def _get_dataset_num(filepath: str) -> int:
+    parts = filepath.split("/")
     for p in parts[:-1]:
         try:
             dataset_num = int(p)
             if 20000 < dataset_num < 30000:
                 break
-        except:  # noqa # pylint: disable=W0702
+        except ValueError:
             continue
     else:
-        raise Exception("could not determine dataset number")
+        raise DatasetNotFound("could not determine dataset number")
     logging.info(f"dataset num: {dataset_num}")
     return dataset_num
 
@@ -52,12 +61,12 @@ async def _get_dataset_info(
             jobs_submitted = datasets[dataset_id]["jobs_submitted"]
             break
     else:
-        raise Exception(f"dataset num {dataset_num} not found")
+        raise DatasetNotFound(f"dataset num {dataset_num} not found")
     logging.info(f"dataset_id: {dataset_id}")
     return dataset_id, jobs_submitted
 
 
-def _get_output_files_data(config: types.IceProdDatasetConfig) -> List[_FileData]:
+def _get_output_files_data(config: dataclasses.Job) -> List[_FileData]:
     files: List[_FileData] = []
     # Search tasks' data
     for task in config["tasks"]:
@@ -99,7 +108,7 @@ def _get_output_files_data(config: types.IceProdDatasetConfig) -> List[_FileData
 
 
 async def _get_metadata(
-    rest_client: RestClient, config: types.IceProdDatasetConfig
+    rest_client: RestClient, config: dataclasses.Job
 ) -> types.IceProdMetadata:
     ret = await rest_client.request(
         "GET",
@@ -116,7 +125,7 @@ async def _get_metadata(
         if task["name"] == config["options"]["task"]:
             break
     else:
-        raise Exception("cannot get task info")  # FIXME - what about non-matches?
+        raise TaskNotFound("cannot get task info")  # FIXME - what about non-matches?
 
     # pack & return
     data: types.IceProdMetadata = {
@@ -132,9 +141,9 @@ async def _get_metadata(
 
 
 async def _add_file_data_to_config(
-    filename: str,
+    filepath: str,
     out_files_data: List[_FileData],
-    config: types.IceProdDatasetConfig,
+    config: dataclasses.Job,
     job_index: Optional[int],
 ) -> None:
     """Add `"task"`, `"job"`, & `"iter"` values to `config["options"]`."""
@@ -162,7 +171,7 @@ async def _add_file_data_to_config(
                 else:
                     path = "/" + url.split("//", 1)[1].split("/", 1)[1]
                 logging.info(f"checking path {path}")
-                if path == filename:
+                if path == filepath:
                     logging.info(f"success on job_index: {job}, iter: {i}")
                     return
 
@@ -171,23 +180,23 @@ async def _add_file_data_to_config(
 
 async def get_file_info(
     rest_client: RestClient,
-    filename: str,
-    config: types.IceProdDatasetConfig,
+    filepath: str,
+    config: dataclasses.Job,
     job_index: Optional[int] = None,
 ) -> types.IceProdMetadata:
     """Get IceProd Metadata via REST."""
     out_files_data = _get_output_files_data(config)
-    await _add_file_data_to_config(filename, out_files_data, config, job_index)
+    await _add_file_data_to_config(filepath, out_files_data, config, job_index)
 
     return await _get_metadata(rest_client, config)
 
 
 async def get_dataset_config(
-    rest_client: RestClient, filename: str, dataset_num: Optional[int]
-) -> types.IceProdDatasetConfig:
+    rest_client: RestClient, filepath: str, dataset_num: Optional[int]
+) -> dataclasses.Job:
     """Get config dict for the dataset."""
     if not dataset_num:
-        dataset_num = _get_dataset_num(filename)
+        dataset_num = _get_dataset_num(filepath)
     dataset_id, jobs_submitted = await _get_dataset_info(rest_client, dataset_num)
 
     config = await rest_client.request("GET", f"/config/{dataset_id}")
@@ -200,4 +209,4 @@ async def get_dataset_config(
         }
     )
 
-    return cast(types.IceProdDatasetConfig, config)
+    return config

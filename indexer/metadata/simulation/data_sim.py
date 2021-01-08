@@ -4,6 +4,7 @@ import re
 from typing import List, Optional, Tuple
 
 # local imports
+from iceprod.core import dataclasses  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
 
 from ...utils import types, utils
@@ -108,14 +109,14 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # TODO -- grab what I can from i3Reader, should that go here or up in i3.py?
 
-        if not self.iceprod_dataset_num:
-            return metadata  # TODO
-
-        dataset_config = asyncio.run(
-            iceprod_tools.get_dataset_config(
-                self.iceprod_rc, self.file.path, self.iceprod_dataset_num
+        try:
+            dataset_config: dataclasses.Job = asyncio.run(
+                iceprod_tools.get_dataset_config(
+                    self.iceprod_rc, self.file.path, self.iceprod_dataset_num
+                )
             )
-        )
+        except iceprod_tools.DatasetNotFound:
+            return metadata  # TODO
 
         # IceProd
         metadata["iceprod"] = asyncio.run(
