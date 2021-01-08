@@ -22,7 +22,7 @@ class _FileData(TypedDict):
 
 
 class _ConfigOptions(TypedDict, total=False):
-    dataset_num: int
+    dataset: int
     dataset_id: str
     job: int
     task: str
@@ -141,7 +141,7 @@ async def _get_metadata(
 
     # pack & return
     data: types.IceProdMetadata = {
-        "dataset": config["options"]["dataset_num"],
+        "dataset": config["options"]["dataset"],
         "dataset_id": config["options"]["dataset_id"],
         "job": config["options"]["job"],
         "job_id": task["job_id"],
@@ -205,7 +205,7 @@ async def get_file_info(
 
     config["options"].update(
         {
-            "dataset_num": dataset_num,  # NOTE: typo in original code
+            "dataset": dataset_num,
             "dataset_id": dataset_id,
             "jobs_submitted": jobs_submitted,
         }
