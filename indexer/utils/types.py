@@ -87,6 +87,41 @@ class OfflineProcessingMetadata(TypedDict, total=False):
     last_event: Optional[Event]
 
 
+class IceProdMetadata(TypedDict):
+    """IceProd Metadata."""
+
+    dataset: int
+    dataset_id: str
+    job: int
+    job_id: str
+    task: str
+    task_id: str
+    config: str
+
+
+class SimulationMetadata(TypedDict):
+    """Simulation Metadata."""
+
+    generator: str
+    composition: str
+    geometry: str
+    GCD_file: str
+    bulk_ice_model: str
+    hole_ice_model: str
+    photon_propagator: str
+    DOMefficiency: float
+    atmosphere: int
+    n_events: int
+    oversampling: int
+    energy_min: float
+    energy_max: float
+    power_law_index: float
+    cylinder_length: float
+    cylinder_radius: float
+    zenith_min: float
+    zenith_max: float
+
+
 class Metadata(TypedDict, total=False):
     """The file-catalog metadata.
 
@@ -110,3 +145,9 @@ class Metadata(TypedDict, total=False):
 
     # Offline Processing:
     offline_processing_metadata: OfflineProcessingMetadata
+
+    # IceProd:
+    iceprod: IceProdMetadata
+
+    # Simulation:
+    simulation: SimulationMetadata

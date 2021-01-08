@@ -94,9 +94,29 @@ class DataSimI3FileMetadata(I3FileMetadata):
         """Gather the file's metadata."""
         metadata = super().generate()
 
-        # TODO
+        # TODO -- grab what I can from i3Reader, should that go here or up in i3.py?
 
-        # dataset_id < 20000 is iceprod v1 (the old one)
+        iceprod_task_id: Optional[int] = None
+
+        if not self.iceprod_dataset_id:
+            pass  # TODO
+        # IceProd v1 (the old one)
+        elif self.iceprod_dataset_id < 20000:
+            metadata["simulation"] = self.iceprod_1()  # TODO
+        # IceProd v2
+        else:
+            metadata["simulation"] = self.iceprod_2()  # TODO
+
+        if self.iceprod_dataset_id:
+            metadata["iceprod"] = {
+                "dataset": "",
+                "dataset_id": self.iceprod_dataset_id,
+                "job": "",
+                "job_id": self.iceprod_job_id,
+                "task": "",
+                "task_id": iceprod_task_id,
+                "config": "",
+            }
 
         return metadata
 
