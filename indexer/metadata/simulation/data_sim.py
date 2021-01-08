@@ -111,12 +111,18 @@ class DataSimI3FileMetadata(I3FileMetadata):
         if not self.iceprod_dataset_num:
             return metadata  # TODO
 
+        dataset_config = asyncio.run(
+            iceprod_tools.get_dataset_config(
+                self.iceprod_rc, self.file.path, self.iceprod_dataset_num
+            )
+        )
+
         # IceProd
         metadata["iceprod"] = asyncio.run(
             iceprod_tools.get_file_info(
                 self.iceprod_rc,
                 self.file.path,
-                dataset_num=self.iceprod_dataset_num,
+                dataset_config,
                 job_index=self.iceprod_job_index,
             )
         )

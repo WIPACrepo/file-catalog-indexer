@@ -1,6 +1,6 @@
 """Type hints."""
 
-from typing import List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict
 
 Date = str
 EventID = int
@@ -85,6 +85,23 @@ class OfflineProcessingMetadata(TypedDict, total=False):
     gaps: Optional[List[GapEntry]]
     first_event: Optional[Event]
     last_event: Optional[Event]
+
+
+class _IceProdDatasetConfigOptions(TypedDict, total=False):
+    dataset: int
+    dataset_id: str
+    job: int
+    task: str
+    jobs_submitted: int
+    iter: int
+
+
+class IceProdDatasetConfig(TypedDict):
+    """IceProd dataset config dict."""
+
+    options: _IceProdDatasetConfigOptions
+    tasks: List[Any]
+    steering: Dict[str, Any]
 
 
 class IceProdMetadata(TypedDict):
