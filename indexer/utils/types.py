@@ -1,6 +1,6 @@
 """Type hints."""
 
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import List, Optional, TypedDict
 
 Date = str
 EventID = int

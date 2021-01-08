@@ -129,7 +129,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
         )
 
         # Simulation
-        metadata["simulation"] = None  # TODO
+        steering_paramters = iceprod_tools.get_steering_paramters(dataset_config)
+        metadata["simulation"] = None
 
         return metadata
 

@@ -5,7 +5,7 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 
 
 import logging
-from typing import List, Optional, Tuple, TypedDict
+from typing import cast, Dict, List, Optional, Tuple, TypedDict, Union
 
 # local imports
 from iceprod.core import dataclasses  # type: ignore[import]
@@ -210,3 +210,16 @@ async def get_dataset_config(
     )
 
     return config
+
+
+def get_steering_paramters(
+    config: dataclasses.Job,
+) -> Dict[str, Union[str, float, int]]:
+    """Return the steering parameters dict with macros resolved."""
+    params = ExpParser().parse(
+        config["steering"]["parameters"],
+        config,
+        {"parameters": config["steering"]["parameters"]},
+    )
+
+    return cast(Dict[str, Union[str, float, int]], params)
