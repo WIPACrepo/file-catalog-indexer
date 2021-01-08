@@ -14,7 +14,26 @@ from rest_tools.client import RestClient  # type: ignore[import]
 
 from ...utils import types
 
-logger = logging.getLogger()
+
+class _FileData(TypedDict):
+    url: str
+    iters: int
+    task: str
+
+
+class _ConfigOptions(TypedDict, total=False):
+    dataset_num: int
+    dataset_id: str
+    job: int
+    task: str
+    jobs_submitted: int
+    iter: int
+
+
+class _Config(TypedDict):
+    options: _ConfigOptions
+    tasks: List[Any]
+    steering: Dict[str, Any]
 
 
 def _get_config_url(dataset_id: str) -> str:
@@ -32,7 +51,7 @@ def _get_dataset_num(filename: str) -> int:
             continue
     else:
         raise Exception("could not determine dataset number")
-    logger.info(f"dataset num: {dataset_num}")
+    logging.info(f"dataset num: {dataset_num}")
     return dataset_num
 
 
@@ -49,23 +68,17 @@ async def _get_dataset_info(
             break
     else:
         raise Exception(f"dataset num {dataset_num} not found")
-    logger.info(f"dataset_id: {dataset_id}")
+    logging.info(f"dataset_id: {dataset_id}")
     return dataset_id, jobs_submitted
 
 
-async def _get_config(rest_client: RestClient, dataset_id: str) -> Dict[str, Any]:
+async def _get_config(rest_client: RestClient, dataset_id: str) -> _Config:
     config = await rest_client.request("GET", f"/config/{dataset_id}")
     config = dict_to_dataclasses(config)
-    return cast(Dict[str, Any], config)
+    return cast(_Config, config)
 
 
-class _FileData(TypedDict):
-    url: str
-    iters: int
-    task: str
-
-
-def _get_output_files_data(config: Dict[str, Any]) -> List[_FileData]:
+def _get_output_files_data(config: _Config) -> List[_FileData]:
     files: List[_FileData] = []
     # Search tasks' data
     for task in config["tasks"]:
@@ -107,7 +120,7 @@ def _get_output_files_data(config: Dict[str, Any]) -> List[_FileData]:
 
 
 async def _get_metadata(
-    rest_client: RestClient, config: Dict[str, Any]
+    rest_client: RestClient, config: _Config
 ) -> types.IceProdMetadata:
     ret = await rest_client.request(
         "GET",
@@ -142,22 +155,21 @@ async def _get_metadata(
 async def _add_file_data(
     filename: str,
     out_files_data: List[_FileData],
-    config: Dict[str, Any],
-    jobs_submitted: int,
+    config: _Config,
     job_index: Optional[int],
 ) -> None:
     """Add `"task"`, `"job"`, & `"iter"` values to `config["options"]`."""
     if job_index:
         job_search: List[int] = [job_index]
     else:
-        job_search = list(range(jobs_submitted))
+        job_search = list(range(config["options"]["jobs_submitted"]))
 
     parser = ExpParser()
     env = {"parameters": config["steering"]["parameters"]}
 
     # search each file/task
     for f_data in reversed(out_files_data):
-        logger.info(f'searching task {f_data["task"]}')
+        logging.info(f'searching task {f_data["task"]}')
         config["options"]["task"] = f_data["task"]
         # search each job
         for job in job_search:
@@ -170,9 +182,9 @@ async def _add_file_data(
                     path = url
                 else:
                     path = "/" + url.split("//", 1)[1].split("/", 1)[1]
-                logger.info(f"checking path {path}")
+                logging.info(f"checking path {path}")
                 if path == filename:
-                    logger.info(f"success on job_index: {job}, iter: {i}")
+                    logging.info(f"success on job_index: {job}, iter: {i}")
                     return
 
     raise Exception("no path match found")
@@ -193,11 +205,11 @@ async def get_file_info(
 
     config["options"].update(
         {
-            "dataset": dataset_num,
+            "dataset_num": dataset_num,  # NOTE: typo in original code
             "dataset_id": dataset_id,
             "jobs_submitted": jobs_submitted,
         }
     )
 
-    await _add_file_data(filename, out_files_data, config, jobs_submitted, job_index)
+    await _add_file_data(filename, out_files_data, config, job_index)
     return await _get_metadata(rest_client, config)
