@@ -116,7 +116,7 @@ class IceProdMetadata(TypedDict):
     config: str
 
 
-class SimulationMetadata(TypedDict):
+class SimulationMetadata(TypedDict, total=False):
     """Simulation Metadata."""
 
     generator: str

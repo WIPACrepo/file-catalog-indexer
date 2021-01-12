@@ -1,10 +1,11 @@
 """Class for collecting simulation (/data/sim/) i3 file metadata."""
 import asyncio
+import copy
 import re
 from typing import List, Optional, Tuple
 
 # local imports
-from iceprod.core import dataclasses  # type: ignore[import]
+from iceprod.core import dataclasses as dc  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
 
 from ...utils import types, utils
@@ -103,6 +104,45 @@ class DataSimI3FileMetadata(I3FileMetadata):
         # fall-through
         raise ValueError(f"Filename does not match any pattern, {filename}.")
 
+    def get_simulation_metadata(dataset_config: dc.Job) -> types.SimulationMetadata:
+        """Gather "simulation" metadata from steering parameters."""
+        sim_meta: types.SimulationMetadata = {}
+        steering_parameters_raw = iceprod_tools.get_steering_paramters(dataset_config)
+        steering_parameters_upkeys = {
+            k.upper(): copy.deepcopy(v) for k, v in steering_parameters_raw.items()
+        }
+
+        metakey_spkeylist = {
+            "generator": ["generator"],  # str
+            "composition": ["composition"],  # str
+            "geometry": ["geometry"],  # str
+            "GCD_file": ["GCD_file", "gcdfile", "gcdpass2"],  # str
+            "bulk_ice_model": ["bulk_ice_model"],  # str
+            "hole_ice_model": ["hole_ice_model"],  # str
+            "photon_propagator": ["photon_propagator"],  # str
+            "DOMefficiency": ["DOMefficiency"],  # float
+            "atmosphere": ["atmosphere"],  # int
+            "n_events": ["n_events"],  # int
+            "oversampling": ["oversampling"],  # int
+            "energy_min": ["energy_min"],  # float
+            "energy_max": ["energy_max"],  # float
+            "power_law_index": ["power_law_index"],  # float
+            "cylinder_length": ["cylinder_length"],  # float
+            "cylinder_radius": ["cylinder_radius"],  # float
+            "zenith_min": ["zenith_min"],  # float
+            "zenith_max": ["zenith_max"],  # float
+        }
+
+        for metakey, spkeylist in metakey_spkeylist.items():
+            for spkey in spkeylist:
+                try:
+                    sim_meta[metakey] = steering_parameters_upkeys[spkey.upper()]  # type: ignore[misc]
+                    break
+                except KeyError:
+                    continue
+
+        return sim_meta
+
     def generate(self) -> types.Metadata:
         """Gather the file's metadata."""
         metadata = super().generate()
@@ -110,7 +150,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         # TODO -- grab what I can from i3Reader, should that go here or up in i3.py?
 
         try:
-            dataset_config: dataclasses.Job = asyncio.run(
+            dataset_config: dc.Job = asyncio.run(
                 iceprod_tools.get_dataset_config(
                     self.iceprod_rc, self.file.path, self.iceprod_dataset_num
                 )
@@ -129,8 +169,9 @@ class DataSimI3FileMetadata(I3FileMetadata):
         )
 
         # Simulation
-        steering_paramters = iceprod_tools.get_steering_paramters(dataset_config)
-        metadata["simulation"] = None
+        metadata["simulation"] = DataSimI3FileMetadata.get_simulation_metadata(
+            dataset_config
+        )
 
         return metadata
 
