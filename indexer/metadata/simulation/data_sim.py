@@ -228,9 +228,12 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # get IceProd dataset config
         try:
-            dataset_config, dataset_num = asyncio.run(
-                iceprod_tools.get_dataset_config(
-                    self.iceprod_dataset_num, self.iceprodv2_rc, self.file
+            job_config, dataset_num = asyncio.run(
+                iceprod_tools.get_job_config(
+                    self.iceprod_dataset_num,
+                    self.file.path,
+                    self.iceprod_job_index,
+                    self.iceprodv2_rc,
                 )
             )
         except iceprod_tools.DatasetNotFound:
@@ -239,7 +242,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
                 f"No IceProd/Simulation metadata recorded for {self.file.path}."
             )
 
-        # override dataset_num with iceprod_tool's
+        # override self.iceprod_dataset_num w/ iceprod_tool's?
         if dataset_num != self.iceprod_dataset_num:
             logging.info(
                 f"Original IceProd dataset #{self.iceprod_dataset_num} was bad. "
@@ -248,18 +251,10 @@ class DataSimI3FileMetadata(I3FileMetadata):
             self.iceprod_dataset_num = dataset_num
 
         # IceProd metadata
-        metadata["iceprod"] = asyncio.run(
-            iceprod_tools.get_file_info(
-                self.iceprod_dataset_num,
-                self.iceprodv2_rc,
-                self.file,
-                dataset_config,
-                job_index=self.iceprod_job_index,
-            )
-        )
+        metadata["iceprod"] = iceprod_tools.grab_metadata(job_config)
 
         # Simulation metadata
-        steering_parameters = iceprod_tools.get_steering_paramters(dataset_config)
+        steering_parameters = iceprod_tools.grab_steering_paramters(job_config)
         metadata["simulation"] = DataSimI3FileMetadata.get_simulation_metadata(
             steering_parameters
         )

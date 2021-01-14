@@ -3,9 +3,7 @@
 Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_info.py.
 """
 
-
 # pylint: disable=R0903
-
 
 import logging  # TODO - trim down
 from typing import cast, Dict, List, Optional, Tuple, TypedDict, Union
@@ -16,13 +14,13 @@ from iceprod.core.parser import ExpParser  # type: ignore[import]
 from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
 
-from ...utils import types, utils
+from ...utils import types
 
 _ICEPROD_V2_DATASET_RANGE = range(20000, 30000)
 _ICEPROD_V1_DATASET_RANGE = range(0, 20000)
 
 
-class _FileData(TypedDict):
+class _OutFileData(TypedDict):
     url: str
     iters: int
     task: str
@@ -34,6 +32,10 @@ class DatasetNotFound(Exception):
 
 class TaskNotFound(Exception):
     """Raise when an IceProd task cannot be found."""
+
+
+class OutFileNotFound(Exception):
+    """Raise when an IceProd outfile cannot be found."""
 
 
 def parse_dataset_num(filepath: str) -> int:
@@ -57,48 +59,49 @@ class _IceProdQuerier:
         self.dataset_num = dataset_num
         self.rest_client = rest_client
 
-    async def get_dataset_config(self) -> dataclasses.Job:
-        """Get the dataset's config dict, aka `dataclasses.Job`."""
-        raise NotImplementedError()
-
-    async def get_file_info(
-        self,
-        file: utils.FileInfo,
-        config: dataclasses.Job,
-        job_index: Optional[int] = None,
-    ) -> types.IceProdMetadata:
-        """Get IceProd Metadata for the dataset/job/task."""
+    async def get_job_config(
+        self, filepath: str, job_index: Optional[int]
+    ) -> dataclasses.Job:
+        """Get the job's config dict, AKA `dataclasses.Job`."""
         raise NotImplementedError()
 
 
 class _IceProdV1Querier(_IceProdQuerier):
     """Manage IceProd v1 queries."""
 
+    async def get_job_config(
+        self, filepath: str, job_index: Optional[int]
+    ) -> dataclasses.Job:
+        pass
+        # TODO
+
 
 class _IceProdV2Querier(_IceProdQuerier):
     """Manage IceProd v2 queries."""
 
     async def _get_dataset_info(self) -> Tuple[str, int]:
-        dataset_id = ""
         datasets = await self.rest_client.request(
             "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
-        )
+        )  # TODO -- offload this to further up call stack
+
+        dataset_id = ""
         for dataset_id in datasets:
             if datasets[dataset_id]["dataset"] == self.dataset_num:
                 jobs_submitted = datasets[dataset_id]["jobs_submitted"]
-                break
-        else:
-            raise DatasetNotFound(f"dataset num {self.dataset_num} not found")
-        logging.info(f"dataset_id: {dataset_id}")
-        return dataset_id, jobs_submitted
+                logging.info(f"dataset_id: {dataset_id}")
+                return dataset_id, jobs_submitted
 
-    async def get_dataset_config(self) -> dataclasses.Job:
+        raise DatasetNotFound(f"dataset num {self.dataset_num} not found")
+
+    async def get_job_config(
+        self, filepath: str, job_index: Optional[int]
+    ) -> dataclasses.Job:
         dataset_id, jobs_submitted = await self._get_dataset_info()
 
-        config = await self.rest_client.request("GET", f"/config/{dataset_id}")
-        config = dict_to_dataclasses(config)
+        ret = await self.rest_client.request("GET", f"/config/{dataset_id}")
+        job_config = dict_to_dataclasses(ret)
 
-        config["options"].update(
+        job_config["options"].update(
             {
                 "dataset": self.dataset_num,
                 "dataset_id": dataset_id,
@@ -106,11 +109,26 @@ class _IceProdV2Querier(_IceProdQuerier):
             }
         )
 
+        try:
+            await self._match_outfile_and_add_to_job_config(
+                filepath, job_config, job_index
+            )
+        except OutFileNotFound:
+            logging.warning(f"Outfile ({filepath}) could not be matched.")
+
+        try:
+            await self._add_task_info_to_job_config(job_config)
+        except TaskNotFound:
+            logging.warning(f"Could not get task info for {filepath}")
+
+        return job_config
+
     @staticmethod
-    def _get_output_files_data(config: dataclasses.Job) -> List[_FileData]:
-        files: List[_FileData] = []
-        # Search tasks' data
-        for task in config["tasks"]:
+    def _get_outfiles(job_config: dataclasses.Job) -> List[_OutFileData]:
+        """Get every single outputted file, plus some data on each."""
+        files: List[_OutFileData] = []
+        # Search each task's data
+        for task in job_config["tasks"]:
             for task_d in task["data"]:
                 if task_d["type"] in ("permanent", "site_temp") and task_d[
                     "movement"
@@ -118,7 +136,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                     files.append(
                         {"url": task_d["remote"], "iters": 1, "task": task["name"]}
                     )
-            # Search trays' data
+            # Search each tray's data
             for tray in task["trays"]:
                 for tray_d in tray["data"]:
                     if tray_d["type"] in ("permanent", "site_temp") and tray_d[
@@ -131,7 +149,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                                 "task": task["name"],
                             }
                         )
-                # Search modules' data
+                # Search each module's data
                 for module in tray["modules"]:
                     for module_d in module["data"]:
                         if module_d["type"] in ("permanent", "site_temp") and module_d[
@@ -146,12 +164,16 @@ class _IceProdV2Querier(_IceProdQuerier):
                             )
         return files
 
-    async def _get_metadata(self, config: dataclasses.Job) -> types.IceProdMetadata:
+    async def _add_task_info_to_job_config(self, job_config: dataclasses.Job) -> None:
+        """Add `"task_info"` dict to `job_config["options"]`."""
+        if "task" not in job_config["options"]:
+            raise TaskNotFound()
+
         ret = await self.rest_client.request(
             "GET",
-            f"/datasets/{config['options']['dataset_id']}/tasks",
+            f"/datasets/{job_config['options']['dataset_id']}/tasks",
             {
-                "job_index": config["options"]["job"],
+                "job_index": job_config["options"]["job"],
                 "keys": "name|task_id|job_id|task_index",
             },
         )
@@ -159,76 +181,56 @@ class _IceProdV2Querier(_IceProdQuerier):
         # find matching task
         task = {}
         for task in ret.values():
-            if task["name"] == config["options"]["task"]:
-                break
-        else:
-            raise TaskNotFound(
-                "cannot get task info"
-            )  # FIXME - what about non-matches?
+            if task["name"] == job_config["options"]["task"]:
+                job_config["options"]["task_info"] = task
+                return
 
-        # pack & return
-        config_url = f'https://iceprod2.icecube.wisc.edu/config?dataset_id={config["options"]["dataset_id"]}'
-        data: types.IceProdMetadata = {
-            "dataset": config["options"]["dataset"],  # int
-            "dataset_id": config["options"]["dataset_id"],  # str
-            "job": config["options"]["job"],  # int
-            "job_id": task["job_id"],  # str
-            "task": task["name"],  # str
-            "task_id": task["task_id"],  # str
-            "config": config_url,  # str
-        }
-        return data
+        raise TaskNotFound()
 
     @staticmethod
-    async def _add_file_data_to_config(
-        filepath: str,
-        out_files_data: List[_FileData],
-        config: dataclasses.Job,
-        job_index: Optional[int],
+    async def _match_outfile_and_add_to_job_config(
+        filepath: str, job_config: dataclasses.Job, job_index: Optional[int],
     ) -> None:
         """Add `"task"`, `"job"`, & `"iter"` values to `config["options"]`."""
-        if job_index:
+        if job_index:  # do we already know what job to look at?
             job_search: List[int] = [job_index]
-        else:
-            job_search = list(range(config["options"]["jobs_submitted"]))
+        else:  # otherwise, look at each job from dataset
+            job_search = list(range(job_config["options"]["jobs_submitted"]))
 
         parser = ExpParser()
-        env = {"parameters": config["steering"]["parameters"]}
+        env = {"parameters": job_config["steering"]["parameters"]}
 
-        # search each file/task
-        for f_data in reversed(out_files_data):
+        def get_path_from_url(f_data: _OutFileData) -> str:
+            url = cast(str, parser.parse(f_data["url"], job_config, env))
+            if "//" not in url:
+                path = url
+            else:
+                path = "/" + url.split("//", 1)[1].split("/", 1)[1]
+            logging.info(f"checking path {path}")
+            return path
+
+        # search each possible file/task
+        possible_outfiles = _IceProdV2Querier._get_outfiles(job_config)
+        for f_data in reversed(possible_outfiles):
             logging.info(f'searching task {f_data["task"]}')
-            config["options"]["task"] = f_data["task"]
-            # search each job
+            job_config["options"]["task"] = f_data["task"]
+
+            # find the matching outfile
             for job in job_search:
-                config["options"]["job"] = job
-                # search each iter
+                job_config["options"]["job"] = job
                 for i in range(f_data["iters"]):
-                    config["options"]["iter"] = i
-                    url = parser.parse(f_data["url"], config, env)
-                    if "//" not in url:
-                        path = url
-                    else:
-                        path = "/" + url.split("//", 1)[1].split("/", 1)[1]
-                    logging.info(f"checking path {path}")
-                    if path == filepath:
+                    job_config["options"]["iter"] = i
+                    if get_path_from_url(f_data) == filepath:
                         logging.info(f"success on job_index: {job}, iter: {i}")
                         return
 
-        raise Exception("no path match found")
-
-    async def get_file_info(
-        self,
-        file: utils.FileInfo,
-        config: dataclasses.Job,
-        job_index: Optional[int] = None,
-    ) -> types.IceProdMetadata:
-        out_files_data = self._get_output_files_data(config)
-        await self._add_file_data_to_config(
-            file.path, out_files_data, config, job_index
-        )
-
-        return await self._get_metadata(config)
+        # cleanup & raise
+        job_config["options"].pop("task", None)
+        job_config["options"].pop("job", None)
+        job_config["options"].pop("iters", None)
+        if job_index:
+            job_config["options"]["job"] = job_index
+        raise OutFileNotFound()
 
 
 def _get_iceprod_querier(dataset_num: int, iceprodv2_rc: RestClient) -> _IceProdQuerier:
@@ -239,41 +241,48 @@ def _get_iceprod_querier(dataset_num: int, iceprodv2_rc: RestClient) -> _IceProd
     raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
 
 
-async def get_dataset_config(
-    dataset_num: int, iceprodv2_rc: RestClient, file: utils.FileInfo,
+async def get_job_config(
+    dataset_num: int, filepath: str, job_index: Optional[int], iceprodv2_rc: RestClient
 ) -> Tuple[dataclasses.Job, int]:
-    """Get config dict for the dataset."""
+    """Get the job's config dict."""
     try:
         ip_querier = _get_iceprod_querier(dataset_num, iceprodv2_rc)
     except DatasetNotFound:  # if given dataset num doesn't work try parsing from filepath
-        dataset_num = parse_dataset_num(file.path)
+        dataset_num = parse_dataset_num(filepath)
         ip_querier = _get_iceprod_querier(dataset_num, iceprodv2_rc)
 
-    return await ip_querier.get_dataset_config(), dataset_num
+    job_config = await ip_querier.get_job_config(filepath, job_index)
+
+    return job_config, dataset_num
 
 
-async def get_file_info(
-    dataset_num: int,
-    iceprodv2_rc: RestClient,
-    file: utils.FileInfo,
-    config: dataclasses.Job,
-    job_index: Optional[int] = None,
-) -> types.IceProdMetadata:
-    """Get IceProd Metadata via REST."""
-    ip_querier = _get_iceprod_querier(dataset_num, iceprodv2_rc)
+def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
+    """Return the IceProdMetadata via `job_config`."""
+    # TODO - IceProd 1
+    config_url = f'https://iceprod2.icecube.wisc.edu/config?dataset_id={job_config["options"]["dataset_id"]}'
 
-    return await ip_querier.get_file_info(file, config, job_index)
+    metadata: types.IceProdMetadata = {
+        "dataset": job_config["options"]["dataset"],  # int
+        "dataset_id": job_config["options"]["dataset_id"],  # str
+        "job": job_config["options"]["job"],  # int
+        "job_id": job_config["options"]["task_info"]["job_id"],  # str
+        "task": job_config["options"]["task_info"]["name"],  # str
+        "task_id": job_config["options"]["task_info"]["task_id"],  # str
+        "config": config_url,  # str
+    }
+
+    return metadata
 
 
-def get_steering_paramters(
-    config: dataclasses.Job,
+def grab_steering_paramters(
+    job_config: dataclasses.Job,
 ) -> Dict[str, Union[str, float, int]]:
     """Return the steering parameters dict with macros resolved."""
     # TODO - IceProd 1?
     params = ExpParser().parse(
-        config["steering"]["parameters"],
-        config,
-        {"parameters": config["steering"]["parameters"]},
+        job_config["steering"]["parameters"],
+        job_config,
+        {"parameters": job_config["steering"]["parameters"]},
     )
 
     return cast(Dict[str, Union[str, float, int]], params)
