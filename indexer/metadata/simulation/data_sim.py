@@ -1,8 +1,9 @@
 """Class for collecting simulation (/data/sim/) i3 file metadata."""
+
+
 import asyncio
-import copy
 import re
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # local imports
 from iceprod.core import dataclasses as dc  # type: ignore[import]
@@ -104,42 +105,105 @@ class DataSimI3FileMetadata(I3FileMetadata):
         # fall-through
         raise ValueError(f"Filename does not match any pattern, {filename}.")
 
+    @staticmethod
     def get_simulation_metadata(dataset_config: dc.Job) -> types.SimulationMetadata:
         """Gather "simulation" metadata from steering parameters."""
-        sim_meta: types.SimulationMetadata = {}
-        steering_parameters_raw = iceprod_tools.get_steering_paramters(dataset_config)
-        steering_parameters_upkeys = {
-            k.upper(): copy.deepcopy(v) for k, v in steering_parameters_raw.items()
-        }
+        steering_parameters = iceprod_tools.get_steering_paramters(dataset_config)
 
-        metakey_spkeylist = {
-            "generator": ["generator"],  # str
-            "composition": ["composition"],  # str
-            "geometry": ["geometry"],  # str
-            "GCD_file": ["GCD_file", "gcdfile", "gcdpass2"],  # str
-            "bulk_ice_model": ["bulk_ice_model"],  # str
-            "hole_ice_model": ["hole_ice_model"],  # str
-            "photon_propagator": ["photon_propagator"],  # str
-            "DOMefficiency": ["DOMefficiency"],  # float
-            "atmosphere": ["atmosphere"],  # int
-            "n_events": ["n_events"],  # int
-            "oversampling": ["oversampling"],  # int
-            "energy_min": ["energy_min"],  # float
-            "energy_max": ["energy_max"],  # float
-            "power_law_index": ["power_law_index"],  # float
-            "cylinder_length": ["cylinder_length"],  # float
-            "cylinder_radius": ["cylinder_radius"],  # float
-            "zenith_min": ["zenith_min"],  # float
-            "zenith_max": ["zenith_max"],  # float
-        }
+        def add_keys_to_list(dict_: Dict[str, List[str]]) -> Dict[str, List[str]]:
+            """Add each key, itself, to its own list."""
+            for key in dict_:
+                dict_[key].append(key)
+            return dict_
 
-        for metakey, spkeylist in metakey_spkeylist.items():
-            for spkey in spkeylist:
-                try:
-                    sim_meta[metakey] = steering_parameters_upkeys[spkey.upper()]  # type: ignore[misc]
-                    break
-                except KeyError:
+        metakey_substrings: Dict[str, List[str]] = add_keys_to_list(
+            {
+                "generator": [
+                    "category",  # TODO
+                    "mctype",
+                ],  # str # "MCType" "mctype" "category"
+                "composition": [
+                    "flavor"
+                ],  # str # "GENIE::flavor" "NUGEN::flavor" "GENERATION::nugen_flavor"
+                "geometry": [],  # str
+                "GCD_file": ["gcd"],  # str # "gcdfile", "gcdpass2" "gcdfile_11"
+                "bulk_ice_model": ["IceModel", "bulkice"],  # str # "icemodel"
+                "hole_ice_model": ["holeice"],  # str
+                "photon_propagator": ["photonpropagator"],  # str
+                "DOMefficiency": [],  # float # "DOMefficiency::0" "DOMefficiency::1"
+                "atmosphere": ["atmod", "ratmo"],  # int # "CORSIKA::atmod"
+                "n_events": [
+                    "nevents",
+                    "NumberOfPrimaries",
+                    "showers",
+                ],  # int "GENERATION::n_events" "CORSIKA::showers"
+                "oversampling": [],  # int # "CORSIKA::oversampling"
+                "DOMoversize": ["oversize"],  # int # "oversize", "CLSIM::OVERSIZE"
+                "energy_min": [
+                    "eprimarymin",
+                    "emin",
+                    "e_min",
+                ],  # str # "CORSIKA::eprimarymin" "GENIE::emin" "NUGEN::emin" "GENERATION::e_min"
+                "energy_max": [
+                    "eprimarymax",
+                    "emax",
+                    "e_max",
+                ],  # float # "CORSIKA::eprimarymax" "GENIE::emax" "NUGEN::emax" "GENERATION::e_max"
+                "power_law_index": [
+                    "spectrum",
+                    "gamma",
+                    "eslope",
+                ],  # float # "CORSIKA::spectrum" "NUGEN::gamma" "CORSIKA::eslope"
+                "cylinder_length": [
+                    "length"
+                ],  # float # "MMC::length" "CORSIKA::length"
+                "cylinder_radius": [
+                    "radius"
+                ],  # float # "MMC::radius" "CORSIKA::radius"
+                "zenith_min": [
+                    "zenithmin"
+                ],  # float # "NUGEN::zenithmin" "GENIE::zenithmin"
+                "zenith_max": [
+                    "zenithmax"
+                ],  # float # "NUGEN::zenithmax" "GENIE::zenithmax"
+                "hadronic_interaction": [
+                    "hadronicinteraction"
+                ],  # str # "hadronicinteraction"
+            }
+        )
+
+        # Make mapping of metadata key -> steering parameter key
+        key_maps: Dict[str, str] = {}
+        for paramkey in steering_parameters.keys():
+            for metakey in metakey_substrings.keys():  # pylint: disable=C0201
+                # case-insensitive substring search
+                if not any(
+                    s.upper() in paramkey.upper() for s in metakey_substrings[metakey]
+                ):
                     continue
+                # if there is already a mapping, only replace w/ a shorter one
+                # Ex: "IceModelTarball::0" vs "IceModel"
+                if (metakey in key_maps) and (len(paramkey) > len(key_maps[metakey])):
+                    continue
+                key_maps[metakey] = paramkey
+
+        # Populate metadata
+        sim_meta: types.SimulationMetadata = {}
+        for metakey, paramkey in key_maps.items():
+            sim_meta[metakey] = steering_parameters[paramkey]  # type: ignore[misc]
+
+        # Format
+        if "power_law_index" in sim_meta:
+            try:  # if power_law_index is just a number, format it: E^-N
+                if float(sim_meta["power_law_index"]) > 0:
+                    # positive -> came from "gamma" value
+                    sim_meta["power_law_index"] = f"E^-{sim_meta['power_law_index']}"
+                else:
+                    # negative -> came from number-formatted "spectrum"/"eslope" value
+                    sim_meta["power_law_index"] = f"E^{sim_meta['power_law_index']}"
+            except ValueError:
+                # assuming already in "E^-N" format
+                pass
 
         return sim_meta
 

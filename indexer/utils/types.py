@@ -87,23 +87,6 @@ class OfflineProcessingMetadata(TypedDict, total=False):
     last_event: Optional[Event]
 
 
-# class _IceProdDatasetConfigOptions(TypedDict, total=False):
-#     dataset: int
-#     dataset_id: str
-#     job: int
-#     task: str
-#     jobs_submitted: int
-#     iter: int
-
-
-# class IceProdDatasetConfig(TypedDict):
-#     """IceProd dataset config dict."""
-
-#     options: _IceProdDatasetConfigOptions
-#     tasks: List[Any]
-#     steering: Dict[str, Any]
-
-
 class IceProdMetadata(TypedDict):
     """IceProd Metadata."""
 
@@ -130,13 +113,15 @@ class SimulationMetadata(TypedDict, total=False):
     atmosphere: int
     n_events: int
     oversampling: int
+    DOMoversize: int
     energy_min: float
     energy_max: float
-    power_law_index: float
+    power_law_index: str
     cylinder_length: float
     cylinder_radius: float
     zenith_min: float
     zenith_max: float
+    hadronic_interaction: str
 
 
 class Metadata(TypedDict, total=False):
