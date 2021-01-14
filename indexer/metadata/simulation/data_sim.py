@@ -1,9 +1,9 @@
 """Class for collecting simulation (/data/sim/) i3 file metadata."""
 
-
 import asyncio
+import logging
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 # local imports
 from iceprod.core import dataclasses as dc  # type: ignore[import]
@@ -31,14 +31,12 @@ class DataSimI3FileMetadata(I3FileMetadata):
             "simulation",
         )
         self.iceprod_task_id: Optional[int] = None
-        self.iceprod_rc = iceprod_rc
+        self.iceprodv2_rc = iceprod_rc
         try:
             (
                 self.iceprod_dataset_num,
                 self.iceprod_job_index,
-            ) = DataSimI3FileMetadata.parse_iceprod_dataset_job_ids(
-                regexes, self.file.name
-            )
+            ) = DataSimI3FileMetadata.parse_iceprod_dataset_job_ids(regexes, self.file)
         except ValueError:
             raise Exception(f"Unaccounted for /data/sim/ filename pattern: {file.name}")
 
@@ -81,21 +79,25 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
     @staticmethod
     def parse_iceprod_dataset_job_ids(
-        regexes: List[re.Pattern[str]], filename: str
+        regexes: List[re.Pattern[str]], file: utils.FileInfo
     ) -> Tuple[Optional[int], Optional[int]]:
         """Return the iceprod dataset and job ids by parsing w/ `regexes`.
 
         Uses named groups: `alpha` & `beta`; or `single`.
         """
         for p in regexes:
-            match = re.match(p, filename)
+            match = re.match(p, file.name)
             if not match:
                 continue
 
             values = match.groupdict()
             # pattern w/ no groups
             if not values:
-                return None, None
+                try:
+                    dataset_num = iceprod_tools.parse_dataset_num(file.path)
+                    return dataset_num, None
+                except iceprod_tools.DatasetNotFound:
+                    return None, None
             # pattern w/ 'single' group
             if "single" in values:
                 return int(values["single"]), None
@@ -103,12 +105,13 @@ class DataSimI3FileMetadata(I3FileMetadata):
             return int(values["alpha"]), int(values["beta"])
 
         # fall-through
-        raise ValueError(f"Filename does not match any pattern, {filename}.")
+        raise ValueError(f"Filename does not match any pattern, {file.path}.")
 
     @staticmethod
-    def get_simulation_metadata(dataset_config: dc.Job) -> types.SimulationMetadata:
+    def get_simulation_metadata(
+        steering_parameters: Dict[str, Union[str, float, int]]
+    ) -> types.SimulationMetadata:
         """Gather "simulation" metadata from steering parameters."""
-        steering_parameters = iceprod_tools.get_steering_paramters(dataset_config)
 
         def add_keys_to_list(dict_: Dict[str, List[str]]) -> Dict[str, List[str]]:
             """Add each key, itself, to its own list."""
@@ -185,7 +188,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
                     continue
                 key_maps[metakey] = paramkey
 
-        # Remedy extra generators
+        # Remedy backup generator
         # HACK -- trying to keep the mapping simple here...
         # but needed a way to sneak in an order of precedence
         if "generator" not in key_maps:
@@ -217,30 +220,48 @@ class DataSimI3FileMetadata(I3FileMetadata):
         """Gather the file's metadata."""
         metadata = super().generate()
 
-        # TODO -- grab what I can from i3Reader, should that go here or up in i3.py?
+        if not self.iceprod_dataset_num:
+            logging.warning(
+                f"No IceProd/Simulation metadata recorded for {self.file.path}."
+            )
+            return metadata
 
+        # get IceProd dataset config
         try:
-            dataset_config: dc.Job = asyncio.run(
+            dataset_config, dataset_num = asyncio.run(
                 iceprod_tools.get_dataset_config(
-                    self.iceprod_rc, self.file.path, self.iceprod_dataset_num
+                    self.iceprod_dataset_num, self.iceprodv2_rc, self.file
                 )
             )
         except iceprod_tools.DatasetNotFound:
-            return metadata  # TODO
+            logging.error(
+                f"Dataset {self.iceprod_dataset_num} not found. "
+                f"No IceProd/Simulation metadata recorded for {self.file.path}."
+            )
 
-        # IceProd
+        # override dataset_num with iceprod_tool's
+        if dataset_num != self.iceprod_dataset_num:
+            logging.info(
+                f"Original IceProd dataset #{self.iceprod_dataset_num} was bad. "
+                f"Now using #{dataset_num}, from parsing the filepath ({self.file.path})"
+            )
+            self.iceprod_dataset_num = dataset_num
+
+        # IceProd metadata
         metadata["iceprod"] = asyncio.run(
             iceprod_tools.get_file_info(
-                self.iceprod_rc,
-                self.file.path,
+                self.iceprod_dataset_num,
+                self.iceprodv2_rc,
+                self.file,
                 dataset_config,
                 job_index=self.iceprod_job_index,
             )
         )
 
-        # Simulation
+        # Simulation metadata
+        steering_parameters = iceprod_tools.get_steering_paramters(dataset_config)
         metadata["simulation"] = DataSimI3FileMetadata.get_simulation_metadata(
-            dataset_config
+            steering_parameters
         )
 
         return metadata
