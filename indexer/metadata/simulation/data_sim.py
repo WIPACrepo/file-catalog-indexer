@@ -118,10 +118,9 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         metakey_substrings: Dict[str, List[str]] = add_keys_to_list(
             {
-                "generator": [
-                    "category",  # TODO
-                    "mctype",
-                ],  # str # "MCType" "mctype" "category"
+                "generator": [],  # str # 1st Choice
+                "generator-category": ["category"],  # 2nd Choice
+                "generator-mctype": ["mctype"],  # 3rd Choice # "MCType" "mctype"
                 "composition": [
                     "flavor"
                 ],  # str # "GENIE::flavor" "NUGEN::flavor" "GENERATION::nugen_flavor"
@@ -186,6 +185,17 @@ class DataSimI3FileMetadata(I3FileMetadata):
                 if (metakey in key_maps) and (len(paramkey) > len(key_maps[metakey])):
                     continue
                 key_maps[metakey] = paramkey
+
+        # Remedy extra generators
+        # HACK -- trying to keep the mapping simple here...
+        # but needed a way to sneak in an order of precedence
+        if "generator" not in key_maps:
+            if "generator-category" in key_maps:  # use 2nd Choice
+                key_maps["generator"] = key_maps["generator-category"]
+            elif "generator-mctype" in key_maps:  # use 3rd Choice
+                key_maps["generator"] = key_maps["generator-mctype"]
+        key_maps.pop("generator-category", None)
+        key_maps.pop("generator-mctype", None)
 
         # Populate metadata
         sim_meta: types.SimulationMetadata = {}
