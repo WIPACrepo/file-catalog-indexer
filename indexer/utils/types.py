@@ -87,7 +87,7 @@ class OfflineProcessingMetadata(TypedDict, total=False):
     last_event: Optional[Event]
 
 
-class IceProdMetadata(TypedDict):
+class IceProdMetadata(TypedDict, total=False):
     """IceProd Metadata."""
 
     dataset: int

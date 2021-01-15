@@ -303,19 +303,36 @@ async def get_job_config(
 
 def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
     """Return the IceProdMetadata via `job_config`."""
-    # TODO - IceProd 1
-    config_url = f'https://iceprod2.icecube.wisc.edu/config?dataset_id={job_config["options"]["dataset_id"]}'
-
     metadata: types.IceProdMetadata = {
         "dataset": job_config["options"]["dataset"],  # int
-        "dataset_id": job_config["options"]["dataset_id"],  # str
-        # TODO -- safeguard
-        "job": job_config["options"]["job"],  # int
-        "job_id": job_config["options"]["task_info"]["job_id"],  # str
-        "task": job_config["options"]["task_info"]["name"],  # str
-        "task_id": job_config["options"]["task_info"]["task_id"],  # str
-        "config": config_url,  # str
+        "dataset_id": job_config["options"].get("dataset_id"),  # str
+        "job": job_config["options"].get("job"),  # int
     }
+
+    # task data
+    if "task_info" in job_config["options"]:
+        metadata.update(
+            {
+                "job_id": job_config["options"]["task_info"].get("job_id"),  # str
+                "task": job_config["options"]["task_info"].get("task"),  # str
+                "task_id": job_config["options"]["task_info"].get("task_id"),  # str
+            }
+        )
+
+    # config
+    if job_config["options"]["dataset"] in _ICEPROD_V1_DATASET_RANGE:
+        # TODO - should I be using dataset for the url?
+        config_url = f'https://grid.icecube.wisc.edu/simulation/dataset/{job_config["options"]["dataset_id"]}'
+    elif job_config["options"]["dataset"] in _ICEPROD_V2_DATASET_RANGE:
+        config_url = f'https://iceprod2.icecube.wisc.edu/config?dataset_id={job_config["options"]["dataset_id"]}'
+    else:
+        raise DatasetNotFound()
+    metadata["config"] = config_url  # str
+
+    # del any Nones
+    for key, val in list(metadata.items()):
+        if val is None:
+            del metadata[key]  # type: ignore[misc]
 
     return metadata
 
