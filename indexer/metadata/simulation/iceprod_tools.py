@@ -71,11 +71,42 @@ class _IceProdQuerier:
 class _IceProdV1Querier(_IceProdQuerier):
     """Manage IceProd v1 queries."""
 
+    def _get_steering_parameters(
+        self, client: ConfigDB
+    ) -> Dict[str, Union[str, float, int]]:
+        """Based on `fetchjson.py`:
+
+        http://code.icecube.wisc.edu/svn/meta-projects/iceprod/trunk/iceprod-server/bin/fetchjson.py.
+        """
+        steering = client.download_config(
+            self.dataset_num, include_defaults=False, include_description=False
+        )
+        # parser = xmlparser.IceTrayXMLParser(steering)
+        # expparser = lex.ExpParser(
+        #     {"procnum": 0, "nproc": 1, "dataset": 1}, steering, noeval=False
+        # )
+        writer = tray2json.IceTrayJSONWriter(steering)
+        return cast(Dict[str, Union[str, float, int]], writer)
+
     async def get_job_config(
         self, filepath: str, job_index: Optional[int], client: ConfigDB,
     ) -> dataclasses.Job:
-        pass
-        # TODO
+        job_config = dict_to_dataclasses({})
+
+        job_config["options"].update(
+            {
+                "dataset": self.dataset_num,
+                # "dataset_id": dataset_id, # TODO -- is this also dataset_num??
+                # "jobs_submitted": jobs_submitted, # TODO -- is it needed?
+            }
+        )
+
+        # TODO - insert job, job id, task, etc.
+
+        params = self._get_steering_parameters(client)
+        job_config["steering"] = {"parameters": params}
+
+        return job_config
 
 
 class _IceProdV2Querier(_IceProdQuerier):
@@ -84,7 +115,7 @@ class _IceProdV2Querier(_IceProdQuerier):
     async def _get_dataset_info(self, rest_client: RestClient) -> Tuple[str, int]:
         datasets = await rest_client.request(
             "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
-        )  # TODO -- offload this to further up call stack
+        )  # TODO -- offload this to further up call stack, or cache
 
         dataset_id = ""
         for dataset_id in datasets:
