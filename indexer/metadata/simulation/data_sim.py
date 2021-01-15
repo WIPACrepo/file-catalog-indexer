@@ -3,7 +3,9 @@
 import asyncio
 import logging
 import re
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
+
+import pymysql
 
 # local imports
 from rest_tools.client import RestClient  # type: ignore[import]
@@ -16,13 +18,13 @@ from . import iceprod_tools
 class DataSimI3FileMetadata(I3FileMetadata):
     """Metadata for /data/sim/ i3 files."""
 
-    def __init__(
+    def __init__(  # pylint: disable=R0913
         self,
         file: utils.FileInfo,
         site: str,
         regexes: List[re.Pattern[str]],
         iceprodv2_rc: RestClient,
-        iceprodv1_db: ConfigDB,
+        iceprodv1_db: pymysql.connections.Connection,
     ):
         super().__init__(
             file,
@@ -94,11 +96,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
             values = match.groupdict()
             # pattern w/ no groups
             if not values:
-                try:
-                    dataset_num = iceprod_tools.parse_dataset_num(file.path)
-                    return dataset_num, None
-                except iceprod_tools.DatasetNotFound:
-                    return None, None
+                return None, None
             # pattern w/ 'single' group
             if "single" in values:
                 return int(values["single"]), None
@@ -110,7 +108,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
     @staticmethod
     def get_simulation_metadata(
-        steering_parameters: Dict[str, Union[str, float, int]]
+        steering_parameters: iceprod_tools.SteeringParameters,
     ) -> types.SimulationMetadata:
         """Gather "simulation" metadata from steering parameters."""
 
@@ -220,12 +218,6 @@ class DataSimI3FileMetadata(I3FileMetadata):
     def generate(self) -> types.Metadata:
         """Gather the file's metadata."""
         metadata = super().generate()
-
-        if not self.iceprod_dataset_num:
-            logging.warning(
-                f"No IceProd/Simulation metadata recorded for {self.file.path}."
-            )
-            return metadata
 
         # get IceProd dataset config
         try:

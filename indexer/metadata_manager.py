@@ -8,6 +8,7 @@ import typing
 import xml
 from typing import Any, Dict, List, Optional
 
+import pymysql
 import xmltodict  # type: ignore[import]
 import yaml
 
@@ -27,7 +28,6 @@ class MetadataManager:  # pylint: disable=R0903
         site: str,
         basic_only: bool = False,
         iceprodv2_rc_token: str = "",
-        iceprodv1_db_user: str = "",
         iceprodv1_db_pass: str = "",
     ):
         self.dir_path = ""
@@ -40,15 +40,13 @@ class MetadataManager:  # pylint: disable=R0903
             self.iceprodv2_rc = RestClient(
                 "https://iceprod2-api.icecube.wisc.edu", iceprodv2_rc_token
             )
-        self.iceprodv1_db: Optional[ConfigDB] = None
-        if iceprodv1_db_user and iceprodv1_db_pass:
-            self.iceprodv1_db = ConfigDB()
-            self.iceprodv1_db.authenticate(
-                "vm-i3simprod.icecube.wisc.edu",
-                iceprodv1_db_user,
-                iceprodv1_db_pass,
-                "i3simprod",
-                True,
+        self.iceprodv1_db: Optional[pymysql.connections.Connection] = None
+        if iceprodv1_db_pass:
+            self.iceprodv1_db = pymysql.connect(
+                host="vm-i3simprod.icecube.wisc.edu",
+                user="i3simprod-ro",
+                passwd=iceprodv1_db_pass,
+                db="i3simprod",
             )
 
     def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:

@@ -9,6 +9,8 @@ import functools
 import logging  # TODO - trim down
 from typing import cast, Dict, List, Optional, Tuple, TypedDict, Union
 
+import pymysql
+
 # local imports
 from iceprod.core import dataclasses  # type: ignore[import]
 from iceprod.core.parser import ExpParser  # type: ignore[import]
@@ -17,8 +19,21 @@ from rest_tools.client import RestClient  # type: ignore[import]
 
 from ...utils import types
 
+# --------------------------------------------------------------------------------------
+# Constants
+
 _ICEPROD_V2_DATASET_RANGE = range(20000, 30000)
 _ICEPROD_V1_DATASET_RANGE = range(0, 20000)
+
+_HTML_TAGS = []
+for tag in ["b", "strong", "i", "em", "mark", "small", "del", "ins", "sub", "sup"]:
+    _HTML_TAGS.extend([f"<{tag}>", f"</{tag}>"])
+
+
+# --------------------------------------------------------------------------------------
+# Types
+
+SteeringParameters = Dict[str, Union[str, float, int]]
 
 
 class _OutFileData(TypedDict):
@@ -45,18 +60,8 @@ class OutFileNotFound(Exception):
     """Raise when an IceProd outfile cannot be found."""
 
 
-def parse_dataset_num(filepath: str) -> int:
-    """Return the dataset num by parsing the filepath."""
-    for dataset_range in [_ICEPROD_V2_DATASET_RANGE, _ICEPROD_V1_DATASET_RANGE]:
-        parts = filepath.split("/")
-        for p in parts[:-1]:
-            try:
-                dataset_num = int(p)
-                if dataset_num in dataset_range:
-                    return dataset_num
-            except ValueError:
-                continue
-    raise DatasetNotFound(f"Could not determine dataset number: {filepath}")
+# --------------------------------------------------------------------------------------
+# Private Query Managers
 
 
 class _IceProdQuerier:
@@ -66,58 +71,72 @@ class _IceProdQuerier:
         self.dataset_num = dataset_num
 
     async def get_job_config(
-        self, filepath: str, job_index: Optional[int],
+        self, filepath: str, job_index: Optional[int]
     ) -> dataclasses.Job:
         """Get the job's config dict, AKA `dataclasses.Job`."""
         raise NotImplementedError()
+
+    @staticmethod
+    def _expand_steering_parameters(job_config: dataclasses.Job) -> None:
+        job_config["steering"]["parameters"] = ExpParser().parse(
+            job_config["steering"]["parameters"],
+            job_config,
+            {"parameters": job_config["steering"]["parameters"]},
+        )
 
 
 class _IceProdV1Querier(_IceProdQuerier):
     """Manage IceProd v1 queries."""
 
-    def __init__(
-        self, dataset_num: int, iceprodv1_db: ConfigDB,
-    ):
+    def __init__(self, dataset_num: int, iceprodv1_db: pymysql.connections.Connection):
         super().__init__(dataset_num)
         self.iceprodv1_db = iceprodv1_db
 
-    def _get_steering_parameters(self) -> Dict[str, Union[str, float, int]]:
-        """Based on `fetchjson.py`:
-
-        http://code.icecube.wisc.edu/svn/meta-projects/iceprod/trunk/iceprod-server/bin/fetchjson.py.
-        """
-        steering = self.iceprodv1_db.download_config(
-            self.dataset_num, include_defaults=False, include_description=False
+    def _query_steering_params(self) -> SteeringParameters:
+        steering_params = {}
+        sql = (
+            "SELECT * FROM steering_parameter "
+            f"WHERE dataset_id = {self.dataset_num} "
+            "ORDER by name"
         )
-        # parser = xmlparser.IceTrayXMLParser(steering)
-        # expparser = lex.ExpParser(
-        #     {"procnum": 0, "nproc": 1, "dataset": 1}, steering, noeval=False
-        # )
-        writer = tray2json.IceTrayJSONWriter(steering)
-        return cast(Dict[str, Union[str, float, int]], writer)
+
+        cursor = self.iceprodv1_db.cursor()
+        cursor.execute(sql)
+        result_set = cursor.fetchall()
+
+        if not result_set:
+            raise DatasetNotFound()
+
+        for param in result_set:
+            value = param["value"]  # type: ignore[call-overload]
+            for html_tag in _HTML_TAGS:
+                value = value.replace(html_tag, "")
+            steering_params[param["name"]] = value  # type: ignore[call-overload]
+
+        return steering_params
 
     async def get_job_config(
-        self, filepath: str, job_index: Optional[int],
+        self, filepath: str, job_index: Optional[int]
     ) -> dataclasses.Job:
-        job_config = dict_to_dataclasses({})
+        steering_params = self._query_steering_params()
 
-        job_config["options"].update(
+        job_config = dict_to_dataclasses(
             {
-                "dataset": self.dataset_num,
-                "dataset_id": str(self.dataset_num),
-                # "jobs_submitted": jobs_submitted, # TODO -- is it needed?
+                "steering": {"parameters": steering_params},
+                "options": {
+                    "dataset": self.dataset_num,
+                    "dataset_id": str(self.dataset_num),
+                },
             }
         )
 
-        # TODO - insert job, job id, task, etc.
-
-        params = self._get_steering_parameters()
-        job_config["steering"] = {"parameters": params}
+        # resolve/expand steering parameters
+        self._expand_steering_parameters(job_config)
 
         return job_config
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache()
 async def _get_all_iceprod2_datasets(
     iceprodv2_rc: RestClient,
 ) -> Dict[str, _IP2RESTDataset]:
@@ -131,9 +150,7 @@ async def _get_all_iceprod2_datasets(
 class _IceProdV2Querier(_IceProdQuerier):
     """Manage IceProd v2 queries."""
 
-    def __init__(
-        self, dataset_num: int, iceprodv2_rc: RestClient,
-    ):
+    def __init__(self, dataset_num: int, iceprodv2_rc: RestClient):
         super().__init__(dataset_num)
         self.iceprodv2_rc = iceprodv2_rc
 
@@ -150,12 +167,12 @@ class _IceProdV2Querier(_IceProdQuerier):
         raise DatasetNotFound(f"dataset num {self.dataset_num} not found")
 
     async def get_job_config(
-        self, filepath: str, job_index: Optional[int],
+        self, filepath: str, job_index: Optional[int]
     ) -> dataclasses.Job:
         dataset_id, jobs_submitted = await self._get_dataset_info()
 
         ret = await self.iceprodv2_rc.request("GET", f"/config/{dataset_id}")
-        job_config = dict_to_dataclasses(ret)
+        job_config: dataclasses.Job = dict_to_dataclasses(ret)
 
         job_config["options"].update(
             {
@@ -178,11 +195,7 @@ class _IceProdV2Querier(_IceProdQuerier):
             logging.warning(f"Could not get task info for {filepath}")
 
         # resolve/expand steering parameters
-        job_config["steering"]["parameters"] = ExpParser().parse(
-            job_config["steering"]["parameters"],
-            job_config,
-            {"parameters": job_config["steering"]["parameters"]},
-        )
+        self._expand_steering_parameters(job_config)
 
         return job_config
 
@@ -227,7 +240,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                             )
         return files
 
-    async def _add_task_info_to_job_config(self, job_config: dataclasses.Job,) -> None:
+    async def _add_task_info_to_job_config(self, job_config: dataclasses.Job) -> None:
         """Add `"task_info"` dict to `job_config["options"]`."""
         if "task" not in job_config["options"]:
             raise TaskNotFound()
@@ -293,28 +306,53 @@ class _IceProdV2Querier(_IceProdQuerier):
         raise OutFileNotFound()
 
 
+# --------------------------------------------------------------------------------------
+# Public Query-Manager interface functions
+
+
 def _get_iceprod_querier(
-    dataset_num: int, iceprodv2_rc: RestClient, iceprodv1_db: ConfigDB
+    dataset_num: int,
+    iceprodv2_rc: RestClient,
+    iceprodv1_db: pymysql.connections.Connection,
 ) -> _IceProdQuerier:
     if dataset_num in _ICEPROD_V1_DATASET_RANGE:
-        return _IceProdV1Querier(dataset_num, iceprodv1_db=iceprodv1_db)
+        return _IceProdV1Querier(dataset_num, iceprodv1_db)
     if dataset_num in _ICEPROD_V2_DATASET_RANGE:
-        return _IceProdV2Querier(dataset_num, iceprodv2_rc=iceprodv2_rc)
+        return _IceProdV2Querier(dataset_num, iceprodv2_rc)
     raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
 
 
+def _parse_dataset_num(filepath: str) -> int:
+    """Return the dataset num by parsing the filepath."""
+    for dataset_range in [_ICEPROD_V2_DATASET_RANGE, _ICEPROD_V1_DATASET_RANGE]:
+        parts = filepath.split("/")
+        for p in parts[:-1]:
+            try:
+                dataset_num = int(p)
+                if dataset_num in dataset_range:
+                    return dataset_num
+            except ValueError:
+                continue
+    raise DatasetNotFound(f"Could not determine dataset number: {filepath}")
+
+
 async def get_job_config(
-    dataset_num: int,
+    dataset_num: Optional[int],
     filepath: str,
     job_index: Optional[int],
     iceprodv2_rc: RestClient,
-    iceprodv1_db: ConfigDB,
+    iceprodv1_db: pymysql.connections.Connection,
 ) -> Tuple[dataclasses.Job, int]:
     """Get the job's config dict."""
-    try:
-        querier = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
-    except DatasetNotFound:  # if given dataset num doesn't work try parsing from filepath
-        dataset_num = parse_dataset_num(filepath)
+    if dataset_num is not None:
+        try:
+            querier = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
+        except DatasetNotFound:
+            dataset_num = None
+
+    # if given dataset_num doesn't work (or was None), try parsing one from filepath
+    if dataset_num is None:
+        dataset_num = _parse_dataset_num(filepath)
         querier = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
 
     job_config = await querier.get_job_config(filepath, job_index)
@@ -357,10 +395,8 @@ def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
     return metadata
 
 
-def grab_steering_paramters(
-    job_config: dataclasses.Job,
-) -> Dict[str, Union[str, float, int]]:
+def grab_steering_paramters(job_config: dataclasses.Job) -> SteeringParameters:
     """Return the steering parameters dict."""
     params = job_config["steering"]["parameters"]
 
-    return cast(Dict[str, Union[str, float, int]], params)
+    return cast(SteeringParameters, params)
