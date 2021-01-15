@@ -212,22 +212,19 @@ class _IceProdV2Querier(_IceProdQuerier):
         # search each possible file/task
         possible_outfiles = _IceProdV2Querier._get_outfiles(job_config)
         for f_data in reversed(possible_outfiles):
-            logging.info(f'searching task {f_data["task"]}')
-            job_config["options"]["task"] = f_data["task"]
-
-            # find the matching outfile
             for job in job_search:
-                job_config["options"]["job"] = job
                 for i in range(f_data["iters"]):
-                    job_config["options"]["iter"] = i
+                    logging.info(
+                        f"Searching task: {f_data['task']}, job: {job}, iter: {i}"
+                    )
                     if get_path_from_url(f_data) == filepath:
-                        logging.info(f"success on job_index: {job}, iter: {i}")
+                        logging.info(f"Success on job: {job}, iter: {i}")
+                        job_config["options"].update(
+                            {"task": f_data["task"], "job": job, "iter": i}
+                        )
                         return
 
-        # cleanup & raise
-        job_config["options"].pop("task", None)
-        job_config["options"].pop("job", None)
-        job_config["options"].pop("iters", None)
+        # if there's no match, at least assign the job_index
         if job_index:
             job_config["options"]["job"] = job_index
         raise OutFileNotFound()
