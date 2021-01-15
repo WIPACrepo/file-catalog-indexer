@@ -395,7 +395,7 @@ def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
     return metadata
 
 
-def grab_steering_paramters(job_config: dataclasses.Job) -> SteeringParameters:
+def grab_steering_parameters(job_config: dataclasses.Job) -> SteeringParameters:
     """Return the steering parameters dict."""
     params = job_config["steering"]["parameters"]
 
