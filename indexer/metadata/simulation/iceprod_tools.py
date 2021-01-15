@@ -7,7 +7,7 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 
 import functools
 import logging  # TODO - trim down
-from typing import cast, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Any, cast, Dict, List, Optional, Tuple, TypedDict, Union
 
 import pymysql
 
@@ -100,18 +100,18 @@ class _IceProdV1Querier(_IceProdQuerier):
             "ORDER by name"
         )
 
-        cursor = self.iceprodv1_db.cursor()
+        cursor = self.iceprodv1_db.cursor(pymysql.cursors.DictCursor)
         cursor.execute(sql)
-        result_set = cursor.fetchall()
+        results: List[Dict[str, Any]] = cursor.fetchall()  # type: ignore[assignment]
 
-        if not result_set:
+        if not results:
             raise DatasetNotFound()
 
-        for param in result_set:
-            value = param["value"]  # type: ignore[call-overload]
+        for param in results:
+            value = param["value"]
             for html_tag in _HTML_TAGS:
                 value = value.replace(html_tag, "")
-            steering_params[param["name"]] = value  # type: ignore[call-overload]
+            steering_params[param["name"]] = value
 
         return steering_params
 
