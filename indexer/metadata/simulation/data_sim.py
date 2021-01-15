@@ -6,7 +6,6 @@ import re
 from typing import Dict, List, Optional, Tuple, Union
 
 # local imports
-from iceprod.core import dataclasses as dc  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
 
 from ...utils import types, utils
@@ -22,7 +21,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
         file: utils.FileInfo,
         site: str,
         regexes: List[re.Pattern[str]],
-        iceprod_rc: RestClient,
+        iceprodv2_rc: RestClient,
+        iceprodv1_db: ConfigDB,
     ):
         super().__init__(
             file,
@@ -31,7 +31,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
             "simulation",
         )
         self.iceprod_task_id: Optional[int] = None
-        self.iceprodv2_rc = iceprod_rc
+        self.iceprodv2_rc = iceprodv2_rc
+        self.iceprodv1_db = iceprodv1_db
         try:
             (
                 self.iceprod_dataset_num,
@@ -234,6 +235,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
                     self.file.path,
                     self.iceprod_job_index,
                     self.iceprodv2_rc,
+                    self.iceprodv1_db,
                 )
             )
         except iceprod_tools.DatasetNotFound:
@@ -241,6 +243,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
                 f"Dataset {self.iceprod_dataset_num} not found. "
                 f"No IceProd/Simulation metadata recorded for {self.file.path}."
             )
+            return metadata
 
         # override self.iceprod_dataset_num w/ iceprod_tool's?
         if dataset_num != self.iceprod_dataset_num:

@@ -55,12 +55,14 @@ def parse_dataset_num(filepath: str) -> int:
 class _IceProdQuerier:
     """Manage IceProd queries."""
 
-    def __init__(self, dataset_num: int, rest_client: RestClient):
+    def __init__(self, dataset_num: int):
         self.dataset_num = dataset_num
-        self.rest_client = rest_client
 
     async def get_job_config(
-        self, filepath: str, job_index: Optional[int]
+        self,
+        filepath: str,
+        job_index: Optional[int],
+        client: Union[RestClient, ConfigDB],
     ) -> dataclasses.Job:
         """Get the job's config dict, AKA `dataclasses.Job`."""
         raise NotImplementedError()
@@ -70,7 +72,7 @@ class _IceProdV1Querier(_IceProdQuerier):
     """Manage IceProd v1 queries."""
 
     async def get_job_config(
-        self, filepath: str, job_index: Optional[int]
+        self, filepath: str, job_index: Optional[int], client: ConfigDB,
     ) -> dataclasses.Job:
         pass
         # TODO
@@ -79,8 +81,8 @@ class _IceProdV1Querier(_IceProdQuerier):
 class _IceProdV2Querier(_IceProdQuerier):
     """Manage IceProd v2 queries."""
 
-    async def _get_dataset_info(self) -> Tuple[str, int]:
-        datasets = await self.rest_client.request(
+    async def _get_dataset_info(self, rest_client: RestClient) -> Tuple[str, int]:
+        datasets = await rest_client.request(
             "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
         )  # TODO -- offload this to further up call stack
 
@@ -94,11 +96,11 @@ class _IceProdV2Querier(_IceProdQuerier):
         raise DatasetNotFound(f"dataset num {self.dataset_num} not found")
 
     async def get_job_config(
-        self, filepath: str, job_index: Optional[int]
+        self, filepath: str, job_index: Optional[int], client: RestClient
     ) -> dataclasses.Job:
-        dataset_id, jobs_submitted = await self._get_dataset_info()
+        dataset_id, jobs_submitted = await self._get_dataset_info(client)
 
-        ret = await self.rest_client.request("GET", f"/config/{dataset_id}")
+        ret = await client.request("GET", f"/config/{dataset_id}")
         job_config = dict_to_dataclasses(ret)
 
         job_config["options"].update(
@@ -117,7 +119,7 @@ class _IceProdV2Querier(_IceProdQuerier):
             logging.warning(f"Outfile ({filepath}) could not be matched.")
 
         try:
-            await self._add_task_info_to_job_config(job_config)
+            await self._add_task_info_to_job_config(job_config, client)
         except TaskNotFound:
             logging.warning(f"Could not get task info for {filepath}")
 
@@ -164,12 +166,14 @@ class _IceProdV2Querier(_IceProdQuerier):
                             )
         return files
 
-    async def _add_task_info_to_job_config(self, job_config: dataclasses.Job) -> None:
+    async def _add_task_info_to_job_config(
+        self, job_config: dataclasses.Job, client: RestClient
+    ) -> None:
         """Add `"task_info"` dict to `job_config["options"]`."""
         if "task" not in job_config["options"]:
             raise TaskNotFound()
 
-        ret = await self.rest_client.request(
+        ret = await client.request(
             "GET",
             f"/datasets/{job_config['options']['dataset_id']}/tasks",
             {
@@ -230,25 +234,31 @@ class _IceProdV2Querier(_IceProdQuerier):
         raise OutFileNotFound()
 
 
-def _get_iceprod_querier(dataset_num: int, iceprodv2_rc: RestClient) -> _IceProdQuerier:
+def _get_iceprod_querier(
+    dataset_num: int, iceprodv2_rc: RestClient, iceprodv1_db: ConfigDB
+) -> Tuple[_IceProdQuerier, Union[RestClient, ConfigDB]]:
     if dataset_num in _ICEPROD_V1_DATASET_RANGE:
-        return _IceProdV1Querier(dataset_num, None)  # TODO
+        return _IceProdV1Querier(dataset_num), iceprodv1_db
     if dataset_num in _ICEPROD_V2_DATASET_RANGE:
-        return _IceProdV2Querier(dataset_num, iceprodv2_rc)
+        return _IceProdV2Querier(dataset_num), iceprodv2_rc
     raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
 
 
 async def get_job_config(
-    dataset_num: int, filepath: str, job_index: Optional[int], iceprodv2_rc: RestClient
+    dataset_num: int,
+    filepath: str,
+    job_index: Optional[int],
+    iceprodv2_rc: RestClient,
+    iceprodv1_db: ConfigDB,
 ) -> Tuple[dataclasses.Job, int]:
     """Get the job's config dict."""
     try:
-        ip_querier = _get_iceprod_querier(dataset_num, iceprodv2_rc)
+        querier, client = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
     except DatasetNotFound:  # if given dataset num doesn't work try parsing from filepath
         dataset_num = parse_dataset_num(filepath)
-        ip_querier = _get_iceprod_querier(dataset_num, iceprodv2_rc)
+        querier, client = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
 
-    job_config = await ip_querier.get_job_config(filepath, job_index)
+    job_config = await querier.get_job_config(filepath, job_index, client)
 
     return job_config, dataset_num
 
@@ -261,6 +271,7 @@ def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
     metadata: types.IceProdMetadata = {
         "dataset": job_config["options"]["dataset"],  # int
         "dataset_id": job_config["options"]["dataset_id"],  # str
+        # TODO -- safeguard
         "job": job_config["options"]["job"],  # int
         "job_id": job_config["options"]["task_info"]["job_id"],  # str
         "task": job_config["options"]["task_info"]["name"],  # str

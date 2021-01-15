@@ -22,16 +22,33 @@ from .utils import utils
 class MetadataManager:  # pylint: disable=R0903
     """Commander class for handling metadata for different file types."""
 
-    def __init__(self, site: str, basic_only: bool = False, iceprod_rc_token: str = ""):
+    def __init__(  # pylint: disable=R0913
+        self,
+        site: str,
+        basic_only: bool = False,
+        iceprodv2_rc_token: str = "",
+        iceprodv1_db_user: str = "",
+        iceprodv1_db_pass: str = "",
+    ):
         self.dir_path = ""
         self.site = site
         self.basic_only = basic_only
         self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
         self.sim_regexes: List[re.Pattern[str]] = []
-        self.iceprod_rc: Optional[RestClient]
-        if iceprod_rc_token:
-            self.iceprod_rc = RestClient(
-                "https://iceprod2-api.icecube.wisc.edu", iceprod_rc_token
+        self.iceprodv2_rc: Optional[RestClient] = None
+        if iceprodv2_rc_token:
+            self.iceprodv2_rc = RestClient(
+                "https://iceprod2-api.icecube.wisc.edu", iceprodv2_rc_token
+            )
+        self.iceprodv1_db: Optional[ConfigDB] = None
+        if iceprodv1_db_user and iceprodv1_db_pass:
+            self.iceprodv1_db = ConfigDB()
+            self.iceprodv1_db.authenticate(
+                "vm-i3simprod.icecube.wisc.edu",
+                iceprodv1_db_user,
+                iceprodv1_db_pass,
+                "i3simprod",
+                True,
             )
 
     def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
@@ -158,13 +175,15 @@ class MetadataManager:  # pylint: disable=R0903
                 self.sim_regexes.append(re.compile(regex))
 
         # set up IceProd RestClient
-        if not self.iceprod_rc:
-            raise Exception("Missing IceProd REST Client.")
+        if not self.iceprodv2_rc:
+            raise Exception("Missing IceProd v2 REST Client.")
+        if not self.iceprodv1_db:
+            raise Exception("Missing IceProd v1 DB Client.")
 
         if DataSimI3FileMetadata.is_valid_filename(file.name):
             logging.debug(f"Gathering Sim metadata for {file.name}...")
             return DataSimI3FileMetadata(
-                file, self.site, self.sim_regexes, self.iceprod_rc
+                file, self.site, self.sim_regexes, self.iceprodv2_rc, self.iceprodv1_db
             )
 
         return self._new_file_basic_only(filepath)
