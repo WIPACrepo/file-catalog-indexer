@@ -154,6 +154,13 @@ class _IceProdV2Querier(_IceProdQuerier):
         except TaskNotFound:
             logging.warning(f"Could not get task info for {filepath}")
 
+        # resolve/expand steering parameters
+        job_config["steering"]["parameters"] = ExpParser().parse(
+            job_config["steering"]["parameters"],
+            job_config,
+            {"parameters": job_config["steering"]["parameters"]},
+        )
+
         return job_config
 
     @staticmethod
@@ -316,12 +323,7 @@ def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
 def grab_steering_paramters(
     job_config: dataclasses.Job,
 ) -> Dict[str, Union[str, float, int]]:
-    """Return the steering parameters dict with macros resolved."""
-    # TODO - IceProd 1?
-    params = ExpParser().parse(
-        job_config["steering"]["parameters"],
-        job_config,
-        {"parameters": job_config["steering"]["parameters"]},
-    )
+    """Return the steering parameters dict."""
+    params = job_config["steering"]["parameters"]
 
     return cast(Dict[str, Union[str, float, int]], params)
