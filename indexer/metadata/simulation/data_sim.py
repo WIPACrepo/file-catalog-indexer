@@ -84,7 +84,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
     def parse_iceprod_dataset_job_ids(
         regexes: List[re.Pattern[str]], file: utils.FileInfo
     ) -> Tuple[Optional[int], Optional[int]]:
-        """Return the iceprod dataset and job ids by parsing w/ `regexes`.
+        """Return the iceprod dataset_num and job_index, via `regexes`.
 
         Uses named groups: `alpha` & `beta`; or `single`.
         """
@@ -106,9 +106,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
         # fall-through
         raise ValueError(f"Filename does not match any pattern, {file.path}.")
 
-    @staticmethod
-    def get_simulation_metadata(
-        steering_parameters: iceprod_tools.SteeringParameters,
+    def get_simulation_metadata(  # pylint: disable=R0912
+        self, steering_parameters: iceprod_tools.SteeringParameters,
     ) -> types.SimulationMetadata:
         """Gather "simulation" metadata from steering parameters."""
 
@@ -213,6 +212,17 @@ class DataSimI3FileMetadata(I3FileMetadata):
                 # assuming already in "E^-N" format
                 pass
 
+        # try to cast each value - but store even if it is wrong
+        for key, val in list(sim_meta.items()):
+            type_ = types.simulation_metadata_types[key]
+            try:
+                sim_meta[key] = type_(val)  # type: ignore[misc]
+            except TypeError:
+                logging.debug(
+                    f'Wrong data type stored for "simulation" key, ({key}:{val}) '
+                    f"should be {type_} (dataset:{self.iceprod_dataset_num})"
+                )
+
         return sim_meta
 
     def generate(self) -> types.Metadata:
@@ -250,9 +260,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # Simulation metadata
         steering_parameters = iceprod_tools.grab_steering_parameters(job_config)
-        metadata["simulation"] = DataSimI3FileMetadata.get_simulation_metadata(
-            steering_parameters
-        )
+        metadata["simulation"] = self.get_simulation_metadata(steering_parameters)
 
         return metadata
 

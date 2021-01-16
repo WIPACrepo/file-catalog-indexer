@@ -324,6 +324,7 @@ def _get_iceprod_querier(
 
 def _parse_dataset_num(filepath: str) -> int:
     """Return the dataset num by parsing the filepath."""
+    # try IP2 first: IP1 uses smaller numbers, so false-positive matches are more likely
     for dataset_range in [_ICEPROD_V2_DATASET_RANGE, _ICEPROD_V1_DATASET_RANGE]:
         parts = filepath.split("/")
         for p in parts[:-1]:

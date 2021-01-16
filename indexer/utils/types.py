@@ -124,6 +124,31 @@ class SimulationMetadata(TypedDict, total=False):
     hadronic_interaction: str
 
 
+# ideally, we could do some kind of introspection, but this requires universal TypedDict support
+simulation_metadata_types = {
+    "generator": str,
+    "composition": str,
+    "geometry": str,
+    "GCD_file": str,
+    "bulk_ice_model": str,
+    "hole_ice_model": str,
+    "photon_propagator": str,
+    "DOMefficiency": float,
+    "atmosphere": int,
+    "n_events": int,
+    "oversampling": int,
+    "DOMoversize": int,
+    "energy_min": float,
+    "energy_max": float,
+    "power_law_index": str,
+    "cylinder_length": float,
+    "cylinder_radius": float,
+    "zenith_min": float,
+    "zenith_max": float,
+    "hadronic_interaction": str,
+}
+
+
 class Metadata(TypedDict, total=False):
     """The file-catalog metadata.
 
