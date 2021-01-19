@@ -317,9 +317,10 @@ def _get_iceprod_querier(
 ) -> _IceProdQuerier:
     if dataset_num in _ICEPROD_V1_DATASET_RANGE:
         return _IceProdV1Querier(dataset_num, iceprodv1_db)
-    if dataset_num in _ICEPROD_V2_DATASET_RANGE:
+    elif dataset_num in _ICEPROD_V2_DATASET_RANGE:
         return _IceProdV2Querier(dataset_num, iceprodv2_rc)
-    raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
+    else:
+        raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
 
 
 def _parse_dataset_num(filepath: str) -> int:
