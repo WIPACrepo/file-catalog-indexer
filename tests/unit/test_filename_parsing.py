@@ -6,25 +6,22 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import pytest
 
 sys.path.append(".")
-from indexer.metadata import (  # isort:skip # noqa # pylint: disable=C0413
-    I3FileMetadata,
-    real,
-)
+from indexer.metadata import real  # isort:skip # noqa # pylint: disable=C0413
 
 
 def test_run_number() -> None:
     """Run generic filename parsing of run number."""
     filename = "Level2_IC86.2017_data_Run00130484_0101_71_375_GCD.i3.zst"
-    assert I3FileMetadata.parse_run_number(filename) == 130484
+    assert real.data_exp.DataExpI3FileMetadata.parse_run_number(filename) == 130484
 
     filename = "Level2_IC86.2017_data_Run00130567_Subrun00000000_00000280.i3.zst"
-    assert I3FileMetadata.parse_run_number(filename) == 130567
+    assert real.data_exp.DataExpI3FileMetadata.parse_run_number(filename) == 130567
 
     filename = "Run00125791_GapsTxt.tar"
-    assert I3FileMetadata.parse_run_number(filename) == 125791
+    assert real.data_exp.DataExpI3FileMetadata.parse_run_number(filename) == 125791
 
     filename = "Level2_IC86.2015_24HrTestRuns_data_Run00126291_Subrun00000203.i3.bz2"
-    assert I3FileMetadata.parse_run_number(filename) == 126291
+    assert real.data_exp.DataExpI3FileMetadata.parse_run_number(filename) == 126291
 
     # Errors
     errors_filenames = [
@@ -38,7 +35,7 @@ def test_run_number() -> None:
     for filename in errors_filenames:
         print(f"FILNAMES: {filename}")
         with pytest.raises(Exception) as e:
-            I3FileMetadata.parse_run_number(filename)
+            real.data_exp.DataExpI3FileMetadata.parse_run_number(filename)
         assert "No run number found in filename," in str(e.value)
 
 
@@ -49,7 +46,9 @@ def _test_filenames_parsing(
     for filename, values in filenames_and_values.items():
         print(filename)
         # pylint: disable=C0103
-        y, r, s, p = I3FileMetadata.parse_year_run_subrun_part(patterns, filename)
+        y, r, s, p = real.data_exp.DataExpI3FileMetadata.parse_year_run_subrun_part(
+            patterns, filename
+        )
         print(f"OUTPUTS: {y}, {r}, {s}, {p}")
         assert y == values[0]
         assert r == values[1]
@@ -62,7 +61,9 @@ def _test_bad_filenames_parsing(bad_filenames: List[str], patterns: List[str]) -
         print(filename)
 
         with pytest.raises(ValueError) as e:
-            I3FileMetadata.parse_year_run_subrun_part(patterns, filename)
+            real.data_exp.DataExpI3FileMetadata.parse_year_run_subrun_part(
+                patterns, filename
+            )
         assert "Filename does not match any pattern, " in str(e.value)
 
 
@@ -163,9 +164,11 @@ def test_L2() -> None:  # pylint: disable=C0103
     }
 
     _test_valid_filenames(
-        filenames_and_values.keys(), real.L2FileMetadata.is_valid_filename
+        filenames_and_values.keys(), real.l2.L2FileMetadata.is_valid_filename
     )
-    _test_filenames_parsing(filenames_and_values, real.L2FileMetadata.FILENAME_PATTERNS)
+    _test_filenames_parsing(
+        filenames_and_values, real.l2.L2FileMetadata.FILENAME_PATTERNS
+    )
 
 
 def test_bad_L2() -> None:  # pylint: disable=C0103
@@ -186,8 +189,10 @@ def test_bad_L2() -> None:  # pylint: disable=C0103
         "IC59_MoonEvents_Level2_IC59_data_Run00114554.i3.gz",
     ]
 
-    _test_bad_valid_filenames_parsing(filenames, real.L2FileMetadata.is_valid_filename)
-    _test_bad_filenames_parsing(filenames, real.L2FileMetadata.FILENAME_PATTERNS)
+    _test_bad_valid_filenames_parsing(
+        filenames, real.l2.L2FileMetadata.is_valid_filename
+    )
+    _test_bad_filenames_parsing(filenames, real.l2.L2FileMetadata.FILENAME_PATTERNS)
 
 
 def test_PFFilt() -> None:  # pylint: disable=C0103
@@ -221,10 +226,10 @@ def test_PFFilt() -> None:  # pylint: disable=C0103
     }
 
     _test_valid_filenames(
-        filenames_and_values.keys(), real.PFFiltFileMetadata.is_valid_filename
+        filenames_and_values.keys(), real.pffilt.PFFiltFileMetadata.is_valid_filename
     )
     _test_filenames_parsing(
-        filenames_and_values, real.PFFiltFileMetadata.FILENAME_PATTERNS
+        filenames_and_values, real.pffilt.PFFiltFileMetadata.FILENAME_PATTERNS
     )
 
 
@@ -288,10 +293,10 @@ def test_PFDST() -> None:  # pylint: disable=C0103
     }
 
     _test_valid_filenames(
-        filenames_and_values.keys(), real.PFDSTFileMetadata.is_valid_filename
+        filenames_and_values.keys(), real.pfdst.PFDSTFileMetadata.is_valid_filename
     )
     _test_filenames_parsing(
-        filenames_and_values, real.PFDSTFileMetadata.FILENAME_PATTERNS
+        filenames_and_values, real.pfdst.PFDSTFileMetadata.FILENAME_PATTERNS
     )
 
 
@@ -300,9 +305,11 @@ def test_bad_PFDST() -> None:  # pylint: disable=C0103
     filenames = ["logfiles_PFDST_2011.tar.gz", "logfiles_PFDST_2010.tar.gz"]
 
     _test_bad_valid_filenames_parsing(
-        filenames, real.PFDSTFileMetadata.is_valid_filename
+        filenames, real.pfdst.PFDSTFileMetadata.is_valid_filename
     )
-    _test_bad_filenames_parsing(filenames, real.PFDSTFileMetadata.FILENAME_PATTERNS)
+    _test_bad_filenames_parsing(
+        filenames, real.pfdst.PFDSTFileMetadata.FILENAME_PATTERNS
+    )
 
 
 def test_PFRaw() -> None:  # pylint: disable=C0103
@@ -378,10 +385,10 @@ def test_PFRaw() -> None:  # pylint: disable=C0103
     }
 
     _test_valid_filenames(
-        filenames_and_values.keys(), real.PFRawFileMetadata.is_valid_filename
+        filenames_and_values.keys(), real.pfraw.PFRawFileMetadata.is_valid_filename
     )
     _test_filenames_parsing(
-        filenames_and_values, real.PFRawFileMetadata.FILENAME_PATTERNS
+        filenames_and_values, real.pfraw.PFRawFileMetadata.FILENAME_PATTERNS
     )
 
 
@@ -393,9 +400,11 @@ def test_bad_PFRaw() -> None:  # pylint: disable=C0103
     ]
 
     _test_bad_valid_filenames_parsing(
-        filenames, real.PFRawFileMetadata.is_valid_filename
+        filenames, real.pfraw.PFRawFileMetadata.is_valid_filename
     )
-    _test_bad_filenames_parsing(filenames, real.PFRawFileMetadata.FILENAME_PATTERNS)
+    _test_bad_filenames_parsing(
+        filenames, real.pfraw.PFRawFileMetadata.FILENAME_PATTERNS
+    )
 
 
 def test_bad_patterns() -> None:
@@ -408,7 +417,7 @@ def test_bad_patterns() -> None:
 
     for pattern in bad_patterns:
         with pytest.raises(Exception) as e:
-            I3FileMetadata.parse_year_run_subrun_part(
+            real.data_exp.DataExpI3FileMetadata.parse_year_run_subrun_part(
                 [pattern], "filename-wont-be-matched-anyways"
             )
         assert "Pattern does not have `run` regex group," in str(e.value)
