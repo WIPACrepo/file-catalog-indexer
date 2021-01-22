@@ -43,7 +43,6 @@ class _OutFileData(TypedDict):
 
 
 class _IP2RESTDataset(TypedDict):
-    dataset: int
     dataset_id: str
     jobs_submitted: int
 
@@ -139,12 +138,20 @@ class _IceProdV1Querier(_IceProdQuerier):
 @functools.lru_cache()
 async def _get_all_iceprod2_datasets(
     iceprodv2_rc: RestClient,
-) -> Dict[str, _IP2RESTDataset]:
+) -> Dict[int, _IP2RESTDataset]:
+    """Return dict of datasets keyed by their dataset num."""
     datasets = await iceprodv2_rc.request(
         "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
     )
 
-    return cast(Dict[str, _IP2RESTDataset], datasets)
+    ret: Dict[int, _IP2RESTDataset] = {}
+    for info in datasets.values():
+        ret[int(info["dataset"])] = {
+            "dataset_id": info["dataset_id"],
+            "jobs_submitted": info["jobs_submitted"],
+        }
+
+    return ret
 
 
 class _IceProdV2Querier(_IceProdQuerier):
@@ -156,15 +163,13 @@ class _IceProdV2Querier(_IceProdQuerier):
 
     async def _get_dataset_info(self) -> Tuple[str, int]:
         datasets = await _get_all_iceprod2_datasets(self.iceprodv2_rc)
-
-        dataset_id = ""
-        for dataset_id in datasets:
-            if datasets[dataset_id]["dataset"] == self.dataset_num:
-                jobs_submitted = datasets[dataset_id]["jobs_submitted"]
-                logging.info(f"dataset_id: {dataset_id}")
-                return dataset_id, jobs_submitted
-
-        raise DatasetNotFound(f"dataset num {self.dataset_num} not found")
+        try:
+            return (
+                datasets[self.dataset_num]["dataset_id"],
+                datasets[self.dataset_num]["jobs_submitted"],
+            )
+        except KeyError:
+            raise DatasetNotFound(f"dataset num {self.dataset_num} not found")
 
     async def get_job_config(
         self, filepath: str, job_index: Optional[int]
