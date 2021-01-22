@@ -51,7 +51,7 @@ requests==2.24.0
 requests-futures==1.0.0
 requests-mock==1.7.0
 requests-toolbelt==0.9.1
--e git+https://github.com/WIPACrepo/rest-tools@74b241a7cd83f30b2bf5effac3e2b705dc867a4c#egg=rest_tools
+git+http://github.com/WIPACrepo/rest-tools
 SecretStorage==3.1.2
 simplejson==3.17.2
 six==1.15.0
