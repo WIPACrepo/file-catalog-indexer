@@ -6,7 +6,7 @@ import re
 import tarfile
 import typing
 import xml
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Pattern
 
 import pymysql
 import xmltodict  # type: ignore[import]
@@ -34,7 +34,7 @@ class MetadataManager:  # pylint: disable=R0903
         self.site = site
         self.basic_only = basic_only
         self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
-        self.sim_regexes: List[re.Pattern[str]] = []
+        self.sim_regexes: List[Pattern[str]] = []
         self.iceprodv2_rc: Optional[RestClient] = None
         if iceprodv2_rc_token:
             self.iceprodv2_rc = RestClient(

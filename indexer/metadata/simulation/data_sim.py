@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Pattern, Tuple
 
 import pymysql
 
@@ -22,7 +22,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         self,
         file: utils.FileInfo,
         site: str,
-        regexes: List[re.Pattern[str]],
+        regexes: List[Pattern[str]],
         iceprodv2_rc: RestClient,
         iceprodv1_db: pymysql.connections.Connection,
     ):
@@ -82,7 +82,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
     @staticmethod
     def parse_iceprod_dataset_job_ids(
-        regexes: List[re.Pattern[str]], file: utils.FileInfo
+        regexes: List[Pattern[str]], file: utils.FileInfo
     ) -> Tuple[Optional[int], Optional[int]]:
         """Return the iceprod dataset_num and job_index, via `regexes`.
 
