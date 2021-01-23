@@ -1,4 +1,4 @@
-"""Test indexer filename parsing."""
+"""Test filename parsing for /data/exp files."""
 
 import sys
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
