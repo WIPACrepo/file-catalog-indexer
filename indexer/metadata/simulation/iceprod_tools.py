@@ -331,12 +331,12 @@ def _get_iceprod_querier(
         raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
 
 
-def _parse_dataset_num(filepath: str) -> int:
-    """Return the dataset num by parsing the filepath."""
+def _parse_dataset_num_from_dirpath(filepath: str) -> int:
+    """Return the dataset num by parsing the directory path."""
     # try IP2 first: IP1 uses smaller numbers, so false-positive matches are more likely
     for dataset_range in [_ICEPROD_V2_DATASET_RANGE, _ICEPROD_V1_DATASET_RANGE]:
         parts = filepath.split("/")
-        for p in parts[:-1]:
+        for p in reversed(parts[:-1]):  # ignore the filename; search right-to-left
             try:
                 dataset_num = int(p)
                 if dataset_num in dataset_range:
@@ -362,7 +362,7 @@ async def get_job_config(
 
     # if given dataset_num doesn't work (or was None), try parsing one from filepath
     if dataset_num is None:
-        dataset_num = _parse_dataset_num(filepath)
+        dataset_num = _parse_dataset_num_from_dirpath(filepath)
         querier = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
 
     job_config = await querier.get_job_config(filepath, job_index)
