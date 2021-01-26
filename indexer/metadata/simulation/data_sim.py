@@ -52,11 +52,11 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # L5 - L1 -> Triggered -> Propagated -> Generated
         proc_level_strings = {
-            utils.ProcessingLevel.L5: ["L5"],
-            utils.ProcessingLevel.L4: ["L4"],
-            utils.ProcessingLevel.L3: ["L3"],
-            utils.ProcessingLevel.L2: ["L2"],
-            utils.ProcessingLevel.L1: ["L1"],
+            utils.ProcessingLevel.L5: ["L5"],  # implicitly, also "level5"
+            utils.ProcessingLevel.L4: ["L4"],  # ``
+            utils.ProcessingLevel.L3: ["L3"],  # ``
+            utils.ProcessingLevel.L2: ["L2"],  # ``
+            utils.ProcessingLevel.L1: ["L1"],  # ``
             utils.ProcessingLevel.Triggered: ["detector"],
             utils.ProcessingLevel.Propagated: ["hits", "hit", "propagated"],
             utils.ProcessingLevel.Generated: [

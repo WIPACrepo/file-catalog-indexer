@@ -4,9 +4,12 @@
 
 import re
 import sys
-from typing import Dict, List, Optional, Pattern, TypedDict
+from typing import List, Pattern
 
 import pytest
+
+# local imports
+import data
 
 sys.path.append(".")
 from indexer.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
@@ -24,42 +27,46 @@ def sim_regexes() -> List[Pattern[str]]:
 
 def test_good(sim_regexes: List[Pattern[str]]) -> None:  # pylint: disable=C0103
     """Test sim filename parsing."""
-
-    class _FilenameValues(TypedDict):
-        proc_level: Optional[utils.ProcessingLevel]
-        dataset: Optional[int]
-        job: Optional[int]
-
-    filenames_and_values: Dict[str, _FilenameValues] = {
-        "TODO": {"proc_level": 0, "dataset": 0, "job": 0},  # TODO
-    }
-
     # is_valid_filename()
-    for fname in filenames_and_values.keys():
-        print(fname)
-        assert data_sim.DataSimI3FileMetadata.is_valid_filename(fname)
+    for fpath, values in data.EXAMPLES.items():
+        print(fpath)
+        assert data_sim.DataSimI3FileMetadata.is_valid_filename(values["fileinfo"].name)
 
     # figure_processing_level()
-    for fname, values in filenames_and_values.items():
-        print(fname)
+    for fpath, values in data.EXAMPLES.items():
+        print(fpath)
         proc_level = data_sim.DataSimI3FileMetadata.figure_processing_level(
-            utils.FileInfo(fname)
+            values["fileinfo"]
         )
         assert proc_level == values["proc_level"]
 
     # parse_iceprod_dataset_job_ids()
-    for fname, values in filenames_and_values.items():
-        print(fname)
+    for fpath, values in data.EXAMPLES.items():
+        print(fpath)
         dataset, job = data_sim.DataSimI3FileMetadata.parse_iceprod_dataset_job_ids(
-            sim_regexes, utils.FileInfo(fname)
+            sim_regexes, values["fileinfo"]
         )
         assert dataset == values["dataset"]
         assert job == values["job"]
 
 
+def test_invalid() -> None:  # pylint: disable=C0103
+    """Test invalid sim filenames."""
+    # Ex: /data/sim/IceCube/2012/generated/CORSIKA-in-ice/12359/IC86_2015/basic_filters/Run126291/Level2_IC86.2015_data_Run00126291_Subrun00000000.i3.bz2
+    # Ex: /data/sim/IceCube/2013/generated/CORSIKA-in-ice/photo-electrons/briedel/muongun/mcpes/gamma_2_all/IC86_Merged_Muons_Emin_0.500000_TeV_Emax_10.000000_PeV_Gamma_2.000000_RunNumber_3881_Seed_107942_L1_L2_IC2011.i3.bz2"
+    filenames = [
+        "Level2_IC86.2013_data_Run555_Subrun666.i3",
+        "IC86_Merged_Muons_Emin_0.500000_TeV_Emax_10.000000_PeV_Gamma_2.000000_RunNumber_3881_Seed_107942_L1_L2_IC2011.i3.bz2",
+    ]  # TODO
+
+    for fname in filenames:
+        print(fname)
+        assert not data_sim.DataSimI3FileMetadata.is_valid_filename(fname)
+
+
 def test_bad(sim_regexes: List[Pattern[str]]) -> None:  # pylint: disable=C0103
     """Test bad sim filename parsing."""
-    filenames = ["TODO"]  # TODO
+    filenames = [""]  # TODO
 
     for fname in filenames:
         print(fname)

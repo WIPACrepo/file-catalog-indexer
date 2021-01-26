@@ -68,6 +68,10 @@ def test_parse_dataset_num_errors() -> None:  # pylint: disable=C0103
         "/ice/cube/0.txt",  # no numbers in dirpath
         "grand/canyon/-1/natl/50000/park.txt",  # no numbers in range
         "/abc123/easy.txt",  # alpha-numeric dir
+        "",
+        "/",
+        "5",
+        "/6",
     ]
 
     for fpath in errors:
