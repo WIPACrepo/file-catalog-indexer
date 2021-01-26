@@ -57,7 +57,10 @@ def test_invalid() -> None:  # pylint: disable=C0103
     filenames = [
         "Level2_IC86.2013_data_Run555_Subrun666.i3",
         "IC86_Merged_Muons_Emin_0.500000_TeV_Emax_10.000000_PeV_Gamma_2.000000_RunNumber_3881_Seed_107942_L1_L2_IC2011.i3.bz2",
-    ]  # TODO
+        "this.is.a.file",
+        "not.really.i3.log",
+        "",
+    ]
 
     for fname in filenames:
         print(fname)
@@ -66,12 +69,27 @@ def test_invalid() -> None:  # pylint: disable=C0103
 
 def test_bad(sim_regexes: List[Pattern[str]]) -> None:  # pylint: disable=C0103
     """Test bad sim filename parsing."""
-    filenames = [""]  # TODO
+    filepaths = [
+        # Illegal variations on "/test/Level2_IC86.2011_corsika.010285.000000.i3.bz2"...
+        "/test/Level2_IC86.2011_shmorsika.010285.000000.i3.bz2",
+        "/test/Level9_IC86.2011_corsika.010285.000000.i3.bz2",
+        "/test/Level1_IC86.2011_corsika.010285.000000.i3.bz2"
+        "/test/Level3_IC86.2011_corsika.010285.000000.i3.bz2"
+        "/test/Level0_IC86.2011_corsika.010285.000000.i3.bz2",
+        "/test/Level2_IC86.20110_corsika.010285.000000.i3.bz2",
+        "/test/Level2_IC86.2011_corsika.010285.000000.002.002.i3.bz2",
+        "/test/Level2_IC86.2011_corsika.010285.000000.i4.bz2",
+        "/test/Level2_IC86.2011_corsika.010285.000000",
+        # misc...
+        "",
+        "/",
+        "green.eggs.ham",
+    ]  # NOTE: This could be more extensive. Essentially, filename patterns are very strict
 
-    for fname in filenames:
-        print(fname)
+    for fpath in filepaths:
+        print(fpath)
         with pytest.raises(ValueError) as e:
             data_sim.DataSimI3FileMetadata.parse_iceprod_dataset_job_ids(
-                sim_regexes, utils.FileInfo(fname)
+                sim_regexes, utils.FileInfo(fpath)
             )
         assert "Filename does not match any pattern, " in str(e.value)

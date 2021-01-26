@@ -25,7 +25,7 @@ EXAMPLES: Dict[str, _FilepathValues] = {
     "/data/sim/IceCube/2010/generated/CORSIKA-in-ice_000674/00000-00999/"
     "corsika.000674.000000.i3.gz": {
         "proc_level": utils.ProcessingLevel.Generated,
-        "dataset": 0,
+        "dataset": 674,
         "job": 0,
     },
     "/data/sim/IceCube/2011/generated/CORSIKA-ice-top/12333/topsimulator/0000000-0000999/"
@@ -73,8 +73,8 @@ EXAMPLES: Dict[str, _FilepathValues] = {
     "/data/sim/IceCube/2009/filtered/DST/4046/mmcTrackInfo/"
     "Level2_corsika_IC59.004046.000001.i3.gz": {
         "proc_level": utils.ProcessingLevel.L2,
-        "dataset": 0,
-        "job": 0,
+        "dataset": 4046,
+        "job": 1,
     },
     "/data/sim/IceCube/2011/generated/CORSIKA-ice-top/12333/detector/0000000-0000999/"
     "Detector_IC86_corsika_icetop.010410.000001.i3.bz2": {
@@ -241,7 +241,7 @@ EXAMPLES: Dict[str, _FilepathValues] = {
     "/data/sim/IceTop/2008/filtered/level2b/CORSIKA-ice-top/2558/"
     "level2b.corsika_it_40_ic40.002558.000000.DAT000001.i3.gz": {
         "proc_level": utils.ProcessingLevel.L2,
-        "dataset": 25558,
+        "dataset": 2558,
         "job": 0,
     },
     "/data/sim/PINGU/Phase1/pDOM/v47/processed/Step2/numu/001003/"
@@ -368,7 +368,7 @@ EXAMPLES: Dict[str, _FilepathValues] = {
     "/data/sim/IceCube/2013/generated/CORSIKA-in-ice/photo-electrons/briedel/snsample/mcgill/"
     "SimpleInjector_RunSimpleGenerator.pbs_50629255.gm-1r16-n04.guillimin.clumeq.ca.i3.bz2": {
         "proc_level": utils.ProcessingLevel.Generated,
-        "dataset": 50629255,
+        "dataset": 4,
         "job": None,
     },
     "/data/sim/PINGU/2014/triggered/MuonGun/IC86/trigger/000029/generator/"
@@ -422,7 +422,7 @@ EXAMPLES: Dict[str, _FilepathValues] = {
     "/data/sim/IceCube/2016/filtered/level2/Monopoles/MonoSim_00000001/"
     "MonoSim_00000001_00000001_00001000_00001000_00000000_01_08_0_lv_2.i3.bz2": {
         "proc_level": utils.ProcessingLevel.Generated,
-        "dataset": 1,
+        "dataset": 0,
         "job": 1,
     },
     # "ZZZ": {"proc_level": 0, "dataset": 0, "job": 0},

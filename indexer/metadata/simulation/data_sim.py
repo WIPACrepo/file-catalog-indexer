@@ -280,5 +280,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
         # Ex: Level2_IC86.2015_data_Run00126515_Subrun00000191.i3.bz2
         if "Run" in filename and "Subrun" in filename:
             return False
+        # Ex: IC86_Merged_Muons_Emin_0.500000_TeV_Emax_10.000000_PeV_Gamma_6.000000_RunNumber_1152_Seed_144244.i3.bz2
+        if "RunNumber" in filename:
+            return False
 
         return True
