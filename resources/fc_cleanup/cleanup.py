@@ -90,7 +90,7 @@ def main() -> None:
     for fcfile, evil_twin in get_fcfile_and_evil_twin(args.files_to_check, rc):
         logging.info(f'Found {fcfile["logical_name"]} and {evil_twin["logical_name"]}')
         # delete evil twin
-        rc.request_seq("GET", f"/api/files{evil_twin['uuid']}")
+        rc.request_seq("DELETE", f"/api/files{evil_twin['uuid']}")
         total += 1
 
     logging.info(f"Total deleted: {total}")
