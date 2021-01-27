@@ -71,7 +71,7 @@ class ProcessingLevel(Enum):
     Propagated = "Propagated"  # sim
     Triggered = "Triggered"  # sim
     L1 = "L1"  # sim
-    L2 = "L2"
-    L3 = "L3"
-    L4 = "L4"
-    L5 = "L5"
+    L2 = "L2"  # exp & sim
+    L3 = "L3"  # sim
+    L4 = "L4"  # sim
+    L5 = "L5"  # sim

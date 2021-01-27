@@ -84,6 +84,27 @@ class _IceProdQuerier:
         )
 
 
+# --------------------------------------------------------------------------------------
+# IceProd v1
+
+
+@functools.lru_cache()
+def _get_iceprod1_dataset_steering_params(
+    iceprodv1_db: pymysql.connections.Connection, dataset_num: int
+) -> List[Dict[str, Any]]:
+    sql = (
+        "SELECT * FROM steering_parameter "
+        f"WHERE dataset_id = {dataset_num} "
+        "ORDER by name"
+    )
+
+    cursor = iceprodv1_db.cursor(pymysql.cursors.DictCursor)
+    cursor.execute(sql)
+    results: List[Dict[str, Any]] = cursor.fetchall()  # type: ignore[assignment]
+
+    return results
+
+
 class _IceProdV1Querier(_IceProdQuerier):
     """Manage IceProd v1 queries."""
 
@@ -93,15 +114,10 @@ class _IceProdV1Querier(_IceProdQuerier):
 
     def _query_steering_params(self) -> SteeringParameters:
         steering_params = {}
-        sql = (
-            "SELECT * FROM steering_parameter "
-            f"WHERE dataset_id = {self.dataset_num} "
-            "ORDER by name"
-        )
 
-        cursor = self.iceprodv1_db.cursor(pymysql.cursors.DictCursor)
-        cursor.execute(sql)
-        results: List[Dict[str, Any]] = cursor.fetchall()  # type: ignore[assignment]
+        results = _get_iceprod1_dataset_steering_params(
+            self.iceprodv1_db, self.dataset_num
+        )
 
         if not results:
             raise DatasetNotFound()
@@ -135,6 +151,10 @@ class _IceProdV1Querier(_IceProdQuerier):
         return job_config
 
 
+# --------------------------------------------------------------------------------------
+# IceProd v2
+
+
 @functools.lru_cache()
 async def _get_all_iceprod2_datasets(
     iceprodv2_rc: RestClient,
@@ -152,6 +172,29 @@ async def _get_all_iceprod2_datasets(
         }
 
     return ret
+
+
+@functools.lru_cache()
+async def _get_iceprod2_dataset_job_config(
+    iceprodv2_rc: RestClient, dataset_id: str
+) -> dataclasses.Job:
+    ret = await iceprodv2_rc.request("GET", f"/config/{dataset_id}")
+    job_config = dict_to_dataclasses(ret)
+
+    return job_config
+
+
+@functools.lru_cache()
+async def _get_iceprod2_dataset_tasks(
+    iceprodv2_rc: RestClient, dataset_id: str, job_index: int
+) -> Dict[str, Any]:
+    ret = iceprodv2_rc.request(
+        "GET",
+        f"/datasets/{dataset_id}/tasks",
+        {"job_index": job_index, "keys": "name|task_id|job_id|task_index"},
+    )
+
+    return cast(Dict[str, Any], ret)
 
 
 class _IceProdV2Querier(_IceProdQuerier):
@@ -176,8 +219,9 @@ class _IceProdV2Querier(_IceProdQuerier):
     ) -> dataclasses.Job:
         dataset_id, jobs_submitted = await self._get_dataset_info()
 
-        ret = await self.iceprodv2_rc.request("GET", f"/config/{dataset_id}")
-        job_config: dataclasses.Job = dict_to_dataclasses(ret)
+        job_config: dataclasses.Job = await _get_iceprod2_dataset_job_config(
+            self.iceprodv2_rc, dataset_id
+        )
 
         job_config["options"].update(
             {
@@ -250,13 +294,10 @@ class _IceProdV2Querier(_IceProdQuerier):
         if "task" not in job_config["options"]:
             raise TaskNotFound()
 
-        ret = await self.iceprodv2_rc.request(
-            "GET",
-            f"/datasets/{job_config['options']['dataset_id']}/tasks",
-            {
-                "job_index": job_config["options"]["job"],
-                "keys": "name|task_id|job_id|task_index",
-            },
+        ret = await _get_iceprod2_dataset_tasks(
+            self.iceprodv2_rc,
+            job_config["options"]["dataset_id"],
+            job_config["options"]["job"],
         )
 
         # find matching task
