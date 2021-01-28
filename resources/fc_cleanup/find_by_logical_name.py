@@ -28,50 +28,53 @@ def find_all_paths(
     start: int = 0,
     processing_level: Optional[str] = None,
 ) -> int:
-    """Find all uuids for entry's with `'logical_name'`s starting w/ `root`."""
-    total = 0
-    for i in itertools.count(start):
-        logging.info(f"i={i} ({i*BATCH_SIZE})")
-        matches: List[_Match] = []
+    """Find FC files with `'logical_name'`s starting w/ `root`."""
+    prefix = root.replace("/", "-")  # ex: "/data/exp/" -> "-data-exp-"
+    if processing_level is not None:
+        prefix += f".{processing_level}"
+    paths_outfile = os.path.join(outdir, prefix + ".paths")
+    infos_outfile = os.path.join(outdir, prefix + ".infos")
 
-        # request
-        body: Dict[str, Union[int, str]] = {"start": i * BATCH_SIZE}
-        if processing_level is not None:
-            body["query"] = json.dumps({"processing_level": processing_level})
-        files = rc.request_seq("GET", "/api/files", body)["files"]
+    with open(paths_outfile, "a+") as paths_f, open(infos_outfile, "a+") as infos_f:
+        total = 0
+        for i in itertools.count(start):
+            logging.info(f"i={i} ({i*BATCH_SIZE})")
+            matches: List[_Match] = []
 
-        if not files:
-            raise Exception("no files in response")
+            # request
+            body: Dict[str, Union[int, str]] = {"start": i * BATCH_SIZE}
+            if processing_level is not None:
+                body["query"] = json.dumps({"processing_level": processing_level})
+            files = rc.request_seq("GET", "/api/files", body)["files"]
 
-        # find matches
-        for fcfile in files:
-            if fcfile["logical_name"].startswith(root):
-                matches.append(
-                    {"logical_name": fcfile["logical_name"], "uuid": fcfile["uuid"]}
-                )
-        logging.info(f"new files found: {len(matches)}")
+            if not files:
+                raise Exception("no files in response")
 
-        if not matches:
-            continue
+            # find matches
+            for fcfile in files:
+                if fcfile["logical_name"].startswith(root):
+                    matches.append(
+                        {"logical_name": fcfile["logical_name"], "uuid": fcfile["uuid"]}
+                    )
+            logging.info(f"new files found: {len(matches)}")
 
-        # increment total
-        total += len(matches)
-        logging.info(f"total files: {total} ({(total/((i+1)*BATCH_SIZE))*100:.2f}%)")
+            if not matches:
+                continue
 
-        # write matches to outfiles
-        prefix = root.replace("/", "-")
-        if processing_level is not None:
-            prefix += f".{processing_level}"
-        # *.paths
-        with open(os.path.join(outdir, prefix + ".paths"), "a+") as p_f:
-            logging.info(f"Appending to {p_f.name}...")
+            # increment total
+            total += len(matches)
+            logging.info(
+                f"total files: {total} ({(total/((i+1)*BATCH_SIZE))*100:.2f}%)"
+            )
+
+            # write matches to outfiles
             for m in matches:  # pylint: disable=C0103
-                print(m["logical_name"], file=p_f)
-        # *.paths-uuids
-        with open(os.path.join(outdir, prefix + ".paths-uuids"), "a+") as pu_f:
-            logging.info(f"Appending to {pu_f.name}...")
-            for m in matches:  # pylint: disable=C0103
-                print(f'{m["logical_name"]} - {m["uuid"]}', file=pu_f)
+                # *.paths
+                logging.info(f"Appending to {paths_f.name}...")
+                print(m["logical_name"], file=paths_f)
+                # *.infos
+                logging.info(f"Appending to {infos_f.name}...")
+                print(f'{m["logical_name"]} - {m["uuid"]} - i={i}', file=infos_f)
 
     return total
 
