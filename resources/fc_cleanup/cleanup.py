@@ -41,7 +41,10 @@ def _get_fcfile(rc: RestClient, logical_name: str) -> FCFile:
 
 def get_evil_twin(rc: RestClient, this: FCFile) -> FCFile:
     """Get the FC file that is indexed under `this`'s realpath."""
-    evil_twin = _get_fcfile(rc, os.path.realpath(this["logical_name"]))
+    # realpath() doesn't check if file exists, which is a good b/c file might've moved
+    realpath = os.path.realpath(this["logical_name"])
+
+    evil_twin = _get_fcfile(rc, realpath)
 
     # ignore keys that aren't expected to match
     # TODO - what other fields to ignore?
