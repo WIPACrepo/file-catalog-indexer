@@ -1,78 +1,73 @@
 """Example file metadata."""
 
 EXAMPLES = {
-    "PFRaw/PFRaw_PhysicsTrig_PhysicsFiltering_Run00109298_Subrun00000000_00000064.tar.gz": {
+    "PFRaw/SPS-CV-DATA-PFRaw_TestData_RandomFiltering_Run00115379_Subrun00000001_00000000.tar.gz": {
         "_links": {
             "parent": {"href": "/api/files"},
-            "self": {"href": "/api/files/4a59b52c-7a46-11ea-911f-3a952b566ed1"},
+            "self": {"href": "/api/files/d5408af6-7ae1-11ea-a6c4-3a952b566ed1"},
         },
         "checksum": {
-            "sha512": "0880e00e70d72f9d7ce1d6905cf874b36b63f0ae8acc71d53baf0628c72089985204d1baadcc9432ee5c09e387dffd9741a6257ae5dcdfbc710b90b5262e5a67"
+            "sha512": "8f6494c6362627363bad618f6b442e009fb682ccd342b897fc50eaabfcb39ebc749adbc801722ad2588fa3965d2ffbf931209d3ebd1084a89cdd947d9e596d38"
         },
         "content_status": "good",
-        "create_date": "2007-09-11",
+        "create_date": "2010-02-01",
         "data_type": "real",
-        "file_size": 623743809,
+        "file_size": 944802324,
         "locations": [
             {
                 "site": "WIPAC",
-                "path": "/data/exp/IceCube/2007new/filtered/GRB/0911/PFRaw_PhysicsTrig_PhysicsFiltering_Run00109298_Subrun00000000_00000064.tar.gz",
+                "path": "/data/exp/IceCube/2010/calibration/SouthPole/0131/SPS-CV-DATA-PFRaw_TestData_RandomFiltering_Run00115379_Subrun00000001_00000000.tar.gz",
             }
         ],
-        "logical_name": "/data/exp/IceCube/2007new/filtered/GRB/0911/PFRaw_PhysicsTrig_PhysicsFiltering_Run00109298_Subrun00000000_00000064.tar.gz",
-        "meta_modify_date": "2020-05-26 20:04:56.831678",
+        "logical_name": "/data/exp/IceCube/2010/calibration/SouthPole/0131/SPS-CV-DATA-PFRaw_TestData_RandomFiltering_Run00115379_Subrun00000001_00000000.tar.gz",
+        "meta_modify_date": "2020-04-10 04:14:55.222933",
         "processing_level": "PFRaw",
         "run": {
-            "end_datetime": "2007-09-11T06:11:08",
-            "event_count": 158659,
-            "first_event": 10127717,
-            "last_event": 10286375,
-            "part_number": 64,
-            "run_number": 109298,
-            "start_datetime": "2007-09-11T06:06:45",
-            "subrun_number": 0,
+            "end_datetime": "2010-01-31T02:27:22",
+            "event_count": 48907,
+            "first_event": 8766,
+            "last_event": 57672,
+            "part_number": 0,
+            "run_number": 115379,
+            "start_datetime": None,
+            "subrun_number": 1,
         },
-        "software": [
-            {
-                "name": "http://code.icecube.wisc.edu/svn/meta-projects/jeb/releases/V00-00-07",
-                "version": "35754",
-            }
-        ],
-        "uuid": "4a59b52c-7a46-11ea-911f-3a952b566ed1",
+        "software": None,
+        "uuid": "d5408af6-7ae1-11ea-a6c4-3a952b566ed1",
     },
-    "PFFilt/PFFilt_PhysicsTrig_PhysicsFilt_Run00087385_00008.tar.gz": {
+    "PFFilt/PFFilt_PhysicsTrig_PhysicsFilt_Run00087226_00025.tar.gz": {
         "_links": {
             "parent": {"href": "/api/files"},
-            "self": {"href": "/api/files/8c85ec48-7a31-11ea-9053-3a952b566ed1"},
+            "self": {"href": "/api/files/9bde3ce6-7b15-11ea-93ab-3a952b566ed1"},
         },
         "checksum": {
-            "sha512": "27f87b5a62721df5b39d9af19db447367871615ae8cc1ef5253668b8feeee278b4607630c45a566df7f3bf85429f06004e255015a87bb6e50d2d3a25c416bcb9"
+            "sha512": "2a13cde3d9093d3d6667dc7e4e3a6d885da44a00cd2a0f42fced277af7f2fb61952a7b50cb1bfa8c78fddd01cc6ca614da08295e78043828151a242426784daf"
         },
         "content_status": "good",
-        "create_date": "2006-04-17",
+        "create_date": "2006-04-01",
         "data_type": "real",
-        "file_size": 1505807,
+        "file_size": 1667432,
         "locations": [
             {
                 "site": "WIPAC",
-                "path": "/data/exp/IceCube/2006/filtered/PFFilt/0417/PFFilt_PhysicsTrig_PhysicsFilt_Run00087385_00008.tar.gz",
+                "path": "/data/exp/IceCube/2010/unbiased/AURA_Processed/Oct27/data/ana/IC9/filtered/PFFilt/0401/PFFilt_PhysicsTrig_PhysicsFilt_Run00087226_00025.tar.gz",
             }
         ],
-        "logical_name": "/data/exp/IceCube/2006/filtered/PFFilt/0417/PFFilt_PhysicsTrig_PhysicsFilt_Run00087385_00008.tar.gz",
-        "meta_modify_date": "2020-04-09 07:13:01.779505",
+        "logical_name": "/data/exp/IceCube/2010/unbiased/AURA_Processed/Oct27/data/ana/IC9/filtered/PFFilt/0401/PFFilt_PhysicsTrig_PhysicsFilt_Run00087226_00025.tar.gz",
+        "meta_modify_date": "2020-04-10 10:25:32.778472",
         "processing_level": "PFFilt",
         "run": {
-            "end_datetime": "2006-04-17T15:11:50",
+            "end_datetime": "2006-04-01T15:06:08",
             "event_count": 0,
             "first_event": None,
             "last_event": None,
-            "part_number": 8,
-            "run_number": 87385,
-            "start_datetime": "2006-04-17T15:10:14",
+            "part_number": 25,
+            "run_number": 87226,
+            "start_datetime": "2006-04-01T15:05:06",
             "subrun_number": 0,
         },
         "software": [{"name": "PhysicsFilt", "version": "01.00.00"}],
-        "uuid": "8c85ec48-7a31-11ea-9053-3a952b566ed1",
+        "uuid": "9bde3ce6-7b15-11ea-93ab-3a952b566ed1",
     },
     "PFDST/PFDST_PhysicsTrig_PhysicsFiltering_Run00116892_Subrun00000000_00000134.tar.gz": {
         "_links": {
