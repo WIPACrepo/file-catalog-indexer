@@ -106,47 +106,66 @@ EXAMPLES = {
         ],
         "uuid": "87663bc2-7b1f-11ea-9e1d-3a952b566ed1",
     },
-    "L2/Level2_IC86.2012_data_Run00120243_Subrun00000311.i3.bz2": {
+    "L2/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2": {
         "_links": {
             "parent": {"href": "/api/files"},
-            "self": {"href": "/api/files/387b924a-79f1-11ea-a3bc-3a952b566ed1"},
+            "self": {"href": "/api/files/c93dddd4-8316-11ea-ad8b-26f2811e2864"},
         },
         "checksum": {
-            "sha512": "7e8746cfe3ea3078f13fd11d037bbadeae2716291279e93838fb84a40870d9f4ed06dd06b45018e6bcee86367261637fe89b3b9b4f595380d93da05493f26223"
+            "sha512": "84ef8cb97163b6f6f6843505709821b2412b513b4c76a81f9a57c94673b41d250d03e15bdebd8846c04f4f6dfa01f53c8c8567cb585cd07334dc0ed6dbdfb357"
         },
         "content_status": "good",
-        "create_date": "2018-07-31",
+        "create_date": "2018-07-09",
         "data_type": "real",
-        "file_size": 4463,
+        "file_size": 214733276,
         "locations": [
             {
                 "site": "WIPAC",
-                "path": "/data/exp/DM-Ice/2012/filtered/pole/icecube_coincidence/06/det1/Level2_IC86.2012_data_Run00120243_Subrun00000311.i3.bz2",
-            }
+                "path": "/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2",
+            },
+            {
+                "site": "NERSC",
+                "path": "/home/projects/icecube/data/exp/IceCube/2014/filtered/level2/0609/33b533dc3d5d11eba8bbce4f898b144a.zip:/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2",
+                "archive": True,
+            },
         ],
-        "logical_name": "/data/exp/DM-Ice/2012/filtered/pole/icecube_coincidence/06/det1/Level2_IC86.2012_data_Run00120243_Subrun00000311.i3.bz2",
-        "meta_modify_date": "2020-04-08 23:32:32.992368",
+        "logical_name": "/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2",
+        "meta_modify_date": "2020-12-13 18:27:56.220169",
         "offline_processing_metadata": {
-            "L2_gcd_file": "",
-            "first_event": None,
-            "gaps": None,
-            "last_event": None,
-            "livetime": None,
-            "season": 2012,
-            "season_name": "IC86-2",
+            "L2_gcd_file": "/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_0609_0_94_GCD.i3.gz",
+            "first_event": {
+                "datetime": "2014-06-09T11:43:08.405840",
+                "event_id": 40915942,
+            },
+            "gaps": [
+                {
+                    "start_event_id": 40915942,
+                    "stop_event_id": 41190058,
+                    "delta_time": 105.400041,
+                    "start_date": "2014-06-09T11:43:08.405840",
+                    "stop_date": "2014-06-09T11:44:53.805881",
+                }
+            ],
+            "last_event": {
+                "datetime": "2014-06-09T11:44:53.805881",
+                "event_id": 41190058,
+            },
+            "livetime": 105.4,
+            "season": "2014",
+            "season_name": "IC86-4",
         },
         "processing_level": "L2",
         "run": {
             "end_datetime": None,
-            "event_count": 2,
-            "first_event": 71834853,
-            "last_event": 71834853,
-            "part_number": 311,
-            "run_number": 120243,
+            "event_count": 194351,
+            "first_event": 40915942,
+            "last_event": 41190058,
+            "part_number": 149,
+            "run_number": 124852,
             "start_datetime": None,
             "subrun_number": 0,
         },
         "software": None,
-        "uuid": "387b924a-79f1-11ea-a3bc-3a952b566ed1",
+        "uuid": "c93dddd4-8316-11ea-ad8b-26f2811e2864",
     },
 }
