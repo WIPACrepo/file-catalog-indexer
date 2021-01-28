@@ -21,12 +21,10 @@ FCFile = Dict[str, Any]
 
 
 def _get_fcfile(rc: RestClient, logical_name: str) -> FCFile:
-    body = {
-        "query": json.dumps({"logical_name": logical_name}),
-        "keys": "logical_name|checksum",
-    }
 
+    # get uuid
     try:
+        body = {"query": json.dumps({"logical_name": logical_name})}
         results = rc.request_seq("GET", "/api/files", body)["files"]
     except KeyError:
         raise FileNotFoundError
@@ -35,18 +33,29 @@ def _get_fcfile(rc: RestClient, logical_name: str) -> FCFile:
     if len(results) > 1:
         raise Exception(f"Multiple FC matches for {logical_name}")
 
+    # get full metadata
+    results = rc.request_seq("GET", f"/api/files/{results[0]['uuid']}")
+
     return cast(FCFile, results[0])
 
 
 def get_evil_twin(rc: RestClient, this: FCFile) -> FCFile:
     """Get the FC file that is indexed under `this`'s realpath."""
-    realpath = os.path.realpath(this["logical_name"])
-    evil_twin = _get_fcfile(rc, realpath)
+    evil_twin = _get_fcfile(rc, os.path.realpath(this["logical_name"]))
 
-    # TODO - what other fields to check?
-    if this["checksum"]["sha512"] != evil_twin["checksum"]["sha512"]:
+    # ignore keys that aren't expected to match
+    # TODO - what other fields to ignore?
+    ignored_fields = ["_links", "logical_name", "uuid"]
+
+    def copy_for_compare(fcfile: FCFile) -> FCFile:
+        xerox = fcfile.copy()
+        for field in ignored_fields:
+            del xerox[field]
+        return xerox
+
+    if copy_for_compare(this) != copy_for_compare(evil_twin):
         raise Exception(
-            f"Checksums don't match {this['logical_name']} vs {evil_twin['logical_name']}"
+            f"These don't match {this} vs {evil_twin} (disregarding: {ignored_fields})"
         )
 
     return evil_twin
