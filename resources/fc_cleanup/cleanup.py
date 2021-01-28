@@ -51,6 +51,10 @@ def get_evil_twin(rc: RestClient, this: FCFile) -> FCFile:
         xerox = fcfile.copy()
         for field in ignored_fields:
             del xerox[field]
+        # replace logical_name in locations object with a placeholder value
+        for i, locus in enumerate(xerox["locations"].copy()):
+            if locus["path"] == fcfile["logical_name"]:
+                xerox["locations"][locus][i] = "PLACEHOLDER"
         return xerox
 
     if copy_for_compare(this) != copy_for_compare(evil_twin):
