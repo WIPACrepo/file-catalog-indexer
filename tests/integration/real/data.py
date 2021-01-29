@@ -106,66 +106,68 @@ EXAMPLES = {
         ],
         "uuid": "87663bc2-7b1f-11ea-9e1d-3a952b566ed1",
     },
-    "L2/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2": {
+    "L2/Level2_IC86.2018_data_Run00131410_Subrun00000000_00000172.i3.zst": {
         "_links": {
             "parent": {"href": "/api/files"},
-            "self": {"href": "/api/files/c93dddd4-8316-11ea-ad8b-26f2811e2864"},
+            "self": {"href": "/api/files/c69f23f8-84ac-11ea-ac32-26f2811e2864"},
         },
         "checksum": {
-            "sha512": "84ef8cb97163b6f6f6843505709821b2412b513b4c76a81f9a57c94673b41d250d03e15bdebd8846c04f4f6dfa01f53c8c8567cb585cd07334dc0ed6dbdfb357"
+            "sha512": "1fb4f61a62c05f4a955abb8f83fd72b463e2727086abcbda9213a496e51ef6de29952f7d9c551b5807d75e7cbbafbaae3ba4491c91a6bb2e872b562a7e26b591"
         },
         "content_status": "good",
-        "create_date": "2018-07-09",
+        "create_date": "2018-08-20",
         "data_type": "real",
-        "file_size": 214733276,
+        "file_size": 159646051,
         "locations": [
             {
                 "site": "WIPAC",
-                "path": "/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2",
-            },
-            {
-                "site": "NERSC",
-                "path": "/home/projects/icecube/data/exp/IceCube/2014/filtered/level2/0609/33b533dc3d5d11eba8bbce4f898b144a.zip:/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2",
-                "archive": True,
-            },
+                "path": "/data/exp/IceCube/2018/filtered/level2/0820/Run00131410_74/Level2_IC86.2018_data_Run00131410_Subrun00000000_00000172.i3.zst",
+            }
         ],
-        "logical_name": "/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_Subrun00000149.i3.bz2",
-        "meta_modify_date": "2020-12-13 18:27:56.220169",
+        "logical_name": "/data/exp/IceCube/2018/filtered/level2/0820/Run00131410_74/Level2_IC86.2018_data_Run00131410_Subrun00000000_00000172.i3.zst",
+        "meta_modify_date": "2020-05-06 22:53:44.429119",
         "offline_processing_metadata": {
-            "L2_gcd_file": "/data/exp/IceCube/2014/filtered/level2/0609/Run00124852_0/Level2_IC86.2014_data_Run00124852_0609_0_94_GCD.i3.gz",
+            "L2_gcd_file": "/data/exp/IceCube/2018/filtered/level2/0820/Run00131410_74/Level2_IC86.2018_data_Run00131410_0820_74_409_GCD.i3.zst",
             "first_event": {
-                "datetime": "2014-06-09T11:43:08.405840",
-                "event_id": 40915942,
+                "datetime": "2018-08-20T19:05:11.299192",
+                "event_id": 52027135,
             },
             "gaps": [
                 {
-                    "start_event_id": 40915942,
-                    "stop_event_id": 41190058,
-                    "delta_time": 105.400041,
-                    "start_date": "2014-06-09T11:43:08.405840",
-                    "stop_date": "2014-06-09T11:44:53.805881",
+                    "start_event_id": 52027135,
+                    "stop_event_id": 52331521,
+                    "delta_time": 118.960197,
+                    "start_date": "2018-08-20T19:05:11.299192",
+                    "stop_date": "2018-08-20T19:07:10.259389",
                 }
             ],
             "last_event": {
-                "datetime": "2014-06-09T11:44:53.805881",
-                "event_id": 41190058,
+                "datetime": "2018-08-20T19:07:10.259389",
+                "event_id": 52331521,
             },
-            "livetime": 105.4,
-            "season": "2014",
-            "season_name": "IC86-4",
+            "livetime": 118.96,
+            "season": "2018",
+            "season_name": "IC86-8",
         },
         "processing_level": "L2",
         "run": {
-            "end_datetime": None,
-            "event_count": 194351,
-            "first_event": 40915942,
-            "last_event": 41190058,
-            "part_number": 149,
-            "run_number": 124852,
-            "start_datetime": None,
+            "end_datetime": "2018-08-20T20:44:54",
+            "event_count": 177992,
+            "first_event": 52027135,
+            "last_event": 52331521,
+            "part_number": 172,
+            "run_number": 131410,
+            "start_datetime": "2018-08-20T13:25:29",
             "subrun_number": 0,
         },
-        "software": None,
-        "uuid": "c93dddd4-8316-11ea-ad8b-26f2811e2864",
+        "software": [
+            {"name": "icerec", "version": "V05-02-00", "date": "2018-09-12T18:25:48"},
+            {
+                "name": "http://code.icecube.wisc.edu/svn/sandbox/jan/OfflineSubmitScripts/seasons/2017/PostProcessing_L2.py",
+                "version": "Revision 157547",
+                "date": "2018-09-15T14:13:17",
+            },
+        ],
+        "uuid": "c69f23f8-84ac-11ea-ac32-26f2811e2864",
     },
 }
