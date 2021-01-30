@@ -1,18 +1,20 @@
 """Example file metadata."""
 
-EXAMPLES = {
+from typing import Any, Dict
+
+EXAMPLES: Dict[str, Dict[str, Any]] = {
     "PFRaw/SPS-CV-DATA-PFRaw_TestData_RandomFiltering_Run00115379_Subrun00000001_00000000.tar.gz": {
         "_links": {
             "parent": {"href": "/api/files"},
             "self": {"href": "/api/files/d5408af6-7ae1-11ea-a6c4-3a952b566ed1"},
         },
         "checksum": {
-            "sha512": "8f6494c6362627363bad618f6b442e009fb682ccd342b897fc50eaabfcb39ebc749adbc801722ad2588fa3965d2ffbf931209d3ebd1084a89cdd947d9e596d38"
+            "sha512": "f4bf2fe995abddce2699f80f4a03d69cf41e051cc6452e186b4ceca1f4b198f360dddf81f7efcabac1949df6f5c1dabf571d509fc5106bec9ef7d21a22c34f5d"
         },
         "content_status": "good",
         "create_date": "2010-02-01",
         "data_type": "real",
-        "file_size": 944802324,
+        "file_size": 945,
         "locations": [
             {
                 "site": "WIPAC",
@@ -41,12 +43,12 @@ EXAMPLES = {
             "self": {"href": "/api/files/9bde3ce6-7b15-11ea-93ab-3a952b566ed1"},
         },
         "checksum": {
-            "sha512": "2a13cde3d9093d3d6667dc7e4e3a6d885da44a00cd2a0f42fced277af7f2fb61952a7b50cb1bfa8c78fddd01cc6ca614da08295e78043828151a242426784daf"
+            "sha512": "e81fe2cf274c95a24e8bd02c6a19016b8c7c318086dcd76d9afc414a3047bd676e9a08a4a3c4826c01cbbfb5161d2cf9245d1494da2e842b832c0dd47823a63e"
         },
         "content_status": "good",
         "create_date": "2006-04-01",
         "data_type": "real",
-        "file_size": 1667432,
+        "file_size": 1002,
         "locations": [
             {
                 "site": "WIPAC",
@@ -75,12 +77,12 @@ EXAMPLES = {
             "self": {"href": "/api/files/87663bc2-7b1f-11ea-9e1d-3a952b566ed1"},
         },
         "checksum": {
-            "sha512": "86fec738daab38774e81a70bdb93675cb53aaf42836ecb19620c4c814f16c53fcea09997b173d0c7c8f2c79072f77ec814e9f6102bd4de6064d3f66e767e11ce"
+            "sha512": "332e07a2047e9b7d6ead952b975bd61b20b177b3f628b23277bfa73febd1e49555308d9c4c9da57642e14c3e353fd1b51c2a76178515ac288110d3dcd0b2a667"
         },
         "content_status": "good",
         "create_date": "2014-04-30T07:30:09",
         "data_type": "real",
-        "file_size": 286937687,
+        "file_size": 1168,
         "locations": [
             {
                 "site": "WIPAC",
@@ -112,12 +114,12 @@ EXAMPLES = {
             "self": {"href": "/api/files/c69f23f8-84ac-11ea-ac32-26f2811e2864"},
         },
         "checksum": {
-            "sha512": "1fb4f61a62c05f4a955abb8f83fd72b463e2727086abcbda9213a496e51ef6de29952f7d9c551b5807d75e7cbbafbaae3ba4491c91a6bb2e872b562a7e26b591"
+            "sha512": "eacb6300948cc7708339c87501b64e05af6d32c2763be57591f99a154d3c19c9f431bd5f60365c2f8a1d11a13591cc194a68f09acbec6e380eca8cbfbd33f952"
         },
         "content_status": "good",
         "create_date": "2018-08-20",
         "data_type": "real",
-        "file_size": 159646051,
+        "file_size": 26,
         "locations": [
             {
                 "site": "WIPAC",
@@ -146,7 +148,7 @@ EXAMPLES = {
                 "event_id": 52331521,
             },
             "livetime": 118.96,
-            "season": "2018",
+            "season": 2018,
             "season_name": "IC86-8",
         },
         "processing_level": "L2",
