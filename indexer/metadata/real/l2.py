@@ -1,8 +1,9 @@
 """Class for collecting L2 file metadata."""
 
 
+import datetime
 import re
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, cast, Dict, Final, List, Optional, Tuple
 
 from ...utils import types, utils
 from . import filename_patterns
@@ -29,6 +30,14 @@ class L2FileMetadata(DataExpI3FileMetadata):
         self.gaps_dict = gaps_dict
         self.gcd_filepath = gcd_filepath
 
+    @staticmethod
+    def _i3time_to_datetime(year: int, daq_time: int) -> datetime.datetime:
+        """Convert `I3Time` to `datetime.datetime`."""
+        from icecube import dataclasses  # type: ignore[import]  # pylint: disable=E0401,C0415
+
+        i3_dt = dataclasses.I3Time(year, daq_time).date_time
+        return cast(datetime.datetime, i3_dt)
+
     def _parse_gaps_dict(
         self,
     ) -> Tuple[
@@ -45,8 +54,6 @@ class L2FileMetadata(DataExpI3FileMetadata):
         if livetime < 0:  # corrupted value, don't read any more values
             return None, None, None, None
 
-        from icecube import dataclasses  # type: ignore[import]  # pylint: disable=E0401,C0415
-
         try:
             # Ex: '53162019 2018 206130762188498'
             first = self.gaps_dict["First Event of File"].split()
@@ -55,10 +62,10 @@ class L2FileMetadata(DataExpI3FileMetadata):
             last = self.gaps_dict["Last Event of File"].split()
 
             first_id = int(first[0])
-            first_dt = dataclasses.I3Time(int(first[1]), int(first[2])).date_time
+            first_dt = self._i3time_to_datetime(int(first[1]), int(first[2]))
 
             last_id = int(last[0])
-            last_dt = dataclasses.I3Time(int(last[1]), int(last[2])).date_time
+            last_dt = self._i3time_to_datetime(int(last[1]), int(last[2]))
 
             gaps: List[types.GapEntry] = [
                 {

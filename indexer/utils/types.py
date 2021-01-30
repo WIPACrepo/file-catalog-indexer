@@ -55,7 +55,7 @@ class GapEntry(TypedDict):
 
     start_event_id: EventID
     stop_event_id: EventID
-    delta_time: int
+    delta_time: float
     start_date: Date
     stop_date: Date
 
