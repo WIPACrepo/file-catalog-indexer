@@ -186,6 +186,14 @@ class MetadataManager:  # pylint: disable=R0903
 
         return self._new_file_basic_only(filepath)
 
+    @staticmethod
+    def _is_data_sim_filepath(filepath: str) -> bool:
+        return filepath.startswith("/data/sim/")
+
+    @staticmethod
+    def _is_data_exp_filepath(filepath: str) -> bool:
+        return filepath.startswith("/data/exp/")
+
     def new_file(self, filepath: str) -> basic.BasicFileMetadata:
         """Return different metadata-file objects for files.
 
@@ -194,13 +202,14 @@ class MetadataManager:  # pylint: disable=R0903
         if self.basic_only:
             return self._new_file_basic_only(filepath)
 
-        if "/data/sim/" in filepath:
+        elif MetadataManager._is_data_sim_filepath(filepath):
             return self._new_file_simulation(filepath)
 
-        if "/data/exp/" in filepath:
+        elif MetadataManager._is_data_exp_filepath(filepath):
             return self._new_file_real(filepath)
 
-        raise RuntimeError(
-            f"Unaccounted for filepath type: {filepath}. "
-            "Run with --basic-only for basic metadata collection."
-        )
+        else:
+            raise RuntimeError(
+                f"Unaccounted for filepath type: {filepath}. "
+                "Run with --basic-only for basic metadata collection."
+            )
