@@ -19,9 +19,9 @@ from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C041
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 
 
+@patch("indexer.metadata.i3.I3FileMetadata._get_events_data")
 @patch("indexer.metadata_manager.MetadataManager._is_data_sim_filepath")
 @patch("indexer.metadata_manager.MetadataManager._is_data_exp_filepath")
-@patch("indexer.metadata.i3.I3FileMetadata._get_events_data")
 def test_1(
     _is_data_exp_filepath: Mock, _is_data_sim_filepath: Mock, _get_events_data: Mock
 ) -> None:
