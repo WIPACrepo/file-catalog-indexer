@@ -91,7 +91,8 @@ class MetadataManager:  # pylint: disable=R0903
                     with tarfile.open(dir_entry.path) as tar:
                         for tar_obj in tar:
                             # pylint: disable=C0325
-                            if not (iobytes := tar.extractfile(tar_obj)):
+                            iobytes = tar.extractfile(tar_obj)
+                            if not iobytes:
                                 continue
                             file_dict = yaml.safe_load(iobytes)
                             # Ex. Level2_IC86.2017_data_Run00130484_Subrun00000000_00000188_gaps.txt
