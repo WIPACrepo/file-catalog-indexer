@@ -3,11 +3,16 @@
 
 import datetime
 import re
-from typing import Any, cast, Dict, Final, List, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple
 
 from ...utils import types, utils
 from . import filename_patterns
 from .data_exp import DataExpI3FileMetadata
+
+try:
+    from typing import Final
+except ImportError:
+    from typing_extensions import Final  # type: ignore[misc]
 
 
 class L2FileMetadata(DataExpI3FileMetadata):
