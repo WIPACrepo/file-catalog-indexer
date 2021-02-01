@@ -7,6 +7,7 @@
 
 import os
 import sys
+from datetime import date
 from unittest.mock import Mock, patch
 
 # local imports
@@ -35,6 +36,9 @@ def test_1(
         metadata["locations"] = [
             {"site": metadata["locations"][0]["site"], "path": fullpath}
         ]
+        metadata["create_date"] = date.fromtimestamp(
+            os.path.getctime(fullpath)
+        ).isoformat()
 
         # mock MetadataManager.new_file's initial factory logic
         _is_data_sim_filepath.return_value = True
