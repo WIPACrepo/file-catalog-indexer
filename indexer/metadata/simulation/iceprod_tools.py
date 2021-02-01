@@ -98,6 +98,10 @@ class _IceProdQuerier:
 def _get_iceprod1_dataset_steering_params(
     iceprodv1_db: pymysql.connections.Connection, dataset_num: int
 ) -> List[Dict[str, Any]]:
+    logging.debug(
+        f"No cache hit for dataset_num={dataset_num}. Querying IceProd1 DB..."
+    )
+
     sql = (
         "SELECT * FROM steering_parameter "
         f"WHERE dataset_id = {dataset_num} "
@@ -166,6 +170,8 @@ async def _get_all_iceprod2_datasets(
     iceprodv2_rc: RestClient,
 ) -> Dict[int, _IP2RESTDataset]:
     """Return dict of datasets keyed by their dataset num."""
+    logging.debug("No cache hit for all datasets. Requesting IceProd2...")
+
     datasets = await iceprodv2_rc.request(
         "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
     )
@@ -184,6 +190,8 @@ async def _get_all_iceprod2_datasets(
 async def _get_iceprod2_dataset_job_config(
     iceprodv2_rc: RestClient, dataset_id: str
 ) -> dataclasses.Job:
+    logging.debug(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2...")
+
     ret = await iceprodv2_rc.request("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
 
@@ -194,6 +202,10 @@ async def _get_iceprod2_dataset_job_config(
 async def _get_iceprod2_dataset_tasks(
     iceprodv2_rc: RestClient, dataset_id: str, job_index: int
 ) -> Dict[str, Any]:
+    logging.debug(
+        f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. Requesting IceProd2..."
+    )
+
     ret = iceprodv2_rc.request(
         "GET",
         f"/datasets/{dataset_id}/tasks",
