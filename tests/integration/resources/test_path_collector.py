@@ -11,11 +11,17 @@ import stat
 import subprocess
 import sys
 import time
-from typing import Any, Final, List, Tuple
+from typing import Any, List, Tuple
 
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]
 import pytest
+
+try:
+    from typing import Final
+except ImportError:
+    from typing_extensions import Final  # type: ignore[misc]
+
 
 sys.path.append("./resources/path_collector")
 import path_collector  # type: ignore[import]  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
