@@ -417,9 +417,9 @@ async def get_job_config(
     return job_config, dataset_num
 
 
-def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
+def grab_iceprod_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
     """Return the IceProdMetadata via `job_config`."""
-    metadata: types.IceProdMetadata = {
+    ip_metadata: types.IceProdMetadata = {
         "dataset": job_config["options"]["dataset"],  # int
         "dataset_id": job_config["options"]["dataset_id"],  # str
         "job": job_config["options"].get("job"),  # int
@@ -427,7 +427,7 @@ def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
 
     # task data
     if "task_info" in job_config["options"]:
-        metadata.update(
+        ip_metadata.update(
             {
                 "job_id": job_config["options"]["task_info"].get("job_id"),  # str
                 "task": job_config["options"]["task_info"].get("task"),  # str
@@ -442,14 +442,14 @@ def grab_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
         config_url = f'https://iceprod2.icecube.wisc.edu/config?dataset_id={job_config["options"]["dataset_id"]}'
     else:
         raise DatasetNotFound()
-    metadata["config"] = config_url  # str
+    ip_metadata["config"] = config_url  # str
 
     # del any Nones
-    for key, val in list(metadata.items()):
+    for key, val in list(ip_metadata.items()):
         if val is None:
-            del metadata[key]  # type: ignore[misc]
+            del ip_metadata[key]  # type: ignore[misc]
 
-    return metadata
+    return ip_metadata
 
 
 def grab_steering_parameters(job_config: dataclasses.Job) -> SteeringParameters:

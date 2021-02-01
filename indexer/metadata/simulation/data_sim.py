@@ -256,7 +256,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
             self.iceprod_dataset_num = dataset_num
 
         # IceProd metadata
-        metadata["iceprod"] = iceprod_tools.grab_metadata(job_config)
+        metadata["iceprod"] = iceprod_tools.grab_iceprod_metadata(job_config)
 
         # Simulation metadata
         steering_parameters = iceprod_tools.grab_steering_parameters(job_config)
