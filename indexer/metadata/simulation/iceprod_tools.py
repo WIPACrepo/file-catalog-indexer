@@ -145,14 +145,14 @@ class _IceProdV1Querier(_IceProdQuerier):
     ) -> dataclasses.Job:
         steering_params = self._query_steering_params()
 
+        options: types.IceProdMetadata = {
+            "dataset": self.dataset_num,
+            "dataset_id": str(self.dataset_num),
+        }
+        if job_index is not None:
+            options.update({"job": job_index, "job_id": str(job_index)})
         job_config = dict_to_dataclasses(
-            {
-                "steering": {"parameters": steering_params},
-                "options": {
-                    "dataset": self.dataset_num,
-                    "dataset_id": str(self.dataset_num),
-                },
-            }
+            {"steering": {"parameters": steering_params}, "options": options}
         )
 
         # resolve/expand steering parameters
@@ -332,7 +332,7 @@ class _IceProdV2Querier(_IceProdQuerier):
         filepath: str, job_config: dataclasses.Job, job_index: Optional[int],
     ) -> None:
         """Add `"task"`, `"job"`, & `"iter"` values to `config["options"]`."""
-        if job_index:  # do we already know what job to look at?
+        if job_index is not None:  # do we already know what job to look at?
             job_search: List[int] = [job_index]
         else:  # otherwise, look at each job from dataset
             job_search = list(range(job_config["options"]["jobs_submitted"]))
@@ -368,7 +368,7 @@ class _IceProdV2Querier(_IceProdQuerier):
         job_config["options"].pop("task", None)
         job_config["options"].pop("job", None)
         job_config["options"].pop("iter", None)
-        if job_index:  # if there's no match, at least assign the job_index
+        if job_index is not None:  # if there's no match, at least assign the job_index
             job_config["options"]["job"] = job_index
         raise OutFileNotFound()
 
