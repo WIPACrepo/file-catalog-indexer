@@ -163,18 +163,15 @@ class Metadata(TypedDict, total=False):
     create_date: Date
 
     # i3 File:
-    meta_modify_date: Date
     data_type: Optional[str]
     processing_level: Optional[str]
     content_status: str
+
+    # /data/exp/* i3 File:
     software: Optional[List[SoftwareEntry]]
     run: Run
-
-    # Offline Processing:
     offline_processing_metadata: OfflineProcessingMetadata
 
-    # IceProd:
+    # /data/sim/* i3 File:
     iceprod: IceProdMetadata
-
-    # Simulation:
     simulation: SimulationMetadata
