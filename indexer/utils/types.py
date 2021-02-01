@@ -1,6 +1,11 @@
 """Type hints."""
 
-from typing import List, Optional, TypedDict
+from typing import List, Optional
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict  # type: ignore[misc]
 
 Date = str
 EventID = int
