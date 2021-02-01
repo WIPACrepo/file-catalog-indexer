@@ -5,9 +5,9 @@
 3. metadata = metadata_file.generate()
 """
 
-import os
 import sys
 from datetime import date
+from os import path
 from unittest.mock import Mock, patch
 
 # local imports
@@ -31,14 +31,16 @@ def test_1(
         print(fpath)
 
         # prep
-        fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), fpath)
-        metadata["logical_name"] = fullpath
-        metadata["locations"] = [
-            {"site": metadata["locations"][0]["site"], "path": fullpath}
-        ]
-        metadata["create_date"] = date.fromtimestamp(
-            os.path.getctime(fullpath)
-        ).isoformat()
+        fullpath = path.join(path.dirname(path.realpath(__file__)), fpath)
+        metadata.update(
+            {
+                "logical_name": fullpath,
+                "locations": [
+                    {"site": metadata["locations"][0]["site"], "path": fullpath}
+                ],
+                "create_date": date.fromtimestamp(path.getctime(fullpath)).isoformat(),
+            }
+        )
 
         # mock MetadataManager.new_file's initial factory logic
         _is_data_sim_filepath.return_value = True
