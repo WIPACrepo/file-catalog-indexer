@@ -40,12 +40,7 @@ def test_1(
         _is_data_sim_filepath.return_value = True
         _is_data_exp_filepath.return_value = False
         # mock I3Reader-dependent method
-        dummy_event_data = {
-            "first_event": metadata["run"]["first_event"],
-            "last_event": metadata["run"]["last_event"],
-            "event_count": metadata["run"]["event_count"],
-            "status": metadata["content_status"],
-        }
+        dummy_event_data = {"status": metadata["content_status"]}
         _get_events_data.return_value = dummy_event_data
 
         # run
