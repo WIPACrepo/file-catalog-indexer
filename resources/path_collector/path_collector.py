@@ -23,8 +23,8 @@ from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
 
 try:
     from typing import TypedDict
-except:  # noqa: E722 # pylint: disable=W0702
-    TypedDict = Dict
+except ImportError:
+    from typing_extensions import TypedDict
 
 
 def check_call_and_log(

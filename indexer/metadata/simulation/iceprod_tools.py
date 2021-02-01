@@ -7,7 +7,7 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 
 import functools
 import logging  # TODO - trim down
-from typing import Any, cast, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import pymysql
 
@@ -18,6 +18,12 @@ from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[impor
 from rest_tools.client import RestClient  # type: ignore[import]
 
 from ...utils import types
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
+
 
 # --------------------------------------------------------------------------------------
 # Constants

@@ -1,7 +1,12 @@
 """Example /data/sim i3 files."""
 
 import sys
-from typing import Dict, Optional, TypedDict
+from typing import Dict, Optional
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
 
 sys.path.append(".")
 from indexer.utils import utils  # isort:skip # noqa # pylint: disable=C0413

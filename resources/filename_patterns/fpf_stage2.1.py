@@ -9,8 +9,9 @@ import yaml
 
 try:
     from typing import TypedDict
-except:  # noqa: E722 # pylint: disable=W0702
-    TypedDict = Dict
+except ImportError:
+    from typing_extensions import TypedDict
+
 
 raise Exception(
     "Deprecated since introducing num-sequences in filename_pattern_finder.py"
