@@ -60,7 +60,7 @@ def test_1(
         _iceprodv2querier_filepath.return_value = orignal_path
 
         # run
-        manager = metadata_manager.MetadataManager(  # TODO think about mocking the rest/db
+        manager = metadata_manager.MetadataManager(  # TODO mock the rest/db
             "WIPAC",
             iceprodv2_rc_token=open("ip2.token").read().strip(),
             iceprodv1_db_pass=open("ipdb.pass").read().strip(),

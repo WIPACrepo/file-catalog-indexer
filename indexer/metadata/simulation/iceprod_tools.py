@@ -218,7 +218,7 @@ async def _get_iceprod2_dataset_tasks(
         f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. Requesting IceProd2"
     )
 
-    ret = iceprodv2_rc.request(
+    ret = await iceprodv2_rc.request(
         "GET",
         f"/datasets/{dataset_id}/tasks",
         {"job_index": job_index, "keys": "name|task_id|job_id|task_index"},
@@ -261,12 +261,15 @@ class _IceProdV2Querier(_IceProdQuerier):
         )
 
         try:
-            task_id, task_name, job_id = None, None, None
-            task_id, task_name, job_id = await self._get_task_info(
+            task_id, job_id = None, None
+            task_id, job_id = await self._get_task_info(
                 dataset_id, job_index, task_name
             )
         except TaskNotFound:
-            logging.critical(f"Could not get task info for {self.filepath}")
+            logging.warning(
+                f"Could not get task info for {self.filepath}: "
+                f"dataset_id={dataset_id}, job_index={job_index}, task_name={task_name}"
+            )
 
         i3_metadata: types.IceProdMetadata = {
             "dataset": self.dataset_num,
@@ -324,18 +327,17 @@ class _IceProdV2Querier(_IceProdQuerier):
 
     async def _get_task_info(
         self, dataset_id: str, job_index: Optional[int], task_name: Optional[str]
-    ) -> Tuple[str, str, str]:
+    ) -> Tuple[str, str]:
         if job_index is None or task_name is None:
             raise TaskNotFound()
 
         task_dicts = await _get_iceprod2_dataset_tasks(
             self.iceprodv2_rc, dataset_id, job_index
         )
-        logging.critical(task_dicts)
+
         try:
             return (
                 task_dicts[task_name]["task_id"],
-                task_dicts[task_name]["task"],
                 task_dicts[task_name]["job_id"],
             )
         except KeyError:
@@ -364,14 +366,17 @@ class _IceProdV2Querier(_IceProdQuerier):
         parser = ExpParser()
         env = {"parameters": job_config["steering"]["parameters"]}
 
-        def get_path_from_url(f_data: _OutFileData) -> str:
+        def is_filepath_match(f_data: _OutFileData) -> bool:
             url = cast(str, parser.parse(f_data["url"], job_config, env))
             if "//" not in url:
                 path = url
             else:
                 path = "/" + url.split("//", 1)[1].split("/", 1)[1]
-            logging.critical(f"checking path {path}")
-            return path
+            logging.info(
+                f"Looking for {self.filepath}... "
+                f"({job_config['options']} -> {path})"
+            )
+            return path == self.filepath
 
         # search each possible file/task from job(s)/iters
         possible_outfiles = _IceProdV2Querier._get_outfiles(job_config)
@@ -383,9 +388,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                 # iter
                 for i in range(f_data["iters"]):
                     job_config["options"]["iter"] = i
-                    logging.info(f'Searching: {job_config["options"]}')
-                    if get_path_from_url(f_data) == self.filepath:
-                        logging.info(f'Success on {job_config["options"]}')
+                    if is_filepath_match(f_data):
                         return (
                             job_config["options"]["job"],
                             job_config["options"]["task"],
