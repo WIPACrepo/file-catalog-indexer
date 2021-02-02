@@ -15,6 +15,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "config": "https://grid.icecube.wisc.edu/simulation/dataset/10285",
             "dataset": 10285,
             "dataset_id": "10285",
+            "job": 0,
         },
         "simulation": {},  # TODO
         "locations": [
@@ -57,7 +58,11 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
         "create_date": "2010-02-01",
         "data_type": "simulation",
         "file_size": 32,
-        "iceprod": {},
+        "iceprod": {
+            "config": "https://iceprod2.icecube.wisc.edu/config?dataset_id=272bbc78e48a11e98ae4141877284d92",
+            "dataset": 20900,
+            "dataset_id": "272bbc78e48a11e98ae4141877284d92",
+        },
         "simulation": {},  # TODO
         "locations": [
             {

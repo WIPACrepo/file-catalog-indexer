@@ -53,16 +53,19 @@ class _IP2RESTDataset(TypedDict):
     jobs_submitted: int
 
 
+class _IP2RESTDatasetTask(TypedDict):
+    name: str
+    task_id: str
+    task: str
+    job_id: str
+
+
 class DatasetNotFound(Exception):
     """Raise when an IceProd dataset cannot be found."""
 
 
 class TaskNotFound(Exception):
     """Raise when an IceProd task cannot be found."""
-
-
-class OutFileNotFound(Exception):
-    """Raise when an IceProd outfile cannot be found."""
 
 
 # --------------------------------------------------------------------------------------
@@ -75,19 +78,23 @@ class _IceProdQuerier:
     def __init__(self, dataset_num: int):
         self.dataset_num = dataset_num
 
-    async def get_job_config(
+    async def get_steering_params_and_ip_metadata(
         self, filepath: str, job_index: Optional[int]
-    ) -> dataclasses.Job:
+    ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
         """Get the job's config dict, AKA `dataclasses.Job`."""
         raise NotImplementedError()
 
     @staticmethod
-    def _expand_steering_parameters(job_config: dataclasses.Job) -> None:
+    def _expand_steering_parameters(job_config: dataclasses.Job) -> SteeringParameters:
         job_config["steering"]["parameters"] = ExpParser().parse(
             job_config["steering"]["parameters"],
             job_config,
             {"parameters": job_config["steering"]["parameters"]},
         )
+        # TODO - delete this
+        with open("steering_params.out", "w") as f:
+            json.dump(job_config["steering"]["parameters"], f)
+        return cast(SteeringParameters, job_config["steering"]["parameters"])
 
 
 # --------------------------------------------------------------------------------------
@@ -140,25 +147,30 @@ class _IceProdV1Querier(_IceProdQuerier):
 
         return steering_params
 
-    async def get_job_config(
+    async def get_steering_params_and_ip_metadata(
         self, filepath: str, job_index: Optional[int]
-    ) -> dataclasses.Job:
-        steering_params = self._query_steering_params()
+    ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
 
-        options: types.IceProdMetadata = {
+        i3_metadata: types.IceProdMetadata = {
             "dataset": self.dataset_num,
             "dataset_id": str(self.dataset_num),
+            "job": job_index,
+            "job_id": str(job_index) if job_index is not None else None,
+            "task": None,
+            "task_id": None,
+            "config": f"https://grid.icecube.wisc.edu/simulation/dataset/{self.dataset_num}",
         }
-        if job_index is not None:
-            options.update({"job": job_index, "job_id": str(job_index)})
-        job_config = dict_to_dataclasses(
-            {"steering": {"parameters": steering_params}, "options": options}
+
+        steering_params = self._expand_steering_parameters(
+            dict_to_dataclasses(
+                {
+                    "steering": {"parameters": self._query_steering_params()},
+                    "options": i3_metadata,
+                }
+            )
         )
 
-        # resolve/expand steering parameters
-        self._expand_steering_parameters(job_config)
-
-        return job_config
+        return steering_params, i3_metadata
 
 
 # --------------------------------------------------------------------------------------
@@ -201,7 +213,7 @@ async def _get_iceprod2_dataset_job_config(
 @functools.lru_cache()
 async def _get_iceprod2_dataset_tasks(
     iceprodv2_rc: RestClient, dataset_id: str, job_index: int
-) -> Dict[str, Any]:
+) -> Dict[str, _IP2RESTDatasetTask]:
     logging.debug(
         f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. Requesting IceProd2..."
     )
@@ -212,7 +224,7 @@ async def _get_iceprod2_dataset_tasks(
         {"job_index": job_index, "keys": "name|task_id|job_id|task_index"},
     )
 
-    return cast(Dict[str, Any], ret)
+    return cast(Dict[str, _IP2RESTDatasetTask], ret)
 
 
 class _IceProdV2Querier(_IceProdQuerier):
@@ -225,46 +237,40 @@ class _IceProdV2Querier(_IceProdQuerier):
     async def _get_dataset_info(self) -> Tuple[str, int]:
         datasets = await _get_all_iceprod2_datasets(self.iceprodv2_rc)
         try:
-            return (
-                datasets[self.dataset_num]["dataset_id"],
-                datasets[self.dataset_num]["jobs_submitted"],
-            )
+            dataset_id = datasets[self.dataset_num]["dataset_id"]
+            jobs_submitted = datasets[self.dataset_num]["jobs_submitted"]
         except KeyError:
             raise DatasetNotFound(f"dataset num {self.dataset_num} not found")
 
-    async def get_job_config(
+        return dataset_id, jobs_submitted
+
+    async def get_steering_params_and_ip_metadata(
         self, filepath: str, job_index: Optional[int]
-    ) -> dataclasses.Job:
+    ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
         dataset_id, jobs_submitted = await self._get_dataset_info()
 
-        job_config: dataclasses.Job = await _get_iceprod2_dataset_job_config(
-            self.iceprodv2_rc, dataset_id
-        )
-
-        job_config["options"].update(
-            {
-                "dataset": self.dataset_num,
-                "dataset_id": dataset_id,
-                "jobs_submitted": jobs_submitted,
-            }
+        job_index, task, steering_params = await self._get_outfile_info(
+            filepath, dataset_id, job_index, jobs_submitted
         )
 
         try:
-            await self._match_outfile_and_add_to_job_config(
-                filepath, job_config, job_index
+            task_id, task, job_id = await self._get_task_info(
+                dataset_id, job_index, task
             )
-        except OutFileNotFound:
-            logging.warning(f"Outfile ({filepath}) could not be matched.")
-
-        try:
-            await self._add_task_info_to_job_config(job_config)
         except TaskNotFound:
             logging.warning(f"Could not get task info for {filepath}")
 
-        # resolve/expand steering parameters
-        self._expand_steering_parameters(job_config)
+        i3_metadata: types.IceProdMetadata = {
+            "dataset": self.dataset_num,
+            "dataset_id": dataset_id,
+            "job": job_index,
+            "job_id": job_id,
+            "task": task,
+            "task_id": task_id,
+            "config": f"https://iceprod2.icecube.wisc.edu/config?dataset_id={dataset_id}",
+        }
 
-        return job_config
+        return steering_params, i3_metadata
 
     @staticmethod
     def _get_outfiles(job_config: dataclasses.Job) -> List[_OutFileData]:
@@ -307,35 +313,50 @@ class _IceProdV2Querier(_IceProdQuerier):
                             )
         return files
 
-    async def _add_task_info_to_job_config(self, job_config: dataclasses.Job) -> None:
-        """Add `"task_info"` dict to `job_config["options"]`."""
-        if "task" not in job_config["options"]:
+    async def _get_task_info(
+        self, dataset_id: str, job_index: Optional[int], task: Optional[str]
+    ) -> Tuple[str, str, str]:
+        if job_index is None or task is None:
             raise TaskNotFound()
 
         ret = await _get_iceprod2_dataset_tasks(
-            self.iceprodv2_rc,
-            job_config["options"]["dataset_id"],
-            job_config["options"]["job"],
+            self.iceprodv2_rc, dataset_id, job_index
         )
 
         # find matching task
-        task = {}
-        for task in ret.values():
-            if task["name"] == job_config["options"]["task"]:
-                job_config["options"]["task_info"] = task
-                return
+        for task_info in ret.values():
+            if task_info["name"] == task:
+                return (
+                    task_info["task_id"],
+                    task_info["task"],
+                    task_info["job_id"],
+                )
 
         raise TaskNotFound()
 
-    @staticmethod
-    async def _match_outfile_and_add_to_job_config(
-        filepath: str, job_config: dataclasses.Job, job_index: Optional[int],
-    ) -> None:
-        """Add `"task"`, `"job"`, & `"iter"` values to `config["options"]`."""
+    async def _get_outfile_info(
+        self,
+        filepath: str,
+        dataset_id: str,
+        job_index: Optional[int],
+        jobs_submitted: int,
+    ) -> Tuple[Optional[int], Optional[str], SteeringParameters]:
+        """Return & add `"task", "job", "iter"` to `config["options"]`."""
         if job_index is not None:  # do we already know what job to look at?
             job_search: List[int] = [job_index]
         else:  # otherwise, look at each job from dataset
-            job_search = list(range(job_config["options"]["jobs_submitted"]))
+            job_search = list(range(jobs_submitted))
+
+        job_config = await _get_iceprod2_dataset_job_config(
+            self.iceprodv2_rc, dataset_id
+        )
+        job_config["options"].update(
+            {
+                "dataset": self.dataset_num,
+                "dataset_id": dataset_id,
+                "jobs_submitted": jobs_submitted,
+            }
+        )
 
         parser = ExpParser()
         env = {"parameters": job_config["steering"]["parameters"]}
@@ -362,15 +383,25 @@ class _IceProdV2Querier(_IceProdQuerier):
                     logging.info(f'Searching: {job_config["options"]}')
                     if get_path_from_url(f_data) == filepath:
                         logging.info(f'Success on {job_config["options"]}')
-                        return
+                        return (
+                            job_config["options"]["job"],
+                            job_config["options"]["task"],
+                            self._expand_steering_parameters(job_config),
+                        )
 
         # cleanup & raise
+        logging.warning(f"Outfile ({filepath}) could not be matched.")
         job_config["options"].pop("task", None)
         job_config["options"].pop("job", None)
         job_config["options"].pop("iter", None)
         if job_index is not None:  # if there's no match, at least assign the job_index
             job_config["options"]["job"] = job_index
-        raise OutFileNotFound()
+
+        return (
+            job_config["options"].get("job"),  # might be None
+            None,
+            self._expand_steering_parameters(job_config),
+        )
 
 
 # --------------------------------------------------------------------------------------
@@ -405,13 +436,13 @@ def _parse_dataset_num_from_dirpath(filepath: str) -> int:
     raise DatasetNotFound(f"Could not determine dataset number: {filepath}")
 
 
-async def get_job_config(
+async def get_steering_params_and_ip_metadata(
     dataset_num: Optional[int],
     filepath: str,
     job_index: Optional[int],
     iceprodv2_rc: RestClient,
     iceprodv1_db: pymysql.connections.Connection,
-) -> Tuple[dataclasses.Job, int]:
+) -> Tuple[SteeringParameters, types.IceProdMetadata]:
     """Get the job's config dict."""
     if dataset_num is not None:
         try:
@@ -424,48 +455,8 @@ async def get_job_config(
         dataset_num = _parse_dataset_num_from_dirpath(filepath)
         querier = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
 
-    job_config = await querier.get_job_config(filepath, job_index)
+    steering_params, ip_metadata = await querier.get_steering_params_and_ip_metadata(
+        filepath, job_index
+    )
 
-    return job_config, dataset_num
-
-
-def grab_iceprod_metadata(job_config: dataclasses.Job) -> types.IceProdMetadata:
-    """Return the IceProdMetadata via `job_config`."""
-    ip_metadata: types.IceProdMetadata = {
-        "dataset": job_config["options"]["dataset"],  # int
-        "dataset_id": job_config["options"]["dataset_id"],  # str
-        "job": job_config["options"].get("job"),  # int
-    }
-
-    # task data
-    if "task_info" in job_config["options"]:
-        ip_metadata.update(
-            {
-                "job_id": job_config["options"]["task_info"].get("job_id"),  # str
-                "task": job_config["options"]["task_info"].get("task"),  # str
-                "task_id": job_config["options"]["task_info"].get("task_id"),  # str
-            }
-        )
-
-    # config
-    if job_config["options"]["dataset"] in _ICEPROD_V1_DATASET_RANGE:
-        config_url = f'https://grid.icecube.wisc.edu/simulation/dataset/{job_config["options"]["dataset_id"]}'
-    elif job_config["options"]["dataset"] in _ICEPROD_V2_DATASET_RANGE:
-        config_url = f'https://iceprod2.icecube.wisc.edu/config?dataset_id={job_config["options"]["dataset_id"]}'
-    else:
-        raise DatasetNotFound()
-    ip_metadata["config"] = config_url  # str
-
-    # del any Nones
-    for key, val in list(ip_metadata.items()):
-        if val is None:
-            del ip_metadata[key]  # type: ignore[misc]
-
-    return ip_metadata
-
-
-def grab_steering_parameters(job_config: dataclasses.Job) -> SteeringParameters:
-    """Return the steering parameters dict."""
-    params = job_config["steering"]["parameters"]
-
-    return cast(SteeringParameters, params)
+    return steering_params, ip_metadata

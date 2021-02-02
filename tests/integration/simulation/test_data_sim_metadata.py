@@ -52,11 +52,13 @@ def test_1(
         # run
         manager = metadata_manager.MetadataManager(  # TODO think about mocking the rest/db
             "WIPAC",
-            iceprodv2_rc_token=open("fc.token").read().strip(),
+            iceprodv2_rc_token=open("ip2.token").read().strip(),
             iceprodv1_db_pass=open("ipdb.pass").read().strip(),
         )
         metadata_file = manager.new_file(fullpath)
         generated_metadata = metadata_file.generate()
+
+        # TODO - fix filepath so job index can be found/matched
 
         # assert
         for field in metadata:

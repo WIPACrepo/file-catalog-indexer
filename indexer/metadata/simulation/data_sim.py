@@ -231,8 +231,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # get IceProd dataset config
         try:
-            job_config, dataset_num = asyncio.run(
-                iceprod_tools.get_job_config(
+            steering_parameters, ip_metadata = asyncio.run(
+                iceprod_tools.get_steering_params_and_ip_metadata(
                     self.iceprod_dataset_num,
                     self.file.path,
                     self.iceprod_job_index,
@@ -248,19 +248,20 @@ class DataSimI3FileMetadata(I3FileMetadata):
             return metadata
 
         # override self.iceprod_dataset_num w/ iceprod_tool's?
-        if dataset_num != self.iceprod_dataset_num:
+        if ip_metadata["dataset"] != self.iceprod_dataset_num:
             logging.info(
                 f"Original IceProd dataset #{self.iceprod_dataset_num} was bad. "
-                f"Now using #{dataset_num}, from parsing the filepath ({self.file.path})"
+                f"Now using #{ip_metadata['dataset']}, from parsing the filepath ({self.file.path})"
             )
-            self.iceprod_dataset_num = dataset_num
+            self.iceprod_dataset_num = ip_metadata["dataset"]
 
-        # IceProd metadata
-        metadata["iceprod"] = iceprod_tools.grab_iceprod_metadata(job_config)
-
-        # Simulation metadata
-        steering_parameters = iceprod_tools.grab_steering_parameters(job_config)
-        metadata["simulation"] = self.get_simulation_metadata(steering_parameters)
+        # update
+        metadata.update(
+            {
+                "iceprod": ip_metadata,
+                "simulation": self.get_simulation_metadata(steering_parameters),
+            }
+        )
 
         return metadata
 
