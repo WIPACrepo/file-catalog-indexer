@@ -16,8 +16,26 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "dataset": 10285,
             "dataset_id": "10285",
             "job": 0,
+            "job_id": "0",
+            "task": None,
+            "task_id": None,
         },
-        "simulation": {},  # TODO
+        "simulation": {
+            "GCD_file": "GeoCalibDetectorStatus_IC86.55697_corrected_V2.i3.gz",
+            "atmosphere": -1,
+            "bulk_ice_model": "SPICEMie",
+            "composition": "5-component model",
+            "cylinder_length": 1600.0,
+            "cylinder_radius": 800.0,
+            "energy_max": 100000.0,
+            "energy_min": 600.0,
+            "generator": "CORSIKA",
+            "geometry": "IC86.2011",
+            "n_events": 10000000,
+            "oversampling": 1,
+            "photon_propagator": "ClSim",
+            "power_law_index": "E^-2.6",
+        },  # TODO
         "locations": [
             {
                 "site": "WIPAC",
@@ -39,8 +57,18 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "config": "https://grid.icecube.wisc.edu/simulation/dataset/10410",
             "dataset": 10410,
             "dataset_id": "10410",
+            "job": 1,
+            "job_id": "1",
+            "task": None,
+            "task_id": None,
         },
-        "simulation": {},  # TODO
+        "simulation": {
+            "atmosphere": 13,
+            "energy_max": 100000000.0,
+            "energy_min": 100000.0,
+            "n_events": 1,
+            "power_law_index": "E^-1",
+        },  # TODO
         "locations": [
             {
                 "site": "WIPAC",

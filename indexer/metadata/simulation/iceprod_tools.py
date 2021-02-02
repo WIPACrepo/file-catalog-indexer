@@ -92,7 +92,9 @@ class _IceProdQuerier:
             {"parameters": job_config["steering"]["parameters"]},
         )
         # TODO - delete this
-        with open("steering_params.out", "w") as f:
+        import json
+
+        with open("steering_params.json", "w") as f:
             json.dump(job_config["steering"]["parameters"], f)
         return cast(SteeringParameters, job_config["steering"]["parameters"])
 
@@ -254,6 +256,7 @@ class _IceProdV2Querier(_IceProdQuerier):
         )
 
         try:
+            task_id, task, job_id = None, None, None
             task_id, task, job_id = await self._get_task_info(
                 dataset_id, job_index, task
             )
