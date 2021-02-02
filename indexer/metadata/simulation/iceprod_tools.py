@@ -79,7 +79,7 @@ class _IceProdQuerier:
         self.dataset_num = dataset_num
 
     async def get_steering_params_and_ip_metadata(
-        self, filepath: str, job_index: Optional[int]
+        self, job_index: Optional[int]
     ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
         """Get the job's config dict, AKA `dataclasses.Job`."""
         raise NotImplementedError()
@@ -107,9 +107,7 @@ class _IceProdQuerier:
 def _get_iceprod1_dataset_steering_params(
     iceprodv1_db: pymysql.connections.Connection, dataset_num: int
 ) -> List[Dict[str, Any]]:
-    logging.debug(
-        f"No cache hit for dataset_num={dataset_num}. Querying IceProd1 DB..."
-    )
+    logging.debug(f"No cache hit for dataset_num={dataset_num}. Querying IceProd1 DB")
 
     sql = (
         "SELECT * FROM steering_parameter "
@@ -150,7 +148,7 @@ class _IceProdV1Querier(_IceProdQuerier):
         return steering_params
 
     async def get_steering_params_and_ip_metadata(
-        self, filepath: str, job_index: Optional[int]
+        self, job_index: Optional[int]
     ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
 
         i3_metadata: types.IceProdMetadata = {
@@ -184,7 +182,7 @@ async def _get_all_iceprod2_datasets(
     iceprodv2_rc: RestClient,
 ) -> Dict[int, _IP2RESTDataset]:
     """Return dict of datasets keyed by their dataset num."""
-    logging.debug("No cache hit for all datasets. Requesting IceProd2...")
+    logging.debug("No cache hit for all datasets. Requesting IceProd2")
 
     datasets = await iceprodv2_rc.request(
         "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
@@ -204,7 +202,7 @@ async def _get_all_iceprod2_datasets(
 async def _get_iceprod2_dataset_job_config(
     iceprodv2_rc: RestClient, dataset_id: str
 ) -> dataclasses.Job:
-    logging.debug(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2...")
+    logging.debug(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2")
 
     ret = await iceprodv2_rc.request("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
@@ -217,7 +215,7 @@ async def _get_iceprod2_dataset_tasks(
     iceprodv2_rc: RestClient, dataset_id: str, job_index: int
 ) -> Dict[str, _IP2RESTDatasetTask]:
     logging.debug(
-        f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. Requesting IceProd2..."
+        f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. Requesting IceProd2"
     )
 
     ret = iceprodv2_rc.request(
@@ -234,9 +232,14 @@ async def _get_iceprod2_dataset_tasks(
 class _IceProdV2Querier(_IceProdQuerier):
     """Manage IceProd v2 queries."""
 
-    def __init__(self, dataset_num: int, iceprodv2_rc: RestClient):
+    def __init__(self, dataset_num: int, iceprodv2_rc: RestClient, filepath: str):
         super().__init__(dataset_num)
         self.iceprodv2_rc = iceprodv2_rc
+        self.__filepath = filepath
+
+    @property
+    def filepath(self) -> str:  # pylint: disable=C0116
+        return self.__filepath
 
     async def _get_dataset_info(self) -> Tuple[str, int]:
         datasets = await _get_all_iceprod2_datasets(self.iceprodv2_rc)
@@ -249,12 +252,12 @@ class _IceProdV2Querier(_IceProdQuerier):
         return dataset_id, jobs_submitted
 
     async def get_steering_params_and_ip_metadata(
-        self, filepath: str, job_index: Optional[int]
+        self, job_index: Optional[int]
     ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
         dataset_id, jobs_submitted = await self._get_dataset_info()
 
         job_index, task_name, steering_params = await self._get_outfile_info(
-            filepath, dataset_id, job_index, jobs_submitted
+            dataset_id, job_index, jobs_submitted
         )
 
         try:
@@ -263,7 +266,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                 dataset_id, job_index, task_name
             )
         except TaskNotFound:
-            logging.critical(f"Could not get task info for {filepath}")
+            logging.critical(f"Could not get task info for {self.filepath}")
 
         i3_metadata: types.IceProdMetadata = {
             "dataset": self.dataset_num,
@@ -339,13 +342,9 @@ class _IceProdV2Querier(_IceProdQuerier):
             raise TaskNotFound()
 
     async def _get_outfile_info(
-        self,
-        filepath: str,
-        dataset_id: str,
-        job_index: Optional[int],
-        jobs_submitted: int,
+        self, dataset_id: str, job_index: Optional[int], jobs_submitted: int,
     ) -> Tuple[Optional[int], Optional[str], SteeringParameters]:
-        """Return & add `"task", "job", "iter"` to `config["options"]`."""
+        """Get `task`, `job`, and steering parameters."""
         if job_index is not None:  # do we already know what job to look at?
             job_search: List[int] = [job_index]
         else:  # otherwise, look at each job from dataset
@@ -385,7 +384,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                 for i in range(f_data["iters"]):
                     job_config["options"]["iter"] = i
                     logging.info(f'Searching: {job_config["options"]}')
-                    if get_path_from_url(f_data) == filepath:
+                    if get_path_from_url(f_data) == self.filepath:
                         logging.info(f'Success on {job_config["options"]}')
                         return (
                             job_config["options"]["job"],
@@ -394,7 +393,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                         )
 
         # cleanup & raise
-        logging.warning(f"Outfile ({filepath}) could not be matched.")
+        logging.warning(f"Outfile ({self.filepath}) could not be matched.")
         job_config["options"].pop("task", None)
         job_config["options"].pop("job", None)
         job_config["options"].pop("iter", None)
@@ -416,11 +415,12 @@ def _get_iceprod_querier(
     dataset_num: int,
     iceprodv2_rc: RestClient,
     iceprodv1_db: pymysql.connections.Connection,
+    filepath: str,
 ) -> _IceProdQuerier:
     if dataset_num in _ICEPROD_V1_DATASET_RANGE:
         return _IceProdV1Querier(dataset_num, iceprodv1_db)
     elif dataset_num in _ICEPROD_V2_DATASET_RANGE:
-        return _IceProdV2Querier(dataset_num, iceprodv2_rc)
+        return _IceProdV2Querier(dataset_num, iceprodv2_rc, filepath)
     else:
         raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
 
@@ -430,9 +430,9 @@ def _parse_dataset_num_from_dirpath(filepath: str) -> int:
     # try IP2 first: IP1 uses smaller numbers, so false-positive matches are more likely
     for dataset_range in [_ICEPROD_V2_DATASET_RANGE, _ICEPROD_V1_DATASET_RANGE]:
         parts = filepath.split("/")
-        for p in reversed(parts[:-1]):  # ignore the filename; search right-to-left
+        for dir_ in reversed(parts[:-1]):  # ignore the filename; search right-to-left
             try:
-                dataset_num = int(p)
+                dataset_num = int(dir_)
                 if dataset_num in dataset_range:
                     return dataset_num
             except ValueError:
@@ -447,20 +447,24 @@ async def get_steering_params_and_ip_metadata(
     iceprodv2_rc: RestClient,
     iceprodv1_db: pymysql.connections.Connection,
 ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
-    """Get the job's config dict."""
+    """Get the dataset's steering parameters and `IceProdMetadata`."""
     if dataset_num is not None:
         try:
-            querier = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
+            querier = _get_iceprod_querier(
+                dataset_num, iceprodv2_rc, iceprodv1_db, filepath
+            )
         except DatasetNotFound:
             dataset_num = None
 
     # if given dataset_num doesn't work (or was None), try parsing one from filepath
     if dataset_num is None:
         dataset_num = _parse_dataset_num_from_dirpath(filepath)
-        querier = _get_iceprod_querier(dataset_num, iceprodv2_rc, iceprodv1_db)
+        querier = _get_iceprod_querier(
+            dataset_num, iceprodv2_rc, iceprodv1_db, filepath
+        )
 
     steering_params, ip_metadata = await querier.get_steering_params_and_ip_metadata(
-        filepath, job_index
+        job_index
     )
 
     return steering_params, ip_metadata
