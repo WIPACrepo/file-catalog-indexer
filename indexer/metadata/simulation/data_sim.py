@@ -32,7 +32,6 @@ class DataSimI3FileMetadata(I3FileMetadata):
             DataSimI3FileMetadata.figure_processing_level(file),
             "simulation",
         )
-        self.iceprod_task_id: Optional[int] = None
         self.iceprodv2_rc = iceprodv2_rc
         self.iceprodv1_db = iceprodv1_db
         try:
@@ -88,8 +87,8 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         Uses named groups: `alpha` & `beta`; or `single`.
         """
-        for p in regexes:
-            match = re.match(p, file.name)
+        for pattern in regexes:
+            match = re.match(pattern, file.name)
             if not match:
                 continue
 
