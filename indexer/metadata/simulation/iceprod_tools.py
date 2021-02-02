@@ -226,7 +226,9 @@ async def _get_iceprod2_dataset_tasks(
         {"job_index": job_index, "keys": "name|task_id|job_id|task_index"},
     )
 
-    return cast(Dict[str, _IP2RESTDatasetTask], ret)
+    task_dicts: Dict[str, _IP2RESTDatasetTask] = {t["name"]: t for t in ret.values()}
+
+    return task_dicts
 
 
 class _IceProdV2Querier(_IceProdQuerier):
@@ -251,24 +253,24 @@ class _IceProdV2Querier(_IceProdQuerier):
     ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
         dataset_id, jobs_submitted = await self._get_dataset_info()
 
-        job_index, task, steering_params = await self._get_outfile_info(
+        job_index, task_name, steering_params = await self._get_outfile_info(
             filepath, dataset_id, job_index, jobs_submitted
         )
 
         try:
-            task_id, task, job_id = None, None, None
-            task_id, task, job_id = await self._get_task_info(
-                dataset_id, job_index, task
+            task_id, task_name, job_id = None, None, None
+            task_id, task_name, job_id = await self._get_task_info(
+                dataset_id, job_index, task_name
             )
         except TaskNotFound:
-            logging.warning(f"Could not get task info for {filepath}")
+            logging.critical(f"Could not get task info for {filepath}")
 
         i3_metadata: types.IceProdMetadata = {
             "dataset": self.dataset_num,
             "dataset_id": dataset_id,
             "job": job_index,
             "job_id": job_id,
-            "task": task,
+            "task": task_name,
             "task_id": task_id,
             "config": f"https://iceprod2.icecube.wisc.edu/config?dataset_id={dataset_id}",
         }
@@ -278,22 +280,24 @@ class _IceProdV2Querier(_IceProdQuerier):
     @staticmethod
     def _get_outfiles(job_config: dataclasses.Job) -> List[_OutFileData]:
         """Get every single outputted file, plus some data on each."""
+
+        def do_append(datum: Dict[str, str]) -> bool:
+            ok_types = ("permanent", "site_temp")
+            ok_movements = ("output", "both")
+            return datum["type"] in ok_types and datum["movement"] in ok_movements
+
         files: List[_OutFileData] = []
         # Search each task's data
         for task in job_config["tasks"]:
             for task_d in task["data"]:
-                if task_d["type"] in ("permanent", "site_temp") and task_d[
-                    "movement"
-                ] in ("output", "both"):
+                if do_append(task_d):
                     files.append(
                         {"url": task_d["remote"], "iters": 1, "task": task["name"]}
                     )
             # Search each tray's data
             for tray in task["trays"]:
                 for tray_d in tray["data"]:
-                    if tray_d["type"] in ("permanent", "site_temp") and tray_d[
-                        "movement"
-                    ] in ("output", "both"):
+                    if do_append(tray_d):
                         files.append(
                             {
                                 "url": tray_d["remote"],
@@ -304,9 +308,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                 # Search each module's data
                 for module in tray["modules"]:
                     for module_d in module["data"]:
-                        if module_d["type"] in ("permanent", "site_temp") and module_d[
-                            "movement"
-                        ] in ("output", "both"):
+                        if do_append(module_d):
                             files.append(
                                 {
                                     "url": module_d["remote"],
@@ -314,28 +316,27 @@ class _IceProdV2Querier(_IceProdQuerier):
                                     "task": task["name"],
                                 }
                             )
+
         return files
 
     async def _get_task_info(
-        self, dataset_id: str, job_index: Optional[int], task: Optional[str]
+        self, dataset_id: str, job_index: Optional[int], task_name: Optional[str]
     ) -> Tuple[str, str, str]:
-        if job_index is None or task is None:
+        if job_index is None or task_name is None:
             raise TaskNotFound()
 
-        ret = await _get_iceprod2_dataset_tasks(
+        task_dicts = await _get_iceprod2_dataset_tasks(
             self.iceprodv2_rc, dataset_id, job_index
         )
-
-        # find matching task
-        for task_info in ret.values():
-            if task_info["name"] == task:
-                return (
-                    task_info["task_id"],
-                    task_info["task"],
-                    task_info["job_id"],
-                )
-
-        raise TaskNotFound()
+        logging.critical(task_dicts)
+        try:
+            return (
+                task_dicts[task_name]["task_id"],
+                task_dicts[task_name]["task"],
+                task_dicts[task_name]["job_id"],
+            )
+        except KeyError:
+            raise TaskNotFound()
 
     async def _get_outfile_info(
         self,
@@ -370,7 +371,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                 path = url
             else:
                 path = "/" + url.split("//", 1)[1].split("/", 1)[1]
-            logging.info(f"checking path {path}")
+            logging.critical(f"checking path {path}")
             return path
 
         # search each possible file/task from job(s)/iters

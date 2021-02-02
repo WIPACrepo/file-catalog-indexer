@@ -17,7 +17,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "dataset_id": "10285",
             "job": 0,
             "job_id": "0",
-            "task": None,  # TODO
+            "task": None,
             "task_id": None,
         },
         "simulation": {
@@ -35,7 +35,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "oversampling": 1,
             "photon_propagator": "ClSim",
             "power_law_index": "E^-2.6",
-        },  # TODO
+        },
         "locations": [
             {
                 "site": "WIPAC",
@@ -59,7 +59,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "dataset_id": "10410",
             "job": 1,
             "job_id": "1",
-            "task": None,  # TODO
+            "task": None,
             "task_id": None,
         },
         "simulation": {
@@ -68,7 +68,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "energy_min": 100000.0,
             "n_events": 1,
             "power_law_index": "E^-1",
-        },  # TODO
+        },
         "locations": [
             {
                 "site": "WIPAC",
@@ -128,7 +128,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "dataset_id": "10410",
             "job": 1,
             "job_id": "1",
-            "task": None,  # TODO
+            "task": None,
             "task_id": None,
         },
         "simulation": {
