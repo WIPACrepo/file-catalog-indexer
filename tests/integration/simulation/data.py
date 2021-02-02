@@ -17,7 +17,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "dataset_id": "10285",
             "job": 0,
             "job_id": "0",
-            "task": None,
+            "task": None,  # TODO
             "task_id": None,
         },
         "simulation": {
@@ -59,7 +59,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "dataset_id": "10410",
             "job": 1,
             "job_id": "1",
-            "task": None,
+            "task": None,  # TODO
             "task_id": None,
         },
         "simulation": {
@@ -90,8 +90,21 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "config": "https://iceprod2.icecube.wisc.edu/config?dataset_id=272bbc78e48a11e98ae4141877284d92",
             "dataset": 20900,
             "dataset_id": "272bbc78e48a11e98ae4141877284d92",
+            "job": 0,
+            "job_id": None,  # TODO
+            "task": None,
+            "task_id": None,
         },
-        "simulation": {},  # TODO
+        "simulation": {
+            "GCD_file": "/cvmfs/icecube.opensciencegrid.org/data/GCD/GeoCalibDetectorStatus_AVG_55697-57531_PASS2_SPE_withStdNoise.i3.gz",
+            "energy_max": 100000000.0,
+            "energy_min": 600.0,
+            "generator": "CORSIKA-in-ice",
+            "geometry": "IC86.2016",
+            "hadronic_interaction": "Sybill-2.3",
+            "n_events": 100000,
+            "power_law_index": "E^-2",
+        },  # TODO
         "locations": [
             {
                 "site": "WIPAC",
@@ -100,25 +113,6 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
         ],
         "logical_name": "/data/sim/IceCube/2016/generated/CORSIKA-in-ice/20900/0000000-0000999/hits.020900.000000.i3.zst",
         "processing_level": "Propagated",
-    },
-    "L3/genie_ic.60008.000000.L3.i3.gz": {
-        "checksum": {
-            "sha512": "939b4fb2be4759d9550156c2b07574a9d64c42d2ae884e0f44289be1781d4b6f0b706b9933879aaadc192278284a1564153eb2459990cd3397335b25f9f8b5e9"
-        },
-        "content_status": "good",
-        "create_date": "2010-02-01",
-        "data_type": "simulation",
-        "file_size": 30,
-        "iceprod": {},  # TODO
-        "simulation": {},  # TODO
-        "locations": [
-            {
-                "site": "WIPAC",
-                "path": "/data/sim/IceCube/2011/generated/GENIE-in-ice/PINGU/numu/60008/genie_ic.60008.000000.L3.i3.gz",
-            }
-        ],
-        "logical_name": "/data/sim/IceCube/2011/generated/GENIE-in-ice/PINGU/numu/60008/genie_ic.60008.000000.L3.i3.gz",
-        "processing_level": "L3",
     },
     "Triggered/Detector_IC86_corsika_icetop.010410.000001.i3.bz2": {
         "checksum": {
@@ -132,8 +126,18 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "config": "https://grid.icecube.wisc.edu/simulation/dataset/10410",
             "dataset": 10410,
             "dataset_id": "10410",
+            "job": 1,
+            "job_id": "1",
+            "task": None,  # TODO
+            "task_id": None,
         },
-        "simulation": {},  # TODO
+        "simulation": {
+            "atmosphere": 13,
+            "energy_max": 100000000.0,
+            "energy_min": 100000.0,
+            "n_events": 1,
+            "power_law_index": "E^-1",
+        },  # TODO
         "locations": [
             {
                 "site": "WIPAC",

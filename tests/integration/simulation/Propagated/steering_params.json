@@ -1,0 +1,21 @@
+{
+  "seed": 20900,
+  "year": 2016,
+  "category": "CORSIKA-in-ice",
+  "subdirectory": "0000000-0000999",
+  "MCType": "corsika_weighted",
+  "mjd_16": 57531,
+  "outfile": "corsika.020900.000000.i3.zst",
+  "gcdfile": "/cvmfs/icecube.opensciencegrid.org/data/GCD/GeoCalibDetectorStatus_AVG_55697-57531_PASS2_SPE_withStdNoise.i3.gz",
+  "CORSIKA::eprimarymin": 600,
+  "CORSIKA::eprimarymax": 100000000,
+  "CORSIKA::run": 90000001,
+  "CORSIKA::showers": 100000,
+  "CORSIKA::seed": 90000000,
+  "CORSIKA::spectrum": -2,
+  "hadronicinteraction": "Sybill-2.3",
+  "spectrum": "E^-2",
+  "geometry": "IC86.2016",
+  "IceSimPath": "/cvmfs/icecube.opensciencegrid.org/py2-v3.0.1/metaprojects/simulation/V06-01-01",
+  "TARGET::2016": "gsiftp://gridftp.icecube.wisc.edu/data/sim/IceCube/2016/generated/CORSIKA-in-ice/20900/0000000-0000999"
+}
