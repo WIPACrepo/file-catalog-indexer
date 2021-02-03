@@ -230,11 +230,11 @@ class _IceProdV2Querier(_IceProdQuerier):
     def __init__(self, dataset_num: int, iceprodv2_rc: RestClient, filepath: str):
         super().__init__(dataset_num)
         self.iceprodv2_rc = iceprodv2_rc
-        self.__filepath = filepath
+        self._filepath = filepath
 
     @property
     def filepath(self) -> str:  # pylint: disable=C0116
-        return self.__filepath
+        return self._filepath
 
     async def _get_dataset_info(self) -> Tuple[str, int]:
         datasets = await _get_all_iceprod2_datasets(self.iceprodv2_rc)
