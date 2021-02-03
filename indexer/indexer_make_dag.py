@@ -7,9 +7,15 @@ import os
 import re
 import subprocess
 from enum import Enum
-from typing import List, Tuple, TypedDict
+from typing import List, Tuple
 
 import coloredlogs  # type: ignore[import]
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
+
 
 # types
 

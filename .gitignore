@@ -123,3 +123,5 @@ common_args.py
 traverser.py
 
 resources/filename_patterns/*.yaml
+*.token
+*.pass

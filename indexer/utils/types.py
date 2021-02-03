@@ -1,6 +1,11 @@
 """Type hints."""
 
-from typing import List, Optional, TypedDict
+from typing import List, Optional
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
 
 Date = str
 EventID = int
@@ -28,6 +33,15 @@ class SoftwareEntry(TypedDict, total=False):
     date: Date
 
 
+class EventsData(TypedDict):
+    """Events info."""
+
+    first_event: Optional[int]
+    last_event: Optional[int]
+    event_count: int
+    status: str
+
+
 class Run(TypedDict):
     """Run dict."""
 
@@ -46,7 +60,7 @@ class GapEntry(TypedDict):
 
     start_event_id: EventID
     stop_event_id: EventID
-    delta_time: int
+    delta_time: float
     start_date: Date
     stop_date: Date
 
@@ -78,6 +92,68 @@ class OfflineProcessingMetadata(TypedDict, total=False):
     last_event: Optional[Event]
 
 
+class IceProdMetadata(TypedDict, total=True):
+    """IceProd Metadata."""
+
+    dataset: int
+    dataset_id: str
+    job: Optional[int]
+    job_id: Optional[str]
+    task: Optional[str]
+    task_id: Optional[str]
+    config: str
+
+
+class SimulationMetadata(TypedDict, total=False):
+    """Simulation Metadata."""
+
+    generator: str
+    composition: str
+    geometry: str
+    GCD_file: str
+    bulk_ice_model: str
+    hole_ice_model: str
+    photon_propagator: str
+    DOMefficiency: float
+    atmosphere: int
+    n_events: int
+    oversampling: int
+    DOMoversize: int
+    energy_min: float
+    energy_max: float
+    power_law_index: str
+    cylinder_length: float
+    cylinder_radius: float
+    zenith_min: float
+    zenith_max: float
+    hadronic_interaction: str
+
+
+# ideally, we could do some kind of introspection, but this requires universal TypedDict support
+simulation_metadata_types = {
+    "generator": str,
+    "composition": str,
+    "geometry": str,
+    "GCD_file": str,
+    "bulk_ice_model": str,
+    "hole_ice_model": str,
+    "photon_propagator": str,
+    "DOMefficiency": float,
+    "atmosphere": int,
+    "n_events": int,
+    "oversampling": int,
+    "DOMoversize": int,
+    "energy_min": float,
+    "energy_max": float,
+    "power_law_index": str,
+    "cylinder_length": float,
+    "cylinder_radius": float,
+    "zenith_min": float,
+    "zenith_max": float,
+    "hadronic_interaction": str,
+}
+
+
 class Metadata(TypedDict, total=False):
     """The file-catalog metadata.
 
@@ -92,12 +168,15 @@ class Metadata(TypedDict, total=False):
     create_date: Date
 
     # i3 File:
-    meta_modify_date: Date
     data_type: Optional[str]
-    processing_level: str
+    processing_level: Optional[str]
     content_status: str
+
+    # /data/exp/* i3 File:
     software: Optional[List[SoftwareEntry]]
     run: Run
-
-    # Offline Processing:
     offline_processing_metadata: OfflineProcessingMetadata
+
+    # /data/sim/* i3 File:
+    iceprod: IceProdMetadata
+    simulation: SimulationMetadata

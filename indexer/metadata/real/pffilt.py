@@ -2,14 +2,20 @@
 
 
 import re
-from typing import Final, List
+from typing import List
 
 from ...utils import utils
-from ..i3 import I3FileMetadata
 from . import filename_patterns
+from .data_exp import DataExpI3FileMetadata
+
+try:
+    from typing import Final
+except ImportError:
+    from typing_extensions import Final  # type: ignore[misc]
 
 
-class PFFiltFileMetadata(I3FileMetadata):
+
+class PFFiltFileMetadata(DataExpI3FileMetadata):
     """Metadata for PFFilt i3 files."""
 
     FILENAME_PATTERNS: Final[List[str]] = filename_patterns.PFFilt["patterns"]

@@ -1,0 +1,314 @@
+[
+  {
+    "steering_parameter_id": 516591,
+    "name": "BATCHSYS",
+    "type": "string",
+    "value": "gloworm",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516592,
+    "name": "CORSIKA::cache_dir",
+    "type": "string",
+    "value": "$metadata(gsiftp://gridftp.icecube.wisc.edu/data/sim/IceTop/2009/generated/CORSIKA-ice-top/%(dataset_id)d/$steering(CORSIKA::ebin)/)",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516579,
+    "name": "CORSIKA::cthmax",
+    "type": "double",
+    "value": "65",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516580,
+    "name": "CORSIKA::cthmin",
+    "type": "double",
+    "value": "0",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516581,
+    "name": "CORSIKA::ebin",
+    "type": "double",
+    "value": "$eval(($steering(CORSIKA::ebin_first)*10+$args(procnum)%($steering(CORSIKA::ebin_last)*10-$steering(CORSIKA::ebin_first)*10+1))/10)",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516582,
+    "name": "CORSIKA::ebin_first",
+    "type": "double",
+    "value": "5.0",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516583,
+    "name": "CORSIKA::ebin_last",
+    "type": "double",
+    "value": "7.9",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516584,
+    "name": "CORSIKA::ecuts1",
+    "type": "double",
+    "value": ".05",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516585,
+    "name": "CORSIKA::ecuts2",
+    "type": "double",
+    "value": ".05",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516586,
+    "name": "CORSIKA::ecuts3",
+    "type": "double",
+    "value": ".01",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516587,
+    "name": "CORSIKA::ecuts4",
+    "type": "double",
+    "value": ".002",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516588,
+    "name": "CORSIKA::eprimarymax",
+    "type": "double",
+    "value": "$eval(10**($steering(CORSIKA::ebin_last)+0.1))",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516589,
+    "name": "CORSIKA::eprimarymin",
+    "type": "double",
+    "value": "$eval(10**$steering(CORSIKA::ebin_first))",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516590,
+    "name": "CORSIKA::eslope",
+    "type": "double",
+    "value": "-1",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516593,
+    "name": "CORSIKA::infile",
+    "type": "string",
+    "value": "$sprintf(\"DAT%06d\", $steering(CORSIKA::run))",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516594,
+    "name": "CORSIKA::lemodel",
+    "type": "string",
+    "value": "fluka",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516595,
+    "name": "CORSIKA::model",
+    "type": "string",
+    "value": "sibyll",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516596,
+    "name": "CORSIKA::platform",
+    "type": "string",
+    "value": "bartol",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516597,
+    "name": "CORSIKA::primary",
+    "type": "string",
+    "value": "H",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516566,
+    "name": "CORSIKA::ratmo",
+    "type": "int",
+    "value": "13",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516567,
+    "name": "CORSIKA::run",
+    "type": "int",
+    "value": "$eval($args(procnum)+1)",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516568,
+    "name": "CORSIKA::seed",
+    "type": "int",
+    "value": "$eval(($args(dataset)*100000 + $args(procnum)) % 100000000 + 382710)",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516569,
+    "name": "CORSIKA::showers",
+    "type": "int",
+    "value": "1",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516598,
+    "name": "current_file",
+    "type": "string",
+    "value": "$sprintf(\"%s.out.i3.gz\", $steering(temp_file))",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516565,
+    "name": "DEBUG",
+    "type": "bool",
+    "value": "0",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516599,
+    "name": "description",
+    "type": "string",
+    "value": "%(geometry)s %(simcat)s %(composition)s with %(weighted)s spectrum of %(spectrum)s, using %(icemodel)s %(photonpropagator)s. Angular range of %(angularrange)s and energy range of %(energyrange)s. ",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516570,
+    "name": "MAXJOBS",
+    "type": "int",
+    "value": "1200",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516571,
+    "name": "PRIMARY::C",
+    "type": "int",
+    "value": "1206",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516572,
+    "name": "PRIMARY::Fe",
+    "type": "int",
+    "value": "5626",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516573,
+    "name": "PRIMARY::Gamma",
+    "type": "int",
+    "value": "1",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516574,
+    "name": "PRIMARY::H",
+    "type": "int",
+    "value": "14",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516575,
+    "name": "PRIMARY::He",
+    "type": "int",
+    "value": "0402",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516576,
+    "name": "PRIMARY::O",
+    "type": "int",
+    "value": "1608",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516577,
+    "name": "PRIMARY::Si",
+    "type": "int",
+    "value": "2814",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516578,
+    "name": "priority",
+    "type": "int",
+    "value": "50",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516600,
+    "name": "SCRIPTS::repository",
+    "type": "string",
+    "value": "http://code.icecube.wisc.edu/svn/sandbox/tamburro/simprod-scripts/test/python",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 516601,
+    "name": "summaryfile",
+    "type": "string",
+    "value": "$sprintf(\"corsika.%06d.%06d.summary.xml\", $args(dataset), $eval($args(procnum)+1))",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 574106,
+    "name": "TARGET::2009",
+    "type": "string",
+    "value": "$metadata(gsiftp://gridftp.icecube.wisc.edu/data/sim/IceTop/2009/generated/%(subcategory)s/%(dataset_id)d/%(subdirectory)s/)",
+    "description": "No description",
+    "dataset_id": 10410
+  },
+  {
+    "steering_parameter_id": 549455,
+    "name": "TARGET::IT_CORSIKA_2009",
+    "type": "string",
+    "value": "gsiftp://gridftp.icecube.wisc.edu/data/sim/IceTop/2009/generated/%(subcategory)s/%(dataset_id)d/",
+    "description": "No description",
+    "dataset_id": 10410
+  }
+]

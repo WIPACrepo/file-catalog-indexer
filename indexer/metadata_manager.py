@@ -1,33 +1,66 @@
 """Class for managing metadata collection / interfacing with indexer.py."""
 
-
 import logging
 import os
 import re
 import tarfile
 import typing
 import xml
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional, Pattern
 
+import pymysql
 import xmltodict  # type: ignore[import]
 import yaml
 
-from .metadata import BasicFileMetadata, I3FileMetadata, real
+# local imports
+from rest_tools.client import RestClient  # type: ignore[import]
+
+from .metadata import basic, real, simulation
+from .metadata.simulation.data_sim import DataSimI3FileMetadata
 from .utils import utils
 
 
 class MetadataManager:  # pylint: disable=R0903
     """Commander class for handling metadata for different file types."""
 
-    def __init__(self, site: str, basic_only: bool = False):
+    def __init__(  # pylint: disable=R0913
+        self,
+        site: str,
+        basic_only: bool = False,
+        iceprodv2_rc_token: str = "",
+        iceprodv1_db_pass: str = "",
+    ):
         self.dir_path = ""
         self.site = site
         self.basic_only = basic_only
-        self.l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
+        self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
+        self.sim_regexes: List[Pattern[str]] = []
+        self.iceprodv2_rc: Optional[RestClient] = None
+        if iceprodv2_rc_token:
+            self.iceprodv2_rc = RestClient(
+                "https://iceprod2-api.icecube.wisc.edu", iceprodv2_rc_token
+            )
+        self.iceprodv1_db: Optional[pymysql.connections.Connection] = None
+        if iceprodv1_db_pass:
+            self.iceprodv1_db = pymysql.connect(
+                host="vm-i3simprod.icecube.wisc.edu",
+                user="i3simprod-ro",
+                passwd=iceprodv1_db_pass,
+                db="i3simprod",
+            )
 
-    def _prep_l2_dir_metadata(self) -> None:
+    def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
+        """Return basic metadata-file object for files.
+
+        Factory method.
+        """
+        file = utils.FileInfo(filepath)
+        logging.debug(f"Gathering basic metadata for {file.name}...")
+        return basic.BasicFileMetadata(file, self.site)
+
+    def _real_prep_l2_dir_metadata(self) -> None:
         """Get metadata files for later processing with individual i3 files."""
-        self.l2_dir_metadata = {}
+        self.real_l2_dir_metadata = {}
         dir_meta_xml = None
         gaps_files = {}  # gaps_files[<filename w/o extension>]
         gcd_files = {}  # gcd_files[<run id w/o leading zeros>]
@@ -58,7 +91,8 @@ class MetadataManager:  # pylint: disable=R0903
                     with tarfile.open(dir_entry.path) as tar:
                         for tar_obj in tar:
                             # pylint: disable=C0325
-                            if not (iobytes := tar.extractfile(tar_obj)):
+                            iobytes = tar.extractfile(tar_obj)
+                            if not iobytes:
                                 continue
                             file_dict = yaml.safe_load(iobytes)
                             # Ex. Level2_IC86.2017_data_Run00130484_Subrun00000000_00000188_gaps.txt
@@ -73,55 +107,110 @@ class MetadataManager:  # pylint: disable=R0903
             # GCD Files (one per run)
             # Ex. Level2_IC86.2017_data_Run00130484_0101_71_375_GCD.i3.zst
             elif "GCD" in dir_entry.name:
-                run = I3FileMetadata.parse_run_number(dir_entry.name)
+                run = real.data_exp.DataExpI3FileMetadata.parse_run_number(
+                    dir_entry.name
+                )
                 gcd_files[str(run)] = dir_entry.path
                 logging.debug(f"Grabbed GCD file for run {run}, {dir_entry.name}.")
 
-        self.l2_dir_metadata["dir_meta_xml"] = dir_meta_xml if dir_meta_xml else {}
-        self.l2_dir_metadata["gaps_files"] = gaps_files
-        self.l2_dir_metadata["gcd_files"] = gcd_files
+        self.real_l2_dir_metadata["dir_meta_xml"] = dir_meta_xml if dir_meta_xml else {}
+        self.real_l2_dir_metadata["gaps_files"] = gaps_files
+        self.real_l2_dir_metadata["gcd_files"] = gcd_files
 
-    def new_file(self, filepath: str) -> BasicFileMetadata:
-        """Return different metadata-file objects.
+    def _new_file_real(self, filepath: str) -> basic.BasicFileMetadata:
+        """Return different metadata-file objects for `/data/exp/` files.
 
         Factory method.
         """
         file = utils.FileInfo(filepath)
-        if not self.basic_only:
-            # L2
-            if real.L2FileMetadata.is_valid_filename(file.name):
-                # get directory's metadata
-                file_dir_path = os.path.dirname(os.path.abspath(file.path))
-                if (not self.l2_dir_metadata) or (file_dir_path != self.dir_path):
-                    self.dir_path = file_dir_path
-                    self._prep_l2_dir_metadata()
-                try:
-                    no_extension = file.name.split(".i3")[0]
-                    gaps = self.l2_dir_metadata["gaps_files"][no_extension]
-                except KeyError:
-                    gaps = {}
-                try:
-                    run = I3FileMetadata.parse_run_number(file.name)
-                    gcd = self.l2_dir_metadata["gcd_files"][str(run)]
-                except KeyError:
-                    gcd = ""
-                logging.debug(f"Gathering L2 metadata for {file.name}...")
-                return real.L2FileMetadata(
-                    file, self.site, self.l2_dir_metadata["dir_meta_xml"], gaps, gcd
-                )
-            # PFFilt
-            if real.PFFiltFileMetadata.is_valid_filename(file.name):
-                logging.debug(f"Gathering PFFilt metadata for {file.name}...")
-                return real.PFFiltFileMetadata(file, self.site)
-            # PFDST
-            if real.PFDSTFileMetadata.is_valid_filename(file.name):
-                logging.debug(f"Gathering PFDST metadata for {file.name}...")
-                return real.PFDSTFileMetadata(file, self.site)
-            # PFRaw
-            if real.PFRawFileMetadata.is_valid_filename(file.name):
-                logging.debug(f"Gathering PFRaw metadata for {file.name}...")
-                return real.PFRawFileMetadata(file, self.site)
-            # if no match, fall-through to real.BasicFileMetadata...
-        # Other/ Basic
-        logging.debug(f"Gathering basic metadata for {file.name}...")
-        return BasicFileMetadata(file, self.site)
+
+        # L2
+        if real.l2.L2FileMetadata.is_valid_filename(file.name):
+            # get directory's metadata
+            file_dir_path = os.path.dirname(os.path.abspath(file.path))
+            if (not self.real_l2_dir_metadata) or (file_dir_path != self.dir_path):
+                self.dir_path = file_dir_path
+                self._real_prep_l2_dir_metadata()
+            try:
+                no_extension = file.name.split(".i3")[0]
+                gaps = self.real_l2_dir_metadata["gaps_files"][no_extension]
+            except KeyError:
+                gaps = {}
+            try:
+                run = real.data_exp.DataExpI3FileMetadata.parse_run_number(file.name)
+                gcd = self.real_l2_dir_metadata["gcd_files"][str(run)]
+            except KeyError:
+                gcd = ""
+            logging.debug(f"Gathering L2 metadata for {file.name}...")
+            return real.l2.L2FileMetadata(
+                file, self.site, self.real_l2_dir_metadata["dir_meta_xml"], gaps, gcd
+            )
+        # PFFilt
+        if real.pffilt.PFFiltFileMetadata.is_valid_filename(file.name):
+            logging.debug(f"Gathering PFFilt metadata for {file.name}...")
+            return real.pffilt.PFFiltFileMetadata(file, self.site)
+        # PFDST
+        if real.pfdst.PFDSTFileMetadata.is_valid_filename(file.name):
+            logging.debug(f"Gathering PFDST metadata for {file.name}...")
+            return real.pfdst.PFDSTFileMetadata(file, self.site)
+        # PFRaw
+        if real.pfraw.PFRawFileMetadata.is_valid_filename(file.name):
+            logging.debug(f"Gathering PFRaw metadata for {file.name}...")
+            return real.pfraw.PFRawFileMetadata(file, self.site)
+        #
+        # If no match, fall-through to basic.BasicFileMetadata...
+        return self._new_file_basic_only(filepath)
+
+    def _new_file_simulation(self, filepath: str) -> basic.BasicFileMetadata:
+        """Return different metadata-file objects for `/data/sim/` files.
+
+        Factory method.
+        """
+        file = utils.FileInfo(filepath)
+
+        # read-in regex file
+        if not self.sim_regexes:
+            for regex in simulation.filename_patterns.regex_patterns:
+                self.sim_regexes.append(re.compile(regex))
+
+        # set up IceProd RestClient
+        if not self.iceprodv2_rc:
+            raise Exception("Missing IceProd v2 REST Client.")
+        if not self.iceprodv1_db:
+            raise Exception("Missing IceProd v1 DB Client.")
+
+        if DataSimI3FileMetadata.is_valid_filename(file.name):
+            logging.debug(f"Gathering Sim metadata for {file.name}...")
+            return DataSimI3FileMetadata(
+                file, self.site, self.sim_regexes, self.iceprodv2_rc, self.iceprodv1_db
+            )
+
+        return self._new_file_basic_only(filepath)
+
+    @staticmethod
+    def _is_data_sim_filepath(filepath: str) -> bool:
+        return filepath.startswith("/data/sim/")
+
+    @staticmethod
+    def _is_data_exp_filepath(filepath: str) -> bool:
+        return filepath.startswith("/data/exp/")
+
+    def new_file(self, filepath: str) -> basic.BasicFileMetadata:
+        """Return different metadata-file objects for files.
+
+        Factory method.
+        """
+        if self.basic_only:
+            return self._new_file_basic_only(filepath)
+
+        elif MetadataManager._is_data_sim_filepath(filepath):
+            return self._new_file_simulation(filepath)
+
+        elif MetadataManager._is_data_exp_filepath(filepath):
+            return self._new_file_real(filepath)
+
+        else:
+            raise RuntimeError(
+                f"Unaccounted for filepath type: {filepath}. "
+                "Run with --basic-only for basic metadata collection."
+            )

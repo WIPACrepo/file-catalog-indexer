@@ -1,0 +1,123 @@
+{
+  "version": 3,
+  "options": {},
+  "steering": {
+    "parameters": {
+      "seed": "$(dataset)",
+      "year": 2016,
+      "category": "CORSIKA-in-ice",
+      "subdirectory": "$sprintf('%07d-%07d',$eval($(job)//1000*1000),$eval($(job)//1000*1000+999))",
+      "MCType": "corsika_weighted",
+      "mjd_16": 57531,
+      "outfile": "$sprintf('corsika.%06d.%06d.i3.zst',$(dataset),$(job))",
+      "gcdfile": "/cvmfs/icecube.opensciencegrid.org/data/GCD/GeoCalibDetectorStatus_AVG_55697-57531_PASS2_SPE_withStdNoise.i3.gz",
+      "CORSIKA::eprimarymin": 600,
+      "CORSIKA::eprimarymax": 100000000,
+      "CORSIKA::run": "$eval($eval($(dataset)*100000 + $(job))%100000000 + 1)",
+      "CORSIKA::showers": 100000,
+      "CORSIKA::seed": "$eval($eval($(dataset)*100000 + $(job))%100000000)",
+      "CORSIKA::spectrum": -2,
+      "hadronicinteraction": "Sybill-2.3",
+      "spectrum": "E^-2",
+      "geometry": "IC86.2016",
+      "IceSimPath": "/cvmfs/icecube.opensciencegrid.org/py2-v3.0.1/metaprojects/simulation/V06-01-01",
+      "TARGET::2016": "gsiftp://gridftp.icecube.wisc.edu/data/sim/IceCube/2016/generated/$(category)/$(dataset)/$(subdirectory)"
+    },
+    "batchsys": null,
+    "system": {},
+    "resources": [],
+    "data": []
+  },
+  "tasks": [
+    {
+      "depends": [],
+      "batchsys": null,
+      "trays": [
+        {
+          "iterations": 1,
+          "modules": [
+            {
+              "running_class": "icecube.simprod.modules.Corsika5ComponentGenerator",
+              "src": "",
+              "args": {
+                "eprimarymin": "$steering(CORSIKA::eprimarymin)",
+                "eprimarymax": "$steering(CORSIKA::eprimarymax)",
+                "CORSIKAseed": "$steering(CORSIKA::seed)",
+                "seed": "$steering(seed)",
+                "nproc": "$(jobs_submitted)",
+                "procnum": "$(job)",
+                "nshowers": "$steering(CORSIKA::showers)",
+                "RunCorsika": true,
+                "CutoffType": "EnergyPerNucleon",
+                "oversampling": 1,
+                "pnorm": [
+                  10,
+                  5,
+                  3,
+                  2,
+                  1
+                ],
+                "pgam": [
+                  2,
+                  2,
+                  2,
+                  2,
+                  2
+                ],
+                "RepoURL": "http://prod-exe.icecube.wisc.edu/",
+                "CVMFS": "/cvmfs/icecube.opensciencegrid.org/data/corsika/",
+                "corsikaVersion": "76900g",
+                "compress": true,
+                "gcdfile": "$(gcdfile)",
+                "outputfile": "corsika.i3.zst",
+                "UsePipe": true,
+                "MakeFIFO": false
+              },
+              "env_shell": "/cvmfs/icecube.opensciencegrid.org/py2-v3.0.1/icetray-env simulation/V06-01-01",
+              "env_clear": true,
+              "configs": {},
+              "name": "",
+              "resources": [],
+              "data": [
+                {
+                  "type": "permanent",
+                  "movement": "output",
+                  "remote": "$steering(TARGET::2016)/$steering(outfile)",
+                  "local": "corsika.i3.zst",
+                  "compression": false,
+                  "transfer": true
+                }
+              ],
+              "classes": [],
+              "parameters": {},
+              "projects": []
+            }
+          ],
+          "name": "corsika",
+          "resources": [],
+          "data": [],
+          "classes": [],
+          "parameters": {},
+          "projects": []
+        }
+      ],
+      "requirements": {
+        "memory": 1,
+        "disk": 8,
+        "time": 2
+      },
+      "task_files": false,
+      "name": "generate",
+      "resources": [],
+      "data": [],
+      "classes": [],
+      "parameters": {},
+      "projects": []
+    }
+  ],
+  "difplus": null,
+  "description": "SC Demo Input: IC86.2016 CORSIKA-in-ice 5-component model Sibyll2.3c (CORSIKA 76900g) with weighted spectrum of E^-2.6, using Spice3.2 ClSim. Angular range of 0deg < theta < 89.99deg and energy range of 600GeV < Eprim < 1e8GeV",
+  "categories": [],
+  "dataset": 20900,
+  "parent_id": 20891
+}

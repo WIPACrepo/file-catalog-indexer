@@ -9,7 +9,7 @@ import stat
 import string
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import List, Optional, TypedDict
+from typing import List, Optional
 
 import coloredlogs  # type: ignore[import]
 import requests
@@ -19,6 +19,12 @@ from rest_tools.client import RestClient  # type: ignore[import]
 
 from .metadata_manager import MetadataManager
 from .utils import types
+
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
+
 
 # Types --------------------------------------------------------------------------------
 
@@ -37,6 +43,8 @@ class IndexerFlags(TypedDict):
 
     basic_only: bool
     no_patch: bool
+    iceprodv2_rc_token: str
+    iceprodv1_db_pass: str
 
 
 # Constants ----------------------------------------------------------------------------
@@ -230,7 +238,12 @@ def process_work(
         timeout=rest_client_args["timeout"],
         retries=rest_client_args["retries"],
     )
-    manager = MetadataManager(site, indexer_flags["basic_only"])
+    manager = MetadataManager(
+        site,
+        basic_only=indexer_flags["basic_only"],
+        iceprodv2_rc_token=indexer_flags["iceprodv2_rc_token"],
+        iceprodv1_db_pass=indexer_flags["iceprodv1_db_pass"],
+    )
     sub_files = asyncio.get_event_loop().run_until_complete(
         process_paths(paths, manager, fc_rc, indexer_flags["no_patch"])
     )
@@ -363,6 +376,8 @@ def main() -> None:
         help="blacklist file containing filepaths to skip",
     )
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
+    parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
+    parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
 
     args = parser.parse_args()
     coloredlogs.install(level=getattr(logging, args.log.upper()))
@@ -391,6 +406,8 @@ def main() -> None:
     indexer_flags: IndexerFlags = {
         "basic_only": args.basic_only,
         "no_patch": args.no_patch,
+        "iceprodv2_rc_token": args.iceprodv2_rc_token,
+        "iceprodv1_db_pass": args.iceprodv1_db_pass,
     }
 
     # Go!
