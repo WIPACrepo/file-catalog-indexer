@@ -6,7 +6,7 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 # pylint: disable=R0903
 
 import functools
-import logging  # TODO - trim down
+import logging
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import pymysql
@@ -91,11 +91,6 @@ class _IceProdQuerier:
             job_config,
             {"parameters": job_config["steering"]["parameters"]},
         )
-        # TODO - delete this
-        import json
-
-        with open("steering_params.json", "w") as f:
-            json.dump(job_config["steering"]["parameters"], f)
         return cast(SteeringParameters, job_config["steering"]["parameters"])
 
 

@@ -5,10 +5,11 @@
 3. metadata = metadata_file.generate()
 """
 
+import json
 import sys
 from datetime import date
-from os import path
-from unittest.mock import Mock, patch, PropertyMock
+from os import listdir, path
+from unittest.mock import ANY, AsyncMock, Mock, patch, PropertyMock
 
 # local imports
 import data
@@ -20,6 +21,8 @@ from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C041
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 
 
+@patch("rest_tools.client.RestClient.request")
+@patch("pymysql.connect")
 @patch(
     "indexer.metadata.simulation.iceprod_tools._IceProdV2Querier.filepath",
     new_callable=PropertyMock,
@@ -32,6 +35,8 @@ def test_1(
     _is_data_sim_filepath: Mock,
     _get_events_data: Mock,
     _iceprodv2querier_filepath: PropertyMock,
+    pymysql_connect: Mock,
+    rest_client_request: AsyncMock,
 ) -> None:
     """Test all example passing cases."""
     for fpath, metadata in data.EXAMPLES.items():
@@ -58,12 +63,22 @@ def test_1(
         _get_events_data.return_value = dummy_event_data
         # mock iceprod_tool's filepath so output-file matching can work
         _iceprodv2querier_filepath.return_value = orignal_path
+        # mock SQL queries & REST requests
+        dir_ = path.dirname(fullpath)
+        if any(f.startswith("ip1-") for f in listdir(dir_)):
+            sps = json.load(open(path.join(dir_, "ip1-dataset-steering-params.json")))
+            pymysql_connect.return_value.cursor.return_value.fetchall.return_value = sps
+        elif any(f.startswith("ip2-") for f in listdir(dir_)):
+            datasets = json.load(open(path.join(dir_, "ip2-datasets.json")))
+            job_config = json.load(open(path.join(dir_, "ip2-job-config.json")))
+            tasks = json.load(open(path.join(dir_, "ip2-dataset-tasks.json")))
+            rest_client_request.side_effect = [datasets, job_config, tasks]
+        else:
+            raise Exception("Missing testing data")
 
         # run
-        manager = metadata_manager.MetadataManager(  # TODO mock the rest/db
-            "WIPAC",
-            iceprodv2_rc_token=open("ip2.token").read().strip(),
-            iceprodv1_db_pass=open("ipdb.pass").read().strip(),
+        manager = metadata_manager.MetadataManager(
+            "WIPAC", iceprodv2_rc_token=ANY, iceprodv1_db_pass=ANY,
         )
         metadata_file = manager.new_file(fullpath)
         generated_metadata = metadata_file.generate()
