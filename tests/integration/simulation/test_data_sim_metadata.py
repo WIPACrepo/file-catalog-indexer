@@ -12,7 +12,7 @@ from os import listdir, path
 from unittest.mock import ANY, AsyncMock, Mock, patch, PropertyMock
 
 # local imports
-import data
+import sim_data as data
 
 sys.path.append(".")
 from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C0413

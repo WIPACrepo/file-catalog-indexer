@@ -11,7 +11,7 @@ from datetime import datetime as dt
 from unittest.mock import Mock, patch
 
 # local imports
-import data
+import exp_data as data
 
 sys.path.append(".")
 from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C0413

@@ -29,7 +29,7 @@ def test_get_iceprod_querier_good() -> None:  # pylint: disable=C0103
     }
 
     for dataset_num, querier_type in goods.items():
-        ret = iceprod_tools._get_iceprod_querier(dataset_num, ANY, ANY)
+        ret = iceprod_tools._get_iceprod_querier(dataset_num, ANY, ANY, ANY)
         assert isinstance(ret, querier_type)
 
 
@@ -40,7 +40,7 @@ def test_get_iceprod_querier_errors() -> None:  # pylint: disable=C0103
     for dataset_num in errors:
         print(dataset_num)
         with pytest.raises(iceprod_tools.DatasetNotFound):
-            iceprod_tools._get_iceprod_querier(dataset_num, ANY, ANY)  # type: ignore[arg-type]
+            iceprod_tools._get_iceprod_querier(dataset_num, ANY, ANY, ANY)  # type: ignore[arg-type]
 
 
 def test_parse_dataset_num() -> None:  # pylint: disable=C0103
