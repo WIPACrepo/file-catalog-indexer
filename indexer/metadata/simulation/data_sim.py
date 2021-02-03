@@ -105,8 +105,9 @@ class DataSimI3FileMetadata(I3FileMetadata):
         # fall-through
         raise ValueError(f"Filename does not match any pattern, {file.path}.")
 
+    @staticmethod
     def get_simulation_metadata(  # pylint: disable=R0912
-        self, steering_parameters: iceprod_tools.SteeringParameters,
+        steering_parameters: iceprod_tools.SteeringParameters, iceprod_dataset_num: int
     ) -> types.SimulationMetadata:
         """Gather "simulation" metadata from steering parameters."""
 
@@ -172,7 +173,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # Make mapping of metadata key -> steering parameter key
         key_maps: Dict[str, str] = {}
-        for paramkey in steering_parameters.keys():
+        for paramkey in sorted(steering_parameters.keys()):
             for metakey in metakey_substrings.keys():  # pylint: disable=C0201
                 # case-insensitive substring search
                 if not any(
@@ -181,7 +182,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
                     continue
                 # if there is already a mapping, only replace w/ a shorter one
                 # Ex: "IceModelTarball::0" vs "IceModel"
-                if (metakey in key_maps) and (len(paramkey) > len(key_maps[metakey])):
+                if (metakey in key_maps) and (len(paramkey) >= len(key_maps[metakey])):
                     continue
                 key_maps[metakey] = paramkey
 
@@ -216,10 +217,10 @@ class DataSimI3FileMetadata(I3FileMetadata):
             type_ = types.simulation_metadata_types[key]
             try:
                 sim_meta[key] = type_(val)  # type: ignore[misc]
-            except TypeError:
+            except (ValueError, TypeError):
                 logging.debug(
                     f'Wrong data type stored for "simulation" key, ({key}:{val}) '
-                    f"should be {type_} (dataset:{self.iceprod_dataset_num})"
+                    f"should be {type_} (dataset:{iceprod_dataset_num})"
                 )
 
         return sim_meta
@@ -228,7 +229,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         """Gather the file's metadata."""
         metadata = super().generate()
 
-        # get IceProd dataset config
+        # get IceProd dataset steering parameters and IceProdMetadata
         try:
             steering_parameters, ip_metadata = asyncio.run(
                 iceprod_tools.get_steering_params_and_ip_metadata(
@@ -254,13 +255,13 @@ class DataSimI3FileMetadata(I3FileMetadata):
             )
             self.iceprod_dataset_num = ip_metadata["dataset"]
 
-        # update
-        metadata.update(
-            {
-                "iceprod": ip_metadata,
-                "simulation": self.get_simulation_metadata(steering_parameters),
-            }
+        # parse steering parameters -> SimulationMetadata
+        sim_metadata = self.get_simulation_metadata(
+            steering_parameters, self.iceprod_dataset_num
         )
+
+        # update
+        metadata.update({"iceprod": ip_metadata, "simulation": sim_metadata})
 
         return metadata
 

@@ -1,4 +1,4 @@
-"""Example /data/sim i3 files."""
+"""Example /data/sim i3 filepaths."""
 
 import sys
 from typing import Dict, Optional

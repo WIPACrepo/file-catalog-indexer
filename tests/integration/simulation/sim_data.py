@@ -104,7 +104,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "hadronic_interaction": "Sybill-2.3",
             "n_events": 100000,
             "power_law_index": "E^-2",
-        },  # TODO
+        },
         "locations": [
             {
                 "site": "WIPAC",
@@ -137,7 +137,7 @@ EXAMPLES: Dict[str, Dict[str, Any]] = {
             "energy_min": 100000.0,
             "n_events": 1,
             "power_law_index": "E^-1",
-        },  # TODO
+        },
         "locations": [
             {
                 "site": "WIPAC",

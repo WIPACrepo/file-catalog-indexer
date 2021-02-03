@@ -9,7 +9,7 @@ from typing import List, Pattern
 import pytest
 
 # local imports
-import data
+import filepath_data as data
 
 sys.path.append(".")
 from indexer.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
