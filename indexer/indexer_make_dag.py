@@ -28,6 +28,8 @@ class IndexerArgs(TypedDict):
     timeout: int
     retries: int
     cpus: int
+    iceprodv2_rc_token: str
+    iceprodv1_db_pass: str
 
 
 # data
@@ -117,6 +119,12 @@ def make_condor_file(
                 blacklist_arg = f"--blacklist {indexer_args['blacklist']}"
                 transfer_input_files.append(indexer_args["blacklist"])
 
+            # /data/sim/-type arguments
+            if indexer_args["iceprodv1_db_pass"] and indexer_args["iceprodv2_rc_token"]:
+                sim_args = f"--iceprodv1-db-pass {indexer_args['iceprodv1_db_pass']} --iceprodv2-rc-token {indexer_args['iceprodv2_rc_token']}"
+            else:
+                sim_args = ""
+
             # path or paths_file
             path_arg = ""
             if dir_of_paths_files:
@@ -129,7 +137,7 @@ def make_condor_file(
             # write
             file.write(
                 f"""executable = {os.path.abspath('../resources/indexer_env.sh')}
-arguments = python indexer.py -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']}
+arguments = python indexer.py -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']} {sim_args}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
 log = {scratch}/$(JOBNUM).log
@@ -230,10 +238,20 @@ def main() -> None:
         action="store_true",
         help="does everything except submitting the condor job(s)",
     )
+    parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
+    parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
 
     args = parser.parse_args()
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
+
+    # check simulation-type args -> both or neither is OK
+    if (args.iceprodv1_db_pass and not args.iceprodv2_rc_token) or (
+        not args.iceprodv1_db_pass and args.iceprodv2_rc_token
+    ):
+        raise RuntimeError(
+            "Must use both --iceprodv1-db-pass & --iceprodv2-rc-token, or neither."
+        )
 
     # check if either --level or --dir-of-paths-files
     if (args.level and args.dir_of_paths_files) or (
@@ -258,6 +276,8 @@ def main() -> None:
         "timeout": args.timeout,
         "retries": args.retries,
         "cpus": args.cpus,
+        "iceprodv2_rc_token": args.iceprodv2_rc_token,
+        "iceprodv1_db_pass": args.iceprodv1_db_pass,
     }
     make_condor_file(
         scratch, args.dir_of_paths_files, args.level, args.memory, indexer_args
