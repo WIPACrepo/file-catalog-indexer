@@ -4,10 +4,8 @@ import argparse
 import getpass
 import logging
 import os
-import re
 import subprocess
-from enum import Enum
-from typing import List, Tuple
+from typing import List
 
 import coloredlogs  # type: ignore[import]
 
@@ -17,7 +15,8 @@ except ImportError:
     from typing_extensions import TypedDict
 
 
-# types
+# --------------------------------------------------------------------------------------
+# Types
 
 
 class IndexerArgs(TypedDict):
@@ -32,65 +31,17 @@ class IndexerArgs(TypedDict):
     iceprodv1_db_pass: str
 
 
-# data
-
-
-LEVELS = {
-    "L2": "filtered/level2",
-    "L2P2": "filtered/level2pass2",
-    "PFFilt": "filtered/PFFilt",
-    "PFDST": "unbiased/PFDST",
-    "PFRaw": "unbiased/PFRaw",
-}
-
-
-class Years(Enum):
-    """First and last year for grabbing level-specific data."""
-
-    BEGIN_YEAR = 2005
-    END_YEAR = 2021
-
-
-# functions
+# --------------------------------------------------------------------------------------
+# Functions
 
 
 def _scan_dir_of_paths_files(dir_of_paths_files: str) -> List[str]:
     return sorted([os.path.abspath(p.path) for p in os.scandir(dir_of_paths_files)])
 
 
-def _get_level_specific_dirpaths(
-    begin_year: int, end_year: int, level: str
-) -> List[str]:
-    """Get directory paths that have files for the specified level."""
-    years = [str(y) for y in range(begin_year, end_year)]
-
-    # Ex: [/data/exp/IceCube/2018, ...]
-    dirs = [
-        d for d in os.scandir(os.path.abspath("/data/exp/IceCube")) if d.name in years
-    ]
-
-    days = []
-    for _dir in dirs:
-        # Ex: /data/exp/IceCube/2018/filtered/PFFilt
-        path = os.path.join(_dir.path, LEVELS[level])
-        try:
-            # Ex: /data/exp/IceCube/2018/filtered/PFFilt/0806
-            day_dirs = [d.path for d in os.scandir(path) if re.match(r"\d{4}", d.name)]
-            days.extend(day_dirs)
-        except:  # noqa: E722 # pylint: disable=W0702
-            pass
-
-    return days
-
-
-def make_condor_scratch_dir(dir_of_paths_files: str, level: str) -> str:
+def make_condor_scratch_dir(dir_of_paths_files: str) -> str:
     """Make the condor scratch directory."""
-    if dir_of_paths_files:
-        scratch = os.path.join("/scratch/", getpass.getuser(), "Manual-indexer")
-    elif level:
-        scratch = os.path.join("/scratch/", getpass.getuser(), f"{level}-indexer")
-    else:
-        RuntimeError()
+    scratch = os.path.join("/scratch/", getpass.getuser(), "bulk-indexer")
     if not os.path.exists(scratch):
         os.makedirs(scratch)
 
@@ -98,11 +49,7 @@ def make_condor_scratch_dir(dir_of_paths_files: str, level: str) -> str:
 
 
 def make_condor_file(
-    scratch: str,
-    dir_of_paths_files: str,
-    level: str,
-    memory: str,
-    indexer_args: IndexerArgs,
+    scratch: str, dir_of_paths_files: str, memory: str, indexer_args: IndexerArgs,
 ) -> None:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -125,14 +72,8 @@ def make_condor_file(
             else:
                 sim_args = ""
 
-            # path or paths_file
-            path_arg = ""
-            if dir_of_paths_files:
-                path_arg = "--paths-file $(PATHS_FILE)"
-            elif level:
-                path_arg = "$(PATH)"
-            else:
-                RuntimeError()
+            # paths_file
+            path_arg = "--paths-file $(PATHS_FILE)"
 
             # write
             file.write(
@@ -152,9 +93,7 @@ queue
             )
 
 
-def make_dag_file(
-    scratch: str, dir_of_paths_files: str, level: str, levelyears: Tuple[int, int]
-) -> str:
+def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
     """Make the DAG file."""
     dagpath = os.path.join(scratch, "dag")
     if os.path.exists(dagpath):
@@ -164,23 +103,11 @@ def make_dag_file(
     else:
         # write
         with open(dagpath, "w") as file:
-            if dir_of_paths_files:
-                paths = _scan_dir_of_paths_files(dir_of_paths_files)
-            elif level:
-                begin_year = min(levelyears)
-                end_year = max(levelyears)
-                paths = _get_level_specific_dirpaths(begin_year, end_year, level)
-            else:
-                RuntimeError()
+            paths = _scan_dir_of_paths_files(dir_of_paths_files)
 
             for i, path in enumerate(paths):
                 file.write(f"JOB job{i} condor\n")
-                if dir_of_paths_files:
-                    file.write(f'VARS job{i} PATHS_FILE="{path}"\n')
-                elif level:
-                    file.write(f'VARS job{i} PATH="{path}"\n')
-                else:
-                    RuntimeError()
+                file.write(f'VARS job{i} PATHS_FILE="{path}"\n')
                 file.write(f'VARS job{i} JOBNUM="{i}"\n')
 
     return dagpath
@@ -207,26 +134,14 @@ def main() -> None:
     parser.add_argument(
         "--retries", type=int, default=10, help="REST client number of retries"
     )
-    parser.add_argument(
-        "--level",
-        help="shortcut to only index files from a specified processing level",
-        choices=LEVELS.keys(),
-    )
-    parser.add_argument(
-        "--levelyears",
-        nargs=2,
-        type=int,
-        default=[Years.BEGIN_YEAR.value, Years.END_YEAR.value],
-        help="beginning and end year in /data/exp/IceCube/",
-    )
     parser.add_argument("--cpus", type=int, help="number of CPUs", default=2)
     parser.add_argument(
         "--memory", type=int, help="amount of memory (MB)", default=2000
     )
     parser.add_argument(
         "--dir-of-paths-files",
-        dest="dir_of_paths_files",
-        help="the directory containing files, each of which contains a list of "
+        required=True,
+        help="the directory containing files, each file contains a list of "
         "filepaths to index. Ex: /data/user/eevans/pre-index-data-exp/paths/",
     )
     parser.add_argument(
@@ -253,21 +168,13 @@ def main() -> None:
             "Must use both --iceprodv1-db-pass & --iceprodv2-rc-token, or neither."
         )
 
-    # check if either --level or --dir-of-paths-files
-    if (args.level and args.dir_of_paths_files) or (
-        not args.level and not args.dir_of_paths_files
-    ):
-        raise Exception(
-            "Undefined action! Use either --level or --dir-of-paths-files, not both."
-        )
-
     # check paths in args
-    for f in [args.blacklist, args.dir_of_paths_files]:
-        if f and not os.path.exists(f):
-            raise FileNotFoundError(f)
+    for fpath in [args.blacklist, args.dir_of_paths_files]:
+        if fpath and not os.path.exists(fpath):
+            raise FileNotFoundError(fpath)
 
     # make condor scratch directory
-    scratch = make_condor_scratch_dir(args.dir_of_paths_files, args.level)
+    scratch = make_condor_scratch_dir(args.dir_of_paths_files)
 
     # make condor file
     indexer_args: IndexerArgs = {
@@ -279,18 +186,14 @@ def main() -> None:
         "iceprodv2_rc_token": args.iceprodv2_rc_token,
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
     }
-    make_condor_file(
-        scratch, args.dir_of_paths_files, args.level, args.memory, indexer_args
-    )
+    make_condor_file(scratch, args.dir_of_paths_files, args.memory, indexer_args)
 
     # make DAG file
-    dagpath = make_dag_file(
-        scratch, args.dir_of_paths_files, args.level, args.levelyears
-    )
+    dagpath = make_dag_file(scratch, args.dir_of_paths_files)
 
     # Execute
     if args.dryrun:
-        logging.error("Indexer Aborted: Condor jobs not submitted.")
+        logging.critical("Indexer Aborted: Condor jobs not submitted.")
     else:
         cmd = f"condor_submit_dag -maxjobs {args.maxjobs} {dagpath}"
         logging.info(cmd)

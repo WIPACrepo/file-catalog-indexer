@@ -330,7 +330,6 @@ def main() -> None:
     )
     parser.add_argument(
         "--paths-file",
-        dest="paths_file",
         default=None,
         help="file containing path(s) to scan for files. (use this option for a large number of paths)",
     )
@@ -358,22 +357,18 @@ def main() -> None:
     )
     parser.add_argument(
         "--basic-only",
-        dest="basic_only",
         default=False,
         action="store_true",
         help="only collect basic metadata",
     )
     parser.add_argument(
         "--no-patch",
-        dest="no_patch",
         default=False,
         action="store_true",
         help="do not PATCH if the file already exists in the file catalog",
     )
     parser.add_argument(
-        "--blacklist-file",
-        dest="blacklist_file",
-        help="blacklist file containing filepaths to skip",
+        "--blacklist-file", help="blacklist file containing filepaths to skip",
     )
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
