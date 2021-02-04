@@ -21,9 +21,14 @@ from .metadata_manager import MetadataManager
 from .utils import types
 
 try:
-    from typing import TypedDict
+    from typing import TypedDict, Final
 except ImportError:
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, Final  # type: ignore[misc]
+
+
+_DEFAULT_TIMEOUT: Final[int] = 30  # seconds
+_AGGREGATE_LATENCY_MINUTES: Final[int] = 30  # minutes
+_DEFAULT_RETRIES: Final[int] = int((60 / _DEFAULT_TIMEOUT) * _AGGREGATE_LATENCY_MINUTES)
 
 
 # Types --------------------------------------------------------------------------------
@@ -354,13 +359,13 @@ def main() -> None:
     parser.add_argument(
         "--timeout",
         type=int,
-        default=15,
+        default=_DEFAULT_RETRIES,
         help="timeout duration (seconds) for File Catalog REST requests",
     )
     parser.add_argument(
         "--retries",
         type=int,
-        default=3,
+        default=_DEFAULT_TIMEOUT,
         help="number of retries for File Catalog REST requests",
     )
     parser.add_argument(
