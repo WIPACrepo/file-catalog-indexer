@@ -348,12 +348,20 @@ def main() -> None:
     parser.add_argument(
         "-s", "--site", required=True, help='site value of the "locations" object'
     )
-    parser.add_argument("-t", "--token", required=True, help="LDAP token")
     parser.add_argument(
-        "--timeout", type=int, default=15, help="REST client timeout duration"
+        "-t", "--token", required=True, help="REST token for File Catalog"
     )
     parser.add_argument(
-        "--retries", type=int, default=3, help="REST client number of retries"
+        "--timeout",
+        type=int,
+        default=15,
+        help="timeout duration (seconds) for File Catalog REST requests",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=3,
+        help="number of retries for File Catalog REST requests",
     )
     parser.add_argument(
         "--basic-only",
@@ -365,7 +373,10 @@ def main() -> None:
         "--no-patch",
         default=False,
         action="store_true",
-        help="do not PATCH if the file already exists in the file catalog",
+        help="do not replace/overwrite existing File-Catalog entries (aka don't patch). "
+        "NOTE: this should be used *only* as a fail-safe mechanism "
+        "(this option will not save any processing time); "
+        "use --blacklist-file if you know what files you want to skip",
     )
     parser.add_argument(
         "--blacklist-file", help="blacklist file containing filepaths to skip",

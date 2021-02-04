@@ -39,7 +39,7 @@ def _scan_dir_of_paths_files(dir_of_paths_files: str) -> List[str]:
     return sorted([os.path.abspath(p.path) for p in os.scandir(dir_of_paths_files)])
 
 
-def make_condor_scratch_dir(dir_of_paths_files: str) -> str:
+def make_condor_scratch_dir() -> str:
     """Make the condor scratch directory."""
     scratch = os.path.join("/scratch/", getpass.getuser(), "bulk-indexer")
     if not os.path.exists(scratch):
@@ -48,10 +48,10 @@ def make_condor_scratch_dir(dir_of_paths_files: str) -> str:
     return scratch
 
 
-def make_condor_file(
-    scratch: str, dir_of_paths_files: str, memory: str, indexer_args: IndexerArgs,
-) -> None:
+def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> None:
     """Make the condor file."""
+    logging.debug("Writing Condor file...")
+
     condorpath = os.path.join(scratch, "condor")
     if os.path.exists(condorpath):
         logging.warning(
@@ -91,14 +91,17 @@ notification = Error
 queue
 """
             )
+        logging.info(f"Finished writing Condor file @ {condorpath}.")
 
 
 def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
     """Make the DAG file."""
+    logging.debug("Writing DAG file...")
+
     dagpath = os.path.join(scratch, "dag")
     if os.path.exists(dagpath):
         logging.warning(
-            f"Writing Bypassed: {dagpath} already exists. Using preexisting dag file."
+            f"Writing Bypassed: {dagpath} already exists. Using preexisting DAG file."
         )
     else:
         # write
@@ -110,6 +113,8 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
                 file.write(f'VARS job{i} PATHS_FILE="{path}"\n')
                 file.write(f'VARS job{i} JOBNUM="{i}"\n')
 
+            logging.info(f"Queued {len(paths)} jobs in {dagpath}.")
+
     return dagpath
 
 
@@ -118,7 +123,7 @@ def main() -> None:
 
     Make scratch directory, condor file, and DAGMan file.
     """
-    if not os.getcwd().endswith("file-catalog-indexer/indexer"):
+    if not os.getcwd().endswith("/file-catalog-indexer/indexer"):
         raise RuntimeError(
             "You must run this script from"
             " `file-catalog-indexer/indexer`."
@@ -126,32 +131,41 @@ def main() -> None:
         )
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--token", help="Auth Token", required=True)
+    parser.add_argument(
+        "-t", "--token", help="REST token for File Catalog", required=True
+    )
     parser.add_argument("-j", "--maxjobs", default=500, help="max concurrent jobs")
     parser.add_argument(
-        "--timeout", type=int, default=300, help="REST client timeout duration"
+        "--timeout",
+        type=int,
+        default=300,
+        help="timeout duration (seconds) for File Catalog REST requests",
     )
     parser.add_argument(
-        "--retries", type=int, default=10, help="REST client number of retries"
+        "--retries",
+        type=int,
+        default=10,
+        help="number of retries for File Catalog REST requests",
     )
-    parser.add_argument("--cpus", type=int, help="number of CPUs", default=2)
+    parser.add_argument("--cpus", type=int, help="number of CPUs per job", default=2)
     parser.add_argument(
         "--memory", type=int, help="amount of memory (MB)", default=2000
     )
     parser.add_argument(
         "--dir-of-paths-files",
         required=True,
-        help="the directory containing files, each file contains a list of "
-        "filepaths to index. Ex: /data/user/eevans/pre-index-data-exp/paths/",
+        help="the directory containing files, each file contains a collection of "
+        "filepaths to index by a single job. Ex: /data/user/eevans/pre-index-data-exp/paths/",
     )
     parser.add_argument(
-        "--blacklist", help="blacklist file containing all filepaths to skip"
+        "--blacklist",
+        help="blacklist file containing all filepaths/directories to skip",
     )
     parser.add_argument(
         "--dryrun",
         default=False,
         action="store_true",
-        help="does everything except submitting the condor job(s)",
+        help="do everything except submitting the condor job(s)",
     )
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
@@ -174,7 +188,7 @@ def main() -> None:
             raise FileNotFoundError(fpath)
 
     # make condor scratch directory
-    scratch = make_condor_scratch_dir(args.dir_of_paths_files)
+    scratch = make_condor_scratch_dir()
 
     # make condor file
     indexer_args: IndexerArgs = {
@@ -186,7 +200,7 @@ def main() -> None:
         "iceprodv2_rc_token": args.iceprodv2_rc_token,
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
     }
-    make_condor_file(scratch, args.dir_of_paths_files, args.memory, indexer_args)
+    make_condor_file(scratch, args.memory, indexer_args)
 
     # make DAG file
     dagpath = make_dag_file(scratch, args.dir_of_paths_files)
