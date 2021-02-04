@@ -6,15 +6,18 @@ import logging
 import os
 import re
 import subprocess
-from typing import cast, List
+from typing import cast, List, Tuple
 
 import coloredlogs  # type: ignore[import]
 import natsort  # type: ignore[import]
 
 try:
-    from typing import TypedDict
+    from typing import TypedDict, Final
 except ImportError:
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, Final  # type: ignore[misc]
+
+
+MAX_DAG_JOBS: Final[int] = 2000
 
 
 # --------------------------------------------------------------------------------------
@@ -104,25 +107,64 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
     logging.debug("Writing DAG file...")
 
     dagpath = os.path.join(scratch, "dag")
+    # reuse dag file
     if os.path.exists(dagpath):
         logging.warning(
             f"Writing Bypassed: {dagpath} already exists. Using preexisting DAG file."
         )
+    # write dag file
     else:
-        # write
-        with open(dagpath, "w") as file:
-            paths = _scan_dir_of_paths_files(dir_of_paths_files)
+        paths = _scan_dir_of_paths_files(dir_of_paths_files)
+        # start @ 1, if the first paths_file starts at 1; otherwise start @ 0
+        start = 1 if re.match(r".*[^\d]1$", paths[0]) else 0
 
-            start = 0
-            if re.match(r".*[^\d]1$", paths[0]):
-                start = 1
-
-            for i, path in enumerate(paths, start=start):
-                file.write(f"JOB job{i} condor\n")
-                file.write(f'VARS job{i} PATHS_FILE="{path}"\n')
-                file.write(f'VARS job{i} JOBNUM="{i}"\n')
-
+        # SINGLE DAGMAN FILE
+        if len(paths) <= MAX_DAG_JOBS:
+            with open(dagpath, "w") as file:
+                for i, path in enumerate(paths, start=start):
+                    file.write(f"JOB job{i} condor\n")
+                    file.write(f'VARS job{i} PATHS_FILE="{path}"\n')
+                    file.write(f'VARS job{i} JOBNUM="{i}"\n')
             logging.info(f"Queued {len(paths)} jobs in {dagpath}.")
+        # MULTIPLE SUB-DAG FILES
+        else:
+            logging.info(
+                f"More than {MAX_DAG_JOBS} jobs are required. "
+                "Splicing DAG into multiple sub-DAGs"
+            )
+
+            def subdag_name(subdag_chunk: List[Tuple[int, str]]) -> str:
+                return f"jobs{subdag_chunk[0][0]}to{subdag_chunk[-1][0]}"
+
+            subdag_chunks: List[List[Tuple[int, str]]] = [
+                list(enumerate(paths[i : i + MAX_DAG_JOBS], start=start + i))
+                for i in range(0, len(paths), MAX_DAG_JOBS)
+            ]
+
+            # WRITE TOP LEVEL DAG FILE
+            with open(dagpath, "w") as file:
+                file.write("# TOP LEVEL DAG FILE\n\n")
+                file.write("\n# SPLICES\n")
+                for sdc in subdag_chunks:
+                    file.write(f"SPLICE {subdag_name(sdc)} {subdag_name(sdc)}.dag\n")
+                file.write("\n# PARENT-CHILD CHAIN\n")
+                for parent, child in zip(subdag_chunks[:-1], subdag_chunks[1:]):
+                    file.write(f"PARENT {subdag_name(parent)} ")
+                    file.write(f"CHILD {subdag_name(child)}\n")
+                file.write("\n# END TOP LEVEL DAG FILE\n")
+
+            # WRITE SUB-DAG FILES
+            for sdc in subdag_chunks:
+                subdagpath = os.path.join(scratch, f"{subdag_name(sdc)}.dag")
+                with open(subdagpath, "w") as file:
+                    file.write(f"# CHILD DAG FILE: {subdag_name(sdc)}\n")
+                    for i, paths_file in sdc:
+                        file.write(f"JOB job{i} condor\n")
+                        file.write(f'VARS job{i} PATHS_FILE="{paths_file}"\n')
+                        file.write(f'VARS job{i} JOBNUM="{i}"\n')
+                logging.debug(f"Queued {len(sdc)} sub-dag jobs in {subdagpath}.")
+            logging.info(f"Queued {len(sdc)} total sub-dag files.")
+        logging.info(f"Queued {len(paths)} total jobs starting from {dagpath}.")
 
     return dagpath
 
