@@ -4,6 +4,7 @@ import argparse
 import getpass
 import logging
 import os
+import re
 import subprocess
 from typing import cast, List
 
@@ -111,7 +112,11 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
         with open(dagpath, "w") as file:
             paths = _scan_dir_of_paths_files(dir_of_paths_files)
 
-            for i, path in enumerate(paths):
+            start = 0
+            if re.match(r".*[^\d]1$", paths[0]):
+                start = 1
+
+            for i, path in enumerate(paths, start=start):
                 file.write(f"JOB job{i} condor\n")
                 file.write(f'VARS job{i} PATHS_FILE="{path}"\n')
                 file.write(f'VARS job{i} JOBNUM="{i}"\n')
