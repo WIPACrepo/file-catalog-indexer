@@ -5,9 +5,10 @@ import getpass
 import logging
 import os
 import subprocess
-from typing import List
+from typing import cast, List
 
 import coloredlogs  # type: ignore[import]
+import natsort  # type: ignore[import]
 
 try:
     from typing import TypedDict
@@ -36,7 +37,9 @@ class IndexerArgs(TypedDict):
 
 
 def _scan_dir_of_paths_files(dir_of_paths_files: str) -> List[str]:
-    return sorted([os.path.abspath(p.path) for p in os.scandir(dir_of_paths_files)])
+    fullpaths = [os.path.abspath(p.path) for p in os.scandir(dir_of_paths_files)]
+
+    return cast(List[str], natsort.natsorted(fullpaths))
 
 
 def make_condor_scratch_dir() -> str:
@@ -130,7 +133,10 @@ def main() -> None:
             " This script uses relative paths."
         )
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Submit HTCondor DAGMan jobs for bulk indexing files for the File Catalog",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "-t", "--token", help="REST token for File Catalog", required=True
     )
