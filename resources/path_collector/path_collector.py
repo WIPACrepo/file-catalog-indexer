@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime as dt
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]

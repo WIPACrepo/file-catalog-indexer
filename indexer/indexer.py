@@ -330,7 +330,6 @@ def main() -> None:
     )
     parser.add_argument(
         "--paths-file",
-        dest="paths_file",
         default=None,
         help="file containing path(s) to scan for files. (use this option for a large number of paths)",
     )
@@ -349,31 +348,38 @@ def main() -> None:
     parser.add_argument(
         "-s", "--site", required=True, help='site value of the "locations" object'
     )
-    parser.add_argument("-t", "--token", required=True, help="LDAP token")
     parser.add_argument(
-        "--timeout", type=int, default=15, help="REST client timeout duration"
+        "-t", "--token", required=True, help="REST token for File Catalog"
     )
     parser.add_argument(
-        "--retries", type=int, default=3, help="REST client number of retries"
+        "--timeout",
+        type=int,
+        default=15,
+        help="timeout duration (seconds) for File Catalog REST requests",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=3,
+        help="number of retries for File Catalog REST requests",
     )
     parser.add_argument(
         "--basic-only",
-        dest="basic_only",
         default=False,
         action="store_true",
         help="only collect basic metadata",
     )
     parser.add_argument(
         "--no-patch",
-        dest="no_patch",
         default=False,
         action="store_true",
-        help="do not PATCH if the file already exists in the file catalog",
+        help="do not replace/overwrite existing File-Catalog entries (aka don't patch). "
+        "NOTE: this should be used *only* as a fail-safe mechanism "
+        "(this option will not save any processing time); "
+        "use --blacklist-file if you know what files you want to skip",
     )
     parser.add_argument(
-        "--blacklist-file",
-        dest="blacklist_file",
-        help="blacklist file containing filepaths to skip",
+        "--blacklist-file", help="blacklist file containing filepaths to skip",
     )
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
