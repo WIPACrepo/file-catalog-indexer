@@ -24,6 +24,7 @@ except ImportError:
 class IndexerArgs(TypedDict):
     """Arguments for indexer.py."""
 
+    path_to_indexer: str
     blacklist: str
     token: str
     timeout: int
@@ -64,7 +65,7 @@ def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> No
     else:
         with open(condorpath, "w") as file:
             # configure transfer_input_files
-            transfer_input_files = ["indexer.py", "../requirements.txt"]
+            transfer_input_files = ["../requirements.txt"]
             blacklist_arg = ""
             if indexer_args["blacklist"]:
                 blacklist_arg = f"--blacklist {indexer_args['blacklist']}"
@@ -82,7 +83,7 @@ def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> No
             # write
             file.write(
                 f"""executable = {os.path.abspath('../resources/indexer_env.sh')}
-arguments = python indexer.py -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']} {sim_args}
+arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']} {sim_args}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
 log = {scratch}/$(JOBNUM).log
@@ -143,6 +144,12 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
+        "--path-to-indexer",
+        required=True,
+        help="an NPX-accessible path to indexer.py"
+        " (with additional necessary python files adjacent)",
+    )
+    parser.add_argument(
         "-t", "--token", help="REST token for File Catalog", required=True
     )
     parser.add_argument("-j", "--maxjobs", default=500, help="max concurrent jobs")
@@ -194,7 +201,7 @@ def main() -> None:
         )
 
     # check paths in args
-    for fpath in [args.blacklist, args.dir_of_paths_files]:
+    for fpath in [args.blacklist, args.dir_of_paths_files, args.path_to_indexer]:
         if fpath and not os.path.exists(fpath):
             raise FileNotFoundError(fpath)
 
@@ -203,6 +210,7 @@ def main() -> None:
 
     # make condor file
     indexer_args: IndexerArgs = {
+        "path_to_indexer": args.path_to_indexer,
         "blacklist": args.blacklist,
         "token": args.token,
         "timeout": args.timeout,
