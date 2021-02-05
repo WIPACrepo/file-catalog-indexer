@@ -15,8 +15,8 @@ import coloredlogs  # type: ignore[import]
 import requests
 
 # local imports
-from indexer.metadata_manager import MetadataManager
-from indexer.utils import types
+from api.metadata_manager import MetadataManager
+from api.utils import types
 from rest_tools.client import RestClient  # type: ignore[import]
 
 try:

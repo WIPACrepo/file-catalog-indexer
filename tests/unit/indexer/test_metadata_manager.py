@@ -5,7 +5,7 @@
 import sys
 
 sys.path.append(".")
-from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
+from api import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
 
 
 def test_new_file_logic() -> None:

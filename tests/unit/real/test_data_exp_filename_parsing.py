@@ -6,7 +6,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import pytest
 
 sys.path.append(".")
-from indexer.metadata import real  # isort:skip # noqa # pylint: disable=C0413
+from api.metadata import real  # isort:skip # noqa # pylint: disable=C0413
 
 
 def test_run_number() -> None:
