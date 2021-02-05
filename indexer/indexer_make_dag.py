@@ -6,7 +6,7 @@ import logging
 import os
 import re
 import subprocess
-from typing import cast, List, Tuple
+from typing import cast, List, Optional, Tuple
 
 import coloredlogs  # type: ignore[import]
 import natsort  # type: ignore[import]
@@ -30,8 +30,8 @@ class IndexerArgs(TypedDict):
     path_to_indexer: str
     blacklist: str
     token: str
-    timeout: int
-    retries: int
+    timeout: Optional[int]
+    retries: Optional[int]
     cpus: int
     iceprodv2_rc_token: str
     iceprodv1_db_pass: str
@@ -80,13 +80,20 @@ def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> No
             else:
                 sim_args = ""
 
-            # paths_file
+            # --timeout & --retries
+            timeout_retries_args = ""
+            if indexer_args["timeout"]:  # ignoring 0 is OK
+                timeout_retries_args += f" --timeout {indexer_args['timeout']}"
+            if indexer_args["retries"]:  # ignoring 0 is OK
+                timeout_retries_args += f" --retries {indexer_args['retries']}"
+
+            # --paths-file
             path_arg = "--paths-file $(PATHS_FILE)"
 
             # write
             file.write(
                 f"""executable = {os.path.abspath('../resources/indexer_env.sh')}
-arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC {path_arg} -t {indexer_args['token']} --timeout {indexer_args['timeout']} --retries {indexer_args['retries']} {blacklist_arg} --log info --processes {indexer_args['cpus']} {sim_args} --no-patch
+arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC {path_arg} -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} --no-patch
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
 log = {scratch}/$(JOBNUM).log
@@ -199,13 +206,13 @@ def main() -> None:
     parser.add_argument(
         "--timeout",
         type=int,
-        default=300,
+        default=None,
         help="timeout duration (seconds) for File Catalog REST requests",
     )
     parser.add_argument(
         "--retries",
         type=int,
-        default=10,
+        default=None,
         help="number of retries for File Catalog REST requests",
     )
     parser.add_argument("--cpus", type=int, help="number of CPUs per job", default=2)
