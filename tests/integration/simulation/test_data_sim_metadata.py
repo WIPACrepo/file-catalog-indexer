@@ -21,7 +21,7 @@ from indexer_api import metadata_manager  # isort:skip # noqa # pylint: disable=
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 
 
-@patch("rest_tools.client.RestClient.request")
+@patch("rest_tools.client.RestClient.request_seq")
 @patch("pymysql.connect")
 @patch(
     "indexer_api.metadata.simulation.iceprod_tools._IceProdV2Querier.filepath",
@@ -36,7 +36,7 @@ def test_1(
     _get_events_data: Mock,
     _iceprodv2querier_filepath: PropertyMock,
     pymysql_connect: Mock,
-    rest_client_request: AsyncMock,
+    rest_client_request_seq: AsyncMock,
 ) -> None:
     """Test all example passing cases."""
     for fpath, metadata in data.EXAMPLES.items():
@@ -72,7 +72,7 @@ def test_1(
             datasets = json.load(open(path.join(dir_, "ip2-datasets.json")))
             job_config = json.load(open(path.join(dir_, "ip2-job-config.json")))
             tasks = json.load(open(path.join(dir_, "ip2-dataset-tasks.json")))
-            rest_client_request.side_effect = [datasets, job_config, tasks]
+            rest_client_request_seq.side_effect = [datasets, job_config, tasks]
         else:
             raise Exception("Missing testing data")
 

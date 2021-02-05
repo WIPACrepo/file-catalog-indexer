@@ -11,7 +11,6 @@ from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Optional
 
-import coloredlogs  # type: ignore[import]
 import requests
 
 # local imports
@@ -321,6 +320,23 @@ def gather_file_info(  # pylint: disable=R0913
             logging.debug(f"Worker finished: {future} (enqueued {len(result)}).")
 
 
+def _configure_logging(level: str) -> None:
+    """Use `coloredlogs` if it's available.
+
+    `coloredlogs` doesn't support python `3.0.* - 3.4.*`
+    """
+    try:
+        # fmt: off
+        import coloredlogs  # type: ignore[import] # pylint: disable=C0415
+        # fmt: on
+        coloredlogs.install(level=level)
+    except ModuleNotFoundError:
+        logging.basicConfig(
+            level=level,
+            format="%(asctime)s %(hostname)s %(name)s[%(process)d] %(levelname)s %(message)s",
+        )
+
+
 def main() -> None:
     """Traverse paths, recursively, and index."""
     parser = argparse.ArgumentParser(
@@ -390,7 +406,7 @@ def main() -> None:
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
 
     args = parser.parse_args()
-    coloredlogs.install(level=getattr(logging, args.log.upper()))
+    _configure_logging(args.log.upper())
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
