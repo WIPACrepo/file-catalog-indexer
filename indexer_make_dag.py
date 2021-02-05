@@ -63,7 +63,7 @@ def make_executable(path_to_virtualenv: str) -> str:
     fpath = "./indexer_env.sh"
     logging.info(f"Writing executable ({fpath})...")
 
-    virtualenv = os.path.join(path_to_virtualenv, "/bin/activate")
+    virtualenv = os.path.join(path_to_virtualenv, "bin/activate")
     logging.debug(f"Including Path to Python Virtual Env: {virtualenv}")
 
     with open(fpath, "w") as file:
@@ -82,7 +82,7 @@ def make_condor_file(
     scratch: str, memory: str, indexer_args: IndexerArgs, path_to_virtualenv: str
 ) -> None:
     """Make the condor file."""
-    logging.debug("Writing Condor file...")
+    logging.info("Writing Condor file...")
 
     condorpath = os.path.join(scratch, "condor")
     if os.path.exists(condorpath):
@@ -139,7 +139,7 @@ queue
 
 def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
     """Make the DAG file."""
-    logging.debug("Writing DAG file...")
+    logging.info("Writing DAG file...")
 
     dagpath = os.path.join(scratch, "dag")
     # reuse dag file
