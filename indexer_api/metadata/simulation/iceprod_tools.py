@@ -75,8 +75,13 @@ class TaskNotFound(Exception):
 class _IceProdQuerier:
     """Manage IceProd queries."""
 
-    def __init__(self, dataset_num: int):
+    def __init__(self, dataset_num: int, filepath: str):
         self.dataset_num = dataset_num
+        self._filepath = filepath
+
+    @property
+    def filepath(self) -> str:  # pylint: disable=C0116
+        return self._filepath
 
     def get_steering_params_and_ip_metadata(
         self, job_index: Optional[int]
@@ -100,9 +105,12 @@ class _IceProdQuerier:
 
 @functools.lru_cache()
 def _get_iceprod1_dataset_steering_params(
-    iceprodv1_db: pymysql.connections.Connection, dataset_num: int
+    iceprodv1_db: pymysql.connections.Connection, dataset_num: int, filepath: str
 ) -> List[Dict[str, Any]]:
-    logging.info(f"No cache hit for dataset_num={dataset_num}. Querying IceProd1 DB")
+    logging.info(
+        f"No cache hit for dataset_num={dataset_num} ({filepath}). "
+        "Querying IceProd1 DB..."
+    )
 
     sql = (
         "SELECT * FROM steering_parameter "
@@ -120,15 +128,20 @@ def _get_iceprod1_dataset_steering_params(
 class _IceProdV1Querier(_IceProdQuerier):
     """Manage IceProd v1 queries."""
 
-    def __init__(self, dataset_num: int, iceprodv1_db: pymysql.connections.Connection):
-        super().__init__(dataset_num)
+    def __init__(
+        self,
+        dataset_num: int,
+        iceprodv1_db: pymysql.connections.Connection,
+        filepath: str,
+    ):
+        super().__init__(dataset_num, filepath)
         self.iceprodv1_db = iceprodv1_db
 
     def _query_steering_params(self) -> SteeringParameters:
         steering_params = {}
 
         results = _get_iceprod1_dataset_steering_params(
-            self.iceprodv1_db, self.dataset_num
+            self.iceprodv1_db, self.dataset_num, self.filepath
         )
 
         if not results:
@@ -173,9 +186,11 @@ class _IceProdV1Querier(_IceProdQuerier):
 
 
 @functools.lru_cache()
-def _get_all_iceprod2_datasets(iceprodv2_rc: RestClient,) -> Dict[int, _IP2RESTDataset]:
+def _get_all_iceprod2_datasets(
+    iceprodv2_rc: RestClient, filepath: str
+) -> Dict[int, _IP2RESTDataset]:
     """Return dict of datasets keyed by their dataset num."""
-    logging.info("No cache hit for all datasets. Requesting IceProd2")
+    logging.info(f"No cache hit for all datasets ({filepath}). Requesting IceProd2...")
 
     datasets = iceprodv2_rc.request_seq(
         "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
@@ -193,9 +208,12 @@ def _get_all_iceprod2_datasets(iceprodv2_rc: RestClient,) -> Dict[int, _IP2RESTD
 
 @functools.lru_cache()
 def _get_iceprod2_dataset_job_config(
-    iceprodv2_rc: RestClient, dataset_id: str
+    iceprodv2_rc: RestClient, dataset_id: str, filepath: str
 ) -> dataclasses.Job:
-    logging.info(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2")
+    logging.info(
+        f"No cache hit for dataset_id={dataset_id} ({filepath}). "
+        "Requesting IceProd2..."
+    )
 
     ret = iceprodv2_rc.request_seq("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
@@ -205,10 +223,11 @@ def _get_iceprod2_dataset_job_config(
 
 @functools.lru_cache()
 def _get_iceprod2_dataset_tasks(
-    iceprodv2_rc: RestClient, dataset_id: str, job_index: int
+    iceprodv2_rc: RestClient, dataset_id: str, job_index: int, filepath: str
 ) -> Dict[str, _IP2RESTDatasetTask]:
     logging.info(
-        f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. Requesting IceProd2"
+        f"No cache hit for dataset_id={dataset_id}, job_index={job_index} ({filepath}). "
+        "Requesting IceProd2..."
     )
 
     ret = iceprodv2_rc.request_seq(
@@ -226,16 +245,11 @@ class _IceProdV2Querier(_IceProdQuerier):
     """Manage IceProd v2 queries."""
 
     def __init__(self, dataset_num: int, iceprodv2_rc: RestClient, filepath: str):
-        super().__init__(dataset_num)
+        super().__init__(dataset_num, filepath)
         self.iceprodv2_rc = iceprodv2_rc
-        self._filepath = filepath
-
-    @property
-    def filepath(self) -> str:  # pylint: disable=C0116
-        return self._filepath
 
     def _get_dataset_info(self) -> Tuple[str, int]:
-        datasets = _get_all_iceprod2_datasets(self.iceprodv2_rc)
+        datasets = _get_all_iceprod2_datasets(self.iceprodv2_rc, self.filepath)
         try:
             dataset_id = datasets[self.dataset_num]["dataset_id"]
             jobs_submitted = datasets[self.dataset_num]["jobs_submitted"]
@@ -258,7 +272,7 @@ class _IceProdV2Querier(_IceProdQuerier):
             task_id, job_id = self._get_task_info(dataset_id, job_index, task_name)
         except TaskNotFound:
             logging.warning(
-                f"Could not get task info for {self.filepath}: "
+                f"Could not get task info ({self.filepath}): "
                 f"dataset_id={dataset_id}, job_index={job_index}, task_name={task_name}"
             )
 
@@ -323,7 +337,7 @@ class _IceProdV2Querier(_IceProdQuerier):
             raise TaskNotFound()
 
         task_dicts = _get_iceprod2_dataset_tasks(
-            self.iceprodv2_rc, dataset_id, job_index
+            self.iceprodv2_rc, dataset_id, job_index, self.filepath
         )
 
         try:
@@ -343,7 +357,9 @@ class _IceProdV2Querier(_IceProdQuerier):
         else:  # otherwise, look at each job from dataset
             job_search = list(range(jobs_submitted))
 
-        job_config = _get_iceprod2_dataset_job_config(self.iceprodv2_rc, dataset_id)
+        job_config = _get_iceprod2_dataset_job_config(
+            self.iceprodv2_rc, dataset_id, self.filepath
+        )
         job_config["options"].update(
             {
                 "dataset": self.dataset_num,
@@ -362,8 +378,8 @@ class _IceProdV2Querier(_IceProdQuerier):
             else:
                 path = "/" + url.split("//", 1)[1].split("/", 1)[1]
             logging.info(
-                f"Looking for {self.filepath}... "
-                f"({job_config['options']} -> {path})"
+                f"Looking for outfile ({self.filepath}) "
+                f"({job_config['options']} -> {path})..."
             )
             return path == self.filepath
 
@@ -410,7 +426,7 @@ def _get_iceprod_querier(
     filepath: str,
 ) -> _IceProdQuerier:
     if dataset_num in _ICEPROD_V1_DATASET_RANGE:
-        return _IceProdV1Querier(dataset_num, iceprodv1_db)
+        return _IceProdV1Querier(dataset_num, iceprodv1_db, filepath)
     elif dataset_num in _ICEPROD_V2_DATASET_RANGE:
         return _IceProdV2Querier(dataset_num, iceprodv2_rc, filepath)
     else:
