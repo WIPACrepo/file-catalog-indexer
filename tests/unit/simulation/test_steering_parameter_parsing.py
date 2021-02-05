@@ -14,7 +14,7 @@ from _pytest.logging import LogCaptureFixture
 import steering_param_data as data
 
 sys.path.append(".")
-from api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
     data_sim,
 )
 

@@ -9,7 +9,7 @@ except ImportError:
     from typing_extensions import TypedDict
 
 sys.path.append(".")
-from api.utils import utils  # isort:skip # noqa # pylint: disable=C0413
+from indexer_api.utils import utils  # isort:skip # noqa # pylint: disable=C0413
 
 
 class _FilepathValues(TypedDict, total=False):

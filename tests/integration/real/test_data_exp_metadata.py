@@ -14,16 +14,16 @@ from unittest.mock import Mock, patch
 import exp_data as data
 
 sys.path.append(".")
-from api import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
+from indexer_api import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
 
 
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 
 
-@patch("api.metadata.real.l2.L2FileMetadata._i3time_to_datetime")
-@patch("api.metadata.i3.I3FileMetadata._get_events_data")
-@patch("api.metadata_manager.MetadataManager._is_data_sim_filepath")
-@patch("api.metadata_manager.MetadataManager._is_data_exp_filepath")
+@patch("indexer_api.metadata.real.l2.L2FileMetadata._i3time_to_datetime")
+@patch("indexer_api.metadata.i3.I3FileMetadata._get_events_data")
+@patch("indexer_api.metadata_manager.MetadataManager._is_data_sim_filepath")
+@patch("indexer_api.metadata_manager.MetadataManager._is_data_exp_filepath")
 def test_1(
     _is_data_exp_filepath: Mock,
     _is_data_sim_filepath: Mock,

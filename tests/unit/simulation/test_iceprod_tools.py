@@ -9,7 +9,7 @@ from unittest.mock import ANY
 import pytest
 
 sys.path.append(".")
-from api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
     iceprod_tools,
 )
 

@@ -10,8 +10,8 @@ except ImportError:
     from typing_extensions import TypedDict
 
 sys.path.append(".")
-from api.utils import types  # isort:skip # noqa # pylint: disable=C0413
-from api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer_api.utils import types  # isort:skip # noqa # pylint: disable=C0413
+from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
     iceprod_tools,
 )
 
