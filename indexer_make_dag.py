@@ -68,7 +68,7 @@ def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> No
     else:
         with open(condorpath, "w") as file:
             # configure transfer_input_files
-            transfer_input_files = ["../requirements.txt"]
+            transfer_input_files = ["requirements.txt"]
             blacklist_arg = ""
             if indexer_args["blacklist"]:
                 blacklist_arg = f"--blacklist {indexer_args['blacklist']}"
@@ -92,7 +92,7 @@ def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> No
 
             # write
             file.write(
-                f"""executable = {os.path.abspath('../resources/indexer_env.sh')}
+                f"""executable = {os.path.abspath('resources/indexer_env.sh')}
 arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC {path_arg} -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} --no-patch
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
@@ -182,10 +182,10 @@ def main() -> None:
 
     Make scratch directory, condor file, and DAGMan file.
     """
-    if not os.getcwd().endswith("/file-catalog-indexer/indexer"):
+    if not os.getcwd().endswith("/file-catalog-indexer"):
         raise RuntimeError(
             "You must run this script from"
-            " `file-catalog-indexer/indexer`."
+            " `file-catalog-indexer/`."
             " This script uses relative paths."
         )
 
@@ -196,7 +196,7 @@ def main() -> None:
     parser.add_argument(
         "--path-to-indexer",
         required=True,
-        help="an NPX-accessible path to indexer.py"
+        help="an NPX-accessible path to `file-catalog-indexer/indexer.py`"
         " (with additional necessary python files adjacent)",
     )
     parser.add_argument(
@@ -254,6 +254,10 @@ def main() -> None:
     for fpath in [args.blacklist, args.dir_of_paths_files, args.path_to_indexer]:
         if fpath and not os.path.exists(fpath):
             raise FileNotFoundError(fpath)
+    if not args.path_to_indexer.endswith("/file-catalog-indexer/indexer.py"):
+        raise RuntimeError(
+            "--path-to-indexer needs to be a path to `file-catalog-indexer/indexer.py`"
+        )
 
     # make condor scratch directory
     scratch = make_condor_scratch_dir()
