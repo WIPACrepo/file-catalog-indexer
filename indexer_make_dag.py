@@ -66,7 +66,6 @@ def make_executable(path_to_virtualenv: str) -> str:
             f"""#!/bin/bash
 eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
 . {os.path.join(path_to_virtualenv,'/bin/activate')}
-pip install -r requirements.txt
 $SROOT/metaprojects/combo/stable/env-shell.sh $@
 """
         )
