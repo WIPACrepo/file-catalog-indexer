@@ -1,6 +1,6 @@
 """Class for collecting simulation (/data/sim/) i3 file metadata."""
 
-import asyncio
+
 import logging
 import re
 from typing import Dict, List, Optional, Pattern, Tuple
@@ -12,7 +12,11 @@ from rest_tools.client import RestClient  # type: ignore[import]
 
 from ...utils import types, utils
 from ..i3 import I3FileMetadata
-from . import iceprod_tools
+from .iceprod_tools import (
+    DatasetNotFound,
+    get_steering_params_and_ip_metadata,
+    SteeringParameters,
+)
 
 
 class DataSimI3FileMetadata(I3FileMetadata):
@@ -107,7 +111,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
     @staticmethod
     def get_simulation_metadata(  # pylint: disable=R0912
-        steering_parameters: iceprod_tools.SteeringParameters, iceprod_dataset_num: int
+        steering_parameters: SteeringParameters, iceprod_dataset_num: int
     ) -> types.SimulationMetadata:
         """Gather "simulation" metadata from steering parameters."""
 
@@ -231,16 +235,15 @@ class DataSimI3FileMetadata(I3FileMetadata):
 
         # get IceProd dataset steering parameters and IceProdMetadata
         try:
-            steering_parameters, ip_metadata = asyncio.run(
-                iceprod_tools.get_steering_params_and_ip_metadata(
-                    self.iceprod_dataset_num,
-                    self.file.path,
-                    self.iceprod_job_index,
-                    self.iceprodv2_rc,
-                    self.iceprodv1_db,
-                )
+            steering_parameters, ip_metadata = get_steering_params_and_ip_metadata(
+                self.iceprod_dataset_num,
+                self.file.path,
+                self.iceprod_job_index,
+                self.iceprodv2_rc,
+                self.iceprodv1_db,
             )
-        except iceprod_tools.DatasetNotFound:
+
+        except DatasetNotFound:
             logging.error(
                 f"Dataset {self.iceprod_dataset_num} not found. "
                 f"No IceProd/Simulation metadata recorded for {self.file.path}."

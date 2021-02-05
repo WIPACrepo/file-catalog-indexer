@@ -78,7 +78,7 @@ class _IceProdQuerier:
     def __init__(self, dataset_num: int):
         self.dataset_num = dataset_num
 
-    async def get_steering_params_and_ip_metadata(
+    def get_steering_params_and_ip_metadata(
         self, job_index: Optional[int]
     ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
         """Get the job's config dict, AKA `dataclasses.Job`."""
@@ -142,7 +142,7 @@ class _IceProdV1Querier(_IceProdQuerier):
 
         return steering_params
 
-    async def get_steering_params_and_ip_metadata(
+    def get_steering_params_and_ip_metadata(
         self, job_index: Optional[int]
     ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
 
@@ -173,13 +173,11 @@ class _IceProdV1Querier(_IceProdQuerier):
 
 
 @functools.lru_cache()
-async def _get_all_iceprod2_datasets(
-    iceprodv2_rc: RestClient,
-) -> Dict[int, _IP2RESTDataset]:
+def _get_all_iceprod2_datasets(iceprodv2_rc: RestClient,) -> Dict[int, _IP2RESTDataset]:
     """Return dict of datasets keyed by their dataset num."""
     logging.info("No cache hit for all datasets. Requesting IceProd2")
 
-    datasets = await iceprodv2_rc.request(
+    datasets = iceprodv2_rc.request_seq(
         "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
     )
 
@@ -194,26 +192,26 @@ async def _get_all_iceprod2_datasets(
 
 
 @functools.lru_cache()
-async def _get_iceprod2_dataset_job_config(
+def _get_iceprod2_dataset_job_config(
     iceprodv2_rc: RestClient, dataset_id: str
 ) -> dataclasses.Job:
     logging.info(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2")
 
-    ret = await iceprodv2_rc.request("GET", f"/config/{dataset_id}")
+    ret = iceprodv2_rc.request_seq("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
 
     return job_config
 
 
 @functools.lru_cache()
-async def _get_iceprod2_dataset_tasks(
+def _get_iceprod2_dataset_tasks(
     iceprodv2_rc: RestClient, dataset_id: str, job_index: int
 ) -> Dict[str, _IP2RESTDatasetTask]:
     logging.info(
         f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. Requesting IceProd2"
     )
 
-    ret = await iceprodv2_rc.request(
+    ret = iceprodv2_rc.request_seq(
         "GET",
         f"/datasets/{dataset_id}/tasks",
         {"job_index": job_index, "keys": "name|task_id|job_id|task_index"},
@@ -236,8 +234,8 @@ class _IceProdV2Querier(_IceProdQuerier):
     def filepath(self) -> str:  # pylint: disable=C0116
         return self._filepath
 
-    async def _get_dataset_info(self) -> Tuple[str, int]:
-        datasets = await _get_all_iceprod2_datasets(self.iceprodv2_rc)
+    def _get_dataset_info(self) -> Tuple[str, int]:
+        datasets = _get_all_iceprod2_datasets(self.iceprodv2_rc)
         try:
             dataset_id = datasets[self.dataset_num]["dataset_id"]
             jobs_submitted = datasets[self.dataset_num]["jobs_submitted"]
@@ -246,20 +244,18 @@ class _IceProdV2Querier(_IceProdQuerier):
 
         return dataset_id, jobs_submitted
 
-    async def get_steering_params_and_ip_metadata(
+    def get_steering_params_and_ip_metadata(
         self, job_index: Optional[int]
     ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
-        dataset_id, jobs_submitted = await self._get_dataset_info()
+        dataset_id, jobs_submitted = self._get_dataset_info()
 
-        job_index, task_name, steering_params = await self._get_outfile_info(
+        job_index, task_name, steering_params = self._get_outfile_info(
             dataset_id, job_index, jobs_submitted
         )
 
         try:
             task_id, job_id = None, None
-            task_id, job_id = await self._get_task_info(
-                dataset_id, job_index, task_name
-            )
+            task_id, job_id = self._get_task_info(dataset_id, job_index, task_name)
         except TaskNotFound:
             logging.warning(
                 f"Could not get task info for {self.filepath}: "
@@ -320,13 +316,13 @@ class _IceProdV2Querier(_IceProdQuerier):
 
         return files
 
-    async def _get_task_info(
+    def _get_task_info(
         self, dataset_id: str, job_index: Optional[int], task_name: Optional[str]
     ) -> Tuple[str, str]:
         if job_index is None or task_name is None:
             raise TaskNotFound()
 
-        task_dicts = await _get_iceprod2_dataset_tasks(
+        task_dicts = _get_iceprod2_dataset_tasks(
             self.iceprodv2_rc, dataset_id, job_index
         )
 
@@ -338,7 +334,7 @@ class _IceProdV2Querier(_IceProdQuerier):
         except KeyError:
             raise TaskNotFound()
 
-    async def _get_outfile_info(
+    def _get_outfile_info(
         self, dataset_id: str, job_index: Optional[int], jobs_submitted: int,
     ) -> Tuple[Optional[int], Optional[str], SteeringParameters]:
         """Get `task`, `job`, and steering parameters."""
@@ -347,9 +343,7 @@ class _IceProdV2Querier(_IceProdQuerier):
         else:  # otherwise, look at each job from dataset
             job_search = list(range(jobs_submitted))
 
-        job_config = await _get_iceprod2_dataset_job_config(
-            self.iceprodv2_rc, dataset_id
-        )
+        job_config = _get_iceprod2_dataset_job_config(self.iceprodv2_rc, dataset_id)
         job_config["options"].update(
             {
                 "dataset": self.dataset_num,
@@ -438,7 +432,7 @@ def _parse_dataset_num_from_dirpath(filepath: str) -> int:
     raise DatasetNotFound(f"Could not determine dataset number: {filepath}")
 
 
-async def get_steering_params_and_ip_metadata(
+def get_steering_params_and_ip_metadata(
     dataset_num: Optional[int],
     filepath: str,
     job_index: Optional[int],
@@ -461,7 +455,7 @@ async def get_steering_params_and_ip_metadata(
             dataset_num, iceprodv2_rc, iceprodv1_db, filepath
         )
 
-    steering_params, ip_metadata = await querier.get_steering_params_and_ip_metadata(
+    steering_params, ip_metadata = querier.get_steering_params_and_ip_metadata(
         job_index
     )
 
