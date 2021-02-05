@@ -6,7 +6,7 @@ import sys
 import pytest
 
 sys.path.append(".")
-from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer import (  # isort:skip # noqa # pylint: disable=C0413
     ACCEPTED_ROOTS,
     check_path,
     path_in_blacklist,
