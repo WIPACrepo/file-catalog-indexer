@@ -56,7 +56,25 @@ def make_condor_scratch_dir() -> str:
     return scratch
 
 
-def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> None:
+def make_executable(path_to_virtualenv: str) -> str:
+    """Make executable script."""
+    fpath = "./indexer_env.sh"
+    with open(fpath, "w") as file:
+        file.write(
+            f"""#!/bin/bash
+eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
+. {os.path.join(path_to_virtualenv,'/bin/activate')}
+pip install -r requirements.txt
+$SROOT/metaprojects/combo/stable/env-shell.sh $@
+"""
+        )
+
+    return fpath
+
+
+def make_condor_file(
+    scratch: str, memory: str, indexer_args: IndexerArgs, path_to_virtualenv: str
+) -> None:
     """Make the condor file."""
     logging.debug("Writing Condor file...")
 
@@ -90,9 +108,12 @@ def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> No
             # --paths-file
             path_arg = "--paths-file $(PATHS_FILE)"
 
+            # write executable
+            executable = make_executable(path_to_virtualenv)
+
             # write
             file.write(
-                f"""executable = {os.path.abspath('resources/indexer_env.sh')}
+                f"""executable = {os.path.abspath(executable)}
 arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC {path_arg} -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} --no-patch
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
@@ -213,6 +234,12 @@ def main() -> None:
         " (with additional necessary python files adjacent)",
     )
     parser.add_argument(
+        "--path-to-virtualenv",
+        type=get_full_path,
+        required=True,
+        help="an NPX-accessible path to the python virtual environment",
+    )
+    parser.add_argument(
         "-t", "--token", help="REST token for File Catalog", required=True
     )
     parser.add_argument("-j", "--maxjobs", default=500, help="max concurrent jobs")
@@ -285,7 +312,7 @@ def main() -> None:
         "iceprodv2_rc_token": args.iceprodv2_rc_token,
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
     }
-    make_condor_file(scratch, args.memory, indexer_args)
+    make_condor_file(scratch, args.memory, indexer_args, args.path_to_virtualenv)
 
     # make DAG file
     dagpath = make_dag_file(scratch, args.dir_of_paths_files)
