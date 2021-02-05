@@ -141,8 +141,8 @@ async def request_post_patch(
 ) -> RestClient:
     """POST metadata, and PATCH if file is already in the file catalog."""
     if dryrun:
-        logging.warning("Dry-Run Enabled: Not POSTing to File Catalog!")
-        sleep(0.25)
+        logging.warning(f"Dry-Run Enabled: Not POSTing to File Catalog! {metadata}")
+        sleep(0.1)
         return fc_rc
 
     try:
