@@ -177,6 +177,18 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
     return dagpath
 
 
+def get_full_path(path: str) -> str:
+    """Check that the path exists and return the full path."""
+    if not path:
+        return path
+
+    full_path = os.path.abspath(path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(full_path)
+
+    return full_path
+
+
 def main() -> None:
     """Prep and execute DAGMan job(s).
 
@@ -195,6 +207,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--path-to-indexer",
+        type=get_full_path,
         required=True,
         help="an NPX-accessible path to `file-catalog-indexer/indexer.py`"
         " (with additional necessary python files adjacent)",
@@ -221,12 +234,14 @@ def main() -> None:
     )
     parser.add_argument(
         "--dir-of-paths-files",
+        type=get_full_path,
         required=True,
         help="the directory containing files, each file contains a collection of "
         "filepaths to index by a single job. Ex: /data/user/eevans/pre-index-data-exp/paths/",
     )
     parser.add_argument(
         "--blacklist",
+        type=get_full_path,
         help="blacklist file containing all filepaths/directories to skip",
     )
     parser.add_argument(
@@ -251,9 +266,6 @@ def main() -> None:
         )
 
     # check paths in args
-    for fpath in [args.blacklist, args.dir_of_paths_files, args.path_to_indexer]:
-        if fpath and not os.path.exists(fpath):
-            raise FileNotFoundError(fpath)
     if not args.path_to_indexer.endswith("/file-catalog-indexer/indexer.py"):
         raise RuntimeError(
             "--path-to-indexer needs to be a path to `file-catalog-indexer/indexer.py`"
