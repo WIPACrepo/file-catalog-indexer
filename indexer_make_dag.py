@@ -61,11 +61,16 @@ def make_condor_scratch_dir() -> str:
 def make_executable(path_to_virtualenv: str) -> str:
     """Make executable script."""
     fpath = "./indexer_env.sh"
+    logging.info(f"Writing executable ({fpath})...")
+
+    virtualenv = os.path.join(path_to_virtualenv, "/bin/activate")
+    logging.debug(f"Including Path to Python Virtual Env: {virtualenv}")
+
     with open(fpath, "w") as file:
         file.write(
             f"""#!/bin/bash
 eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
-. {os.path.join(path_to_virtualenv,'/bin/activate')}
+. {virtualenv}
 $SROOT/metaprojects/combo/stable/env-shell.sh $@
 """
         )
