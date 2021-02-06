@@ -1,11 +1,13 @@
 """Make the Condor/DAGMan script for indexing files."""
 
 import argparse
+import datetime
 import getpass
 import logging
 import os
 import re
 import subprocess
+import sys
 from typing import cast, List, Optional, Tuple
 
 import coloredlogs  # type: ignore[import]
@@ -337,6 +339,11 @@ def main() -> None:
 
     # make DAG file
     dagpath = make_dag_file(scratch, args.dir_of_paths_files)
+
+    # write sys.argv to argv.txt
+    with open(os.path.join(scratch, "argv.txt"), "a") as file:
+        file.write(f"{datetime.datetime.now().isoformat()} \n")
+        file.write(" ".join(sys.argv) + "\n")
 
     # Execute
     if args.dryrun:
