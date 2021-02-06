@@ -341,7 +341,9 @@ def main() -> None:
     dagpath = make_dag_file(scratch, args.dir_of_paths_files)
 
     # write sys.argv to argv.txt
-    with open(os.path.join(scratch, "argv.txt"), "a") as file:
+    argv_txt = os.path.join(scratch, "argv.txt")
+    logging.info(f"Writing argv to {argv_txt}...")
+    with open(argv_txt, "a") as file:
         file.write(f"{datetime.datetime.now().isoformat()} \n")
         file.write(" ".join(sys.argv) + "\n")
 
