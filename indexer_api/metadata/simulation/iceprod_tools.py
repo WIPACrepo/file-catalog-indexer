@@ -69,13 +69,48 @@ class TaskNotFound(Exception):
 
 
 # --------------------------------------------------------------------------------------
+# IceProd Connection interface
+
+
+class IceProdConnection:
+    """Interface for connecting to IceProd v1 and v2."""
+
+    def __init__(self, iceprodv1_pass: str, iceprodv2_token: str):
+        if not iceprodv1_pass:
+            raise RuntimeError("Missing IceProd v1 DB password")
+        elif not iceprodv2_token:
+            raise RuntimeError("Missing IceProd v2 REST token")
+
+        self._iceprodv1_pass = iceprodv1_pass
+        self._iceprodv2_rc = RestClient(
+            "https://iceprod2-api.icecube.wisc.edu", iceprodv2_token
+        )
+
+    def get_iceprodv1_db(self) -> pymysql.connections.Connection:
+        """Get a pymsql connection instance for querying the IceProd v1 DB."""
+        return pymysql.connect(
+            host="vm-i3simprod.icecube.wisc.edu",
+            user="i3simprod-ro",
+            passwd=self._iceprodv1_pass,
+            db="i3simprod",
+        )
+
+    def get_iceprodv2_rc(self) -> RestClient:
+        """Get a REST client instance for querying the IceProd v2 DB."""
+        return self._iceprodv2_rc
+
+
+# --------------------------------------------------------------------------------------
 # Private Query Managers
 
 
 class _IceProdQuerier:
     """Manage IceProd queries."""
 
-    def __init__(self, dataset_num: int, filepath: str):
+    def __init__(
+        self, dataset_num: int, iceprod_conn: IceProdConnection, filepath: str
+    ):
+        self.iceprod_conn = iceprod_conn
         self.dataset_num = dataset_num
         self._filepath = filepath
 
@@ -105,7 +140,7 @@ class _IceProdQuerier:
 
 @functools.lru_cache()
 def _get_iceprod1_dataset_steering_params(
-    iceprodv1_db: pymysql.connections.Connection, dataset_num: int
+    iceprod_conn: IceProdConnection, dataset_num: int
 ) -> List[Dict[str, Any]]:
     logging.info(f"No cache hit for dataset_num={dataset_num}. Querying IceProd1 DB...")
 
@@ -115,9 +150,12 @@ def _get_iceprod1_dataset_steering_params(
         "ORDER by name"
     )
 
-    cursor = iceprodv1_db.cursor(pymysql.cursors.DictCursor)
+    conn = iceprod_conn.get_iceprodv1_db()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
     cursor.execute(sql)
     results: List[Dict[str, Any]] = cursor.fetchall()  # type: ignore[assignment]
+    cursor.close()
+    conn.close()
 
     return results
 
@@ -125,21 +163,12 @@ def _get_iceprod1_dataset_steering_params(
 class _IceProdV1Querier(_IceProdQuerier):
     """Manage IceProd v1 queries."""
 
-    def __init__(
-        self,
-        dataset_num: int,
-        iceprodv1_db: pymysql.connections.Connection,
-        filepath: str,
-    ):
-        super().__init__(dataset_num, filepath)
-        self.iceprodv1_db = iceprodv1_db
-
     def _query_steering_params(self) -> SteeringParameters:
         steering_params = {}
 
         logging.info(f"Grabbing steering parameters ({self.filepath})...")
         results = _get_iceprod1_dataset_steering_params(
-            self.iceprodv1_db, self.dataset_num
+            self.iceprod_conn, self.dataset_num
         )
 
         if not results:
@@ -184,11 +213,13 @@ class _IceProdV1Querier(_IceProdQuerier):
 
 
 @functools.lru_cache()
-def _get_all_iceprod2_datasets(iceprodv2_rc: RestClient) -> Dict[int, _IP2RESTDataset]:
+def _get_all_iceprod2_datasets(
+    iceprod_conn: IceProdConnection,
+) -> Dict[int, _IP2RESTDataset]:
     """Return dict of datasets keyed by their dataset num."""
     logging.info("No cache hit for all datasets. Requesting IceProd2...")
 
-    datasets = iceprodv2_rc.request_seq(
+    datasets = iceprod_conn.get_iceprodv2_rc().request_seq(
         "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
     )
 
@@ -204,11 +235,11 @@ def _get_all_iceprod2_datasets(iceprodv2_rc: RestClient) -> Dict[int, _IP2RESTDa
 
 @functools.lru_cache()
 def _get_iceprod2_dataset_job_config(
-    iceprodv2_rc: RestClient, dataset_id: str
+    iceprod_conn: IceProdConnection, dataset_id: str
 ) -> dataclasses.Job:
     logging.info(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2...")
 
-    ret = iceprodv2_rc.request_seq("GET", f"/config/{dataset_id}")
+    ret = iceprod_conn.get_iceprodv2_rc().request_seq("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
 
     return job_config
@@ -216,14 +247,14 @@ def _get_iceprod2_dataset_job_config(
 
 @functools.lru_cache()
 def _get_iceprod2_dataset_tasks(
-    iceprodv2_rc: RestClient, dataset_id: str, job_index: int
+    iceprod_conn: IceProdConnection, dataset_id: str, job_index: int
 ) -> Dict[str, _IP2RESTDatasetTask]:
     logging.info(
         f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. "
         "Requesting IceProd2..."
     )
 
-    ret = iceprodv2_rc.request_seq(
+    ret = iceprod_conn.get_iceprodv2_rc().request_seq(
         "GET",
         f"/datasets/{dataset_id}/tasks",
         {"job_index": job_index, "keys": "name|task_id|job_id|task_index"},
@@ -237,13 +268,9 @@ def _get_iceprod2_dataset_tasks(
 class _IceProdV2Querier(_IceProdQuerier):
     """Manage IceProd v2 queries."""
 
-    def __init__(self, dataset_num: int, iceprodv2_rc: RestClient, filepath: str):
-        super().__init__(dataset_num, filepath)
-        self.iceprodv2_rc = iceprodv2_rc
-
     def _get_dataset_info(self) -> Tuple[str, int]:
         logging.info(f"Grabbing dataset info ({self.filepath})...")
-        datasets = _get_all_iceprod2_datasets(self.iceprodv2_rc)
+        datasets = _get_all_iceprod2_datasets(self.iceprod_conn)
         try:
             dataset_id = datasets[self.dataset_num]["dataset_id"]
             jobs_submitted = datasets[self.dataset_num]["jobs_submitted"]
@@ -332,7 +359,7 @@ class _IceProdV2Querier(_IceProdQuerier):
 
         logging.info(f"Grabbing task info ({self.filepath})...")
         task_dicts = _get_iceprod2_dataset_tasks(
-            self.iceprodv2_rc, dataset_id, job_index
+            self.iceprod_conn, dataset_id, job_index
         )
 
         try:
@@ -353,7 +380,7 @@ class _IceProdV2Querier(_IceProdQuerier):
             job_search = list(range(jobs_submitted))
 
         logging.info(f"Grabbing dataset job config ({self.filepath})...")
-        job_config = _get_iceprod2_dataset_job_config(self.iceprodv2_rc, dataset_id,)
+        job_config = _get_iceprod2_dataset_job_config(self.iceprod_conn, dataset_id,)
         job_config["options"].update(
             {
                 "dataset": self.dataset_num,
@@ -414,15 +441,12 @@ class _IceProdV2Querier(_IceProdQuerier):
 
 
 def _get_iceprod_querier(
-    dataset_num: int,
-    iceprodv2_rc: RestClient,
-    iceprodv1_db: pymysql.connections.Connection,
-    filepath: str,
+    dataset_num: int, iceprod_conn: IceProdConnection, filepath: str,
 ) -> _IceProdQuerier:
     if dataset_num in _ICEPROD_V1_DATASET_RANGE:
-        return _IceProdV1Querier(dataset_num, iceprodv1_db, filepath)
+        return _IceProdV1Querier(dataset_num, iceprod_conn, filepath)
     elif dataset_num in _ICEPROD_V2_DATASET_RANGE:
-        return _IceProdV2Querier(dataset_num, iceprodv2_rc, filepath)
+        return _IceProdV2Querier(dataset_num, iceprod_conn, filepath)
     else:
         raise DatasetNotFound(f"Dataset Num ({dataset_num}) is undefined.")
 
@@ -446,24 +470,19 @@ def get_steering_params_and_ip_metadata(
     dataset_num: Optional[int],
     filepath: str,
     job_index: Optional[int],
-    iceprodv2_rc: RestClient,
-    iceprodv1_db: pymysql.connections.Connection,
+    iceprod_conn: IceProdConnection,
 ) -> Tuple[SteeringParameters, types.IceProdMetadata]:
     """Get the dataset's steering parameters and `IceProdMetadata`."""
     if dataset_num is not None:
         try:
-            querier = _get_iceprod_querier(
-                dataset_num, iceprodv2_rc, iceprodv1_db, filepath
-            )
+            querier = _get_iceprod_querier(dataset_num, iceprod_conn, filepath)
         except DatasetNotFound:
             dataset_num = None
 
     # if given dataset_num doesn't work (or was None), try parsing one from filepath
     if dataset_num is None:
         dataset_num = _parse_dataset_num_from_dirpath(filepath)
-        querier = _get_iceprod_querier(
-            dataset_num, iceprodv2_rc, iceprodv1_db, filepath
-        )
+        querier = _get_iceprod_querier(dataset_num, iceprod_conn, filepath)
 
     steering_params, ip_metadata = querier.get_steering_params_and_ip_metadata(
         job_index

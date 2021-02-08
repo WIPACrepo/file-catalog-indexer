@@ -5,16 +5,12 @@ import logging
 import re
 from typing import Dict, List, Optional, Pattern, Tuple
 
-import pymysql
-
-# local imports
-from rest_tools.client import RestClient  # type: ignore[import]
-
 from ...utils import types, utils
 from ..i3 import I3FileMetadata
 from .iceprod_tools import (
     DatasetNotFound,
     get_steering_params_and_ip_metadata,
+    IceProdConnection,
     SteeringParameters,
 )
 
@@ -27,8 +23,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         file: utils.FileInfo,
         site: str,
         regexes: List[Pattern[str]],
-        iceprodv2_rc: RestClient,
-        iceprodv1_db: pymysql.connections.Connection,
+        iceprod_conn: IceProdConnection,
     ):
         super().__init__(
             file,
@@ -36,8 +31,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
             DataSimI3FileMetadata.figure_processing_level(file),
             "simulation",
         )
-        self.iceprodv2_rc = iceprodv2_rc
-        self.iceprodv1_db = iceprodv1_db
+        self.iceprod_conn = iceprod_conn
         try:
             (
                 self.iceprod_dataset_num,
@@ -239,8 +233,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
                 self.iceprod_dataset_num,
                 self.file.path,
                 self.iceprod_job_index,
-                self.iceprodv2_rc,
-                self.iceprodv1_db,
+                self.iceprod_conn,
             )
 
         except DatasetNotFound:
