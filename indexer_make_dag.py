@@ -1,11 +1,13 @@
 """Make the Condor/DAGMan script for indexing files."""
 
 import argparse
+import datetime
 import getpass
 import logging
 import os
 import re
 import subprocess
+import sys
 from typing import cast, List, Optional, Tuple
 
 import coloredlogs  # type: ignore[import]
@@ -35,6 +37,8 @@ class IndexerArgs(TypedDict):
     cpus: int
     iceprodv2_rc_token: str
     iceprodv1_db_pass: str
+    dryrun_indexer: bool
+    no_patch: bool
 
 
 # --------------------------------------------------------------------------------------
@@ -56,9 +60,31 @@ def make_condor_scratch_dir() -> str:
     return scratch
 
 
-def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> None:
+def make_executable(path_to_virtualenv: str) -> str:
+    """Make executable script."""
+    fpath = "./indexer_env.sh"
+    logging.info(f"Writing executable ({fpath})...")
+
+    virtualenv = os.path.join(path_to_virtualenv, "bin/activate")
+    logging.debug(f"Including Path to Python Virtual Env: {virtualenv}")
+
+    with open(fpath, "w") as file:
+        file.write(
+            f"""#!/bin/bash
+eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
+. {virtualenv}
+$SROOT/metaprojects/combo/stable/env-shell.sh $@
+"""
+        )
+
+    return fpath
+
+
+def make_condor_file(
+    scratch: str, memory: str, indexer_args: IndexerArgs, path_to_virtualenv: str
+) -> None:
     """Make the condor file."""
-    logging.debug("Writing Condor file...")
+    logging.info("Writing Condor file...")
 
     condorpath = os.path.join(scratch, "condor")
     if os.path.exists(condorpath):
@@ -87,13 +113,17 @@ def make_condor_file(scratch: str, memory: str, indexer_args: IndexerArgs) -> No
             if indexer_args["retries"]:  # ignoring 0 is OK
                 timeout_retries_args += f" --retries {indexer_args['retries']}"
 
-            # --paths-file
-            path_arg = "--paths-file $(PATHS_FILE)"
+            # flags
+            dryrun = "--dryrun" if indexer_args["dryrun_indexer"] else ""
+            no_patch = "--no-patch" if indexer_args["no_patch"] else ""
+
+            # write executable
+            executable = make_executable(path_to_virtualenv)
 
             # write
             file.write(
-                f"""executable = {os.path.abspath('resources/indexer_env.sh')}
-arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC {path_arg} -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} --no-patch
+                f"""executable = {os.path.abspath(executable)}
+arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC --paths-file $(PATHS_FILE) -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} {no_patch} {dryrun}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
 log = {scratch}/$(JOBNUM).log
@@ -111,7 +141,7 @@ queue
 
 def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
     """Make the DAG file."""
-    logging.debug("Writing DAG file...")
+    logging.info("Writing DAG file...")
 
     dagpath = os.path.join(scratch, "dag")
     # reuse dag file
@@ -177,6 +207,18 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
     return dagpath
 
 
+def get_full_path(path: str) -> str:
+    """Check that the path exists and return the full path."""
+    if not path:
+        return path
+
+    full_path = os.path.abspath(path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(full_path)
+
+    return full_path
+
+
 def main() -> None:
     """Prep and execute DAGMan job(s).
 
@@ -195,9 +237,16 @@ def main() -> None:
     )
     parser.add_argument(
         "--path-to-indexer",
+        type=get_full_path,
         required=True,
         help="an NPX-accessible path to `file-catalog-indexer/indexer.py`"
         " (with additional necessary python files adjacent)",
+    )
+    parser.add_argument(
+        "--path-to-virtualenv",
+        type=get_full_path,
+        required=True,
+        help="an NPX-accessible path to the python virtual environment",
     )
     parser.add_argument(
         "-t", "--token", help="REST token for File Catalog", required=True
@@ -221,12 +270,14 @@ def main() -> None:
     )
     parser.add_argument(
         "--dir-of-paths-files",
+        type=get_full_path,
         required=True,
         help="the directory containing files, each file contains a collection of "
         "filepaths to index by a single job. Ex: /data/user/eevans/pre-index-data-exp/paths/",
     )
     parser.add_argument(
         "--blacklist",
+        type=get_full_path,
         help="blacklist file containing all filepaths/directories to skip",
     )
     parser.add_argument(
@@ -234,6 +285,18 @@ def main() -> None:
         default=False,
         action="store_true",
         help="do everything except submitting the condor job(s)",
+    )
+    parser.add_argument(
+        "--dryrun-indexer",
+        default=False,
+        action="store_true",
+        help="do everything except POSTing/PATCHing to the File Catalog",
+    )
+    parser.add_argument(
+        "--no-patch",
+        default=False,
+        action="store_true",
+        help="do not replace/overwrite existing File-Catalog entries",
     )
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
@@ -251,9 +314,6 @@ def main() -> None:
         )
 
     # check paths in args
-    for fpath in [args.blacklist, args.dir_of_paths_files, args.path_to_indexer]:
-        if fpath and not os.path.exists(fpath):
-            raise FileNotFoundError(fpath)
     if not args.path_to_indexer.endswith("/file-catalog-indexer/indexer.py"):
         raise RuntimeError(
             "--path-to-indexer needs to be a path to `file-catalog-indexer/indexer.py`"
@@ -272,11 +332,20 @@ def main() -> None:
         "cpus": args.cpus,
         "iceprodv2_rc_token": args.iceprodv2_rc_token,
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
+        "dryrun_indexer": args.dryrun_indexer,
+        "no_patch": args.no_patch,
     }
-    make_condor_file(scratch, args.memory, indexer_args)
+    make_condor_file(scratch, args.memory, indexer_args, args.path_to_virtualenv)
 
     # make DAG file
     dagpath = make_dag_file(scratch, args.dir_of_paths_files)
+
+    # write sys.argv to argv.txt
+    argv_txt = os.path.join(scratch, "argv.txt")
+    logging.info(f"Writing argv to {argv_txt}...")
+    with open(argv_txt, "a") as file:
+        file.write(f"{datetime.datetime.now().isoformat()} \n")
+        file.write(" ".join(sys.argv) + "\n")
 
     # Execute
     if args.dryrun:

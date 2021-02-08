@@ -11,6 +11,7 @@ from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Optional
 
+import coloredlogs  # type: ignore[import]
 import requests
 
 # local imports
@@ -48,6 +49,7 @@ class IndexerFlags(TypedDict):
     no_patch: bool
     iceprodv2_rc_token: str
     iceprodv1_db_pass: str
+    dryrun: bool
 
 
 # Constants ----------------------------------------------------------------------------
@@ -133,9 +135,17 @@ def sorted_unique_filepaths(
 
 
 async def request_post_patch(
-    fc_rc: RestClient, metadata: types.Metadata, dont_patch: bool = False
+    fc_rc: RestClient,
+    metadata: types.Metadata,
+    dont_patch: bool = False,
+    dryrun: bool = False,
 ) -> RestClient:
     """POST metadata, and PATCH if file is already in the file catalog."""
+    if dryrun:
+        logging.warning(f"Dry-Run Enabled: Not POSTing to File Catalog! {metadata}")
+        sleep(0.1)
+        return fc_rc
+
     try:
         _ = await fc_rc.request("POST", "/api/files", metadata)
         logging.debug("POSTed.")
@@ -153,7 +163,11 @@ async def request_post_patch(
 
 
 async def process_file(
-    filepath: str, manager: MetadataManager, fc_rc: RestClient, no_patch: bool
+    filepath: str,
+    manager: MetadataManager,
+    fc_rc: RestClient,
+    no_patch: bool,
+    dryrun: bool,
 ) -> None:
     """Gather and POST metadata for a file."""
     try:
@@ -169,11 +183,15 @@ async def process_file(
 
     logging.debug(f"{filepath} gathered.")
     logging.debug(metadata)
-    await request_post_patch(fc_rc, metadata, no_patch)
+    await request_post_patch(fc_rc, metadata, no_patch, dryrun)
 
 
 async def process_paths(
-    paths: List[str], manager: MetadataManager, fc_rc: RestClient, no_patch: bool
+    paths: List[str],
+    manager: MetadataManager,
+    fc_rc: RestClient,
+    no_patch: bool,
+    dryrun: bool,
 ) -> List[str]:
     """POST metadata of files given by paths, and return any directories."""
     sub_files: List[str] = []
@@ -182,7 +200,7 @@ async def process_paths(
         try:
             if is_processable_path(p):
                 if os.path.isfile(p):
-                    await process_file(p, manager, fc_rc, no_patch)
+                    await process_file(p, manager, fc_rc, no_patch, dryrun)
                 elif os.path.isdir(p):
                     logging.debug(f"Directory found, {p}. Queuing its contents...")
                     sub_files.extend(
@@ -248,7 +266,9 @@ def process_work(
         iceprodv1_db_pass=indexer_flags["iceprodv1_db_pass"],
     )
     sub_files = asyncio.get_event_loop().run_until_complete(
-        process_paths(paths, manager, fc_rc, indexer_flags["no_patch"])
+        process_paths(
+            paths, manager, fc_rc, indexer_flags["no_patch"], indexer_flags["dryrun"]
+        )
     )
 
     fc_rc.close()
@@ -320,23 +340,6 @@ def gather_file_info(  # pylint: disable=R0913
             logging.debug(f"Worker finished: {future} (enqueued {len(result)}).")
 
 
-def _configure_logging(level: str) -> None:
-    """Use `coloredlogs` if it's available.
-
-    `coloredlogs` doesn't support python `3.0.* - 3.4.*`
-    """
-    try:
-        # fmt: off
-        import coloredlogs  # type: ignore[import] # pylint: disable=C0415
-        # fmt: on
-        coloredlogs.install(level=level)
-    except ModuleNotFoundError:
-        logging.basicConfig(
-            level=level,
-            format="%(asctime)s %(hostname)s %(name)s[%(process)d] %(levelname)s %(message)s",
-        )
-
-
 def main() -> None:
     """Traverse paths, recursively, and index."""
     parser = argparse.ArgumentParser(
@@ -404,9 +407,15 @@ def main() -> None:
     parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
+    parser.add_argument(
+        "--dryrun",
+        default=False,
+        action="store_true",
+        help="do everything except POSTing/PATCHing to the File Catalog",
+    )
 
     args = parser.parse_args()
-    _configure_logging(args.log.upper())
+    coloredlogs.install(level=args.log.upper())
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
@@ -434,6 +443,7 @@ def main() -> None:
         "no_patch": args.no_patch,
         "iceprodv2_rc_token": args.iceprodv2_rc_token,
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
+        "dryrun": args.dryrun,
     }
 
     # Go!

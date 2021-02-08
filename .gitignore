@@ -125,3 +125,4 @@ traverser.py
 resources/filename_patterns/*.yaml
 *.token
 *.pass
+indexer_env.sh

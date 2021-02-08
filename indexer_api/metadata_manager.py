@@ -8,15 +8,12 @@ import typing
 import xml
 from typing import Any, Dict, List, Optional, Pattern
 
-import pymysql
 import xmltodict  # type: ignore[import]
 import yaml
 
-# local imports
-from rest_tools.client import RestClient  # type: ignore[import]
-
 from .metadata import basic, real, simulation
 from .metadata.simulation.data_sim import DataSimI3FileMetadata
+from .metadata.simulation.iceprod_tools import IceProdConnection
 from .utils import utils
 
 
@@ -35,19 +32,10 @@ class MetadataManager:  # pylint: disable=R0903
         self.basic_only = basic_only
         self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
         self.sim_regexes: List[Pattern[str]] = []
-        self.iceprodv2_rc: Optional[RestClient] = None
-        if iceprodv2_rc_token:
-            self.iceprodv2_rc = RestClient(
-                "https://iceprod2-api.icecube.wisc.edu", iceprodv2_rc_token
-            )
-        self.iceprodv1_db: Optional[pymysql.connections.Connection] = None
-        if iceprodv1_db_pass:
-            self.iceprodv1_db = pymysql.connect(
-                host="vm-i3simprod.icecube.wisc.edu",
-                user="i3simprod-ro",
-                passwd=iceprodv1_db_pass,
-                db="i3simprod",
-            )
+        if not iceprodv1_db_pass and not iceprodv2_rc_token:
+            self.iceprod_conn: Optional[IceProdConnection] = None
+        else:
+            self.iceprod_conn = IceProdConnection(iceprodv1_db_pass, iceprodv2_rc_token)
 
     def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
         """Return basic metadata-file object for files.
@@ -173,16 +161,13 @@ class MetadataManager:  # pylint: disable=R0903
             for regex in simulation.filename_patterns.regex_patterns:
                 self.sim_regexes.append(re.compile(regex))
 
-        # set up IceProd RestClient
-        if not self.iceprodv2_rc:
-            raise Exception("Missing IceProd v2 REST Client.")
-        if not self.iceprodv1_db:
-            raise Exception("Missing IceProd v1 DB Client.")
+        if not self.iceprod_conn:
+            raise Exception("Missing IceProd Connection Instance.")
 
         if DataSimI3FileMetadata.is_valid_filename(file.name):
             logging.debug(f"Gathering Sim metadata for {file.name}...")
             return DataSimI3FileMetadata(
-                file, self.site, self.sim_regexes, self.iceprodv2_rc, self.iceprodv1_db
+                file, self.site, self.sim_regexes, self.iceprod_conn
             )
 
         return self._new_file_basic_only(filepath)
