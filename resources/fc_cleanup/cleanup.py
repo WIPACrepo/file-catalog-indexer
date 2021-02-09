@@ -104,7 +104,7 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
         body = {"start": page * PAGE_SIZE, "limit": PAGE_SIZE}
         files = rc.request_seq("GET", "/api/files", body)["files"]
         if len(files) != PAGE_SIZE:
-            raise Exception(f"Asked for {PAGE_SIZE} files, received {len(files)}")
+            logging.warning(f"Asked for {PAGE_SIZE} files, received {len(files)}")
 
         # Case 0: nothing was deleted from the bad-paths yield last time -> get next page
         if files == previous_page:
