@@ -122,21 +122,27 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
             page += 1
             continue
 
-        # Case 1b: there are bad paths
+        # Case 1b: there *are* bad paths
         yield from bads
 
 
-def get_evil_twin_catalog_entries(rc: RestClient) -> Generator[FCEntry, None, None]:
+def delete_evil_twin_catalog_entries(rc: RestClient) -> int:
     """Yield each FC file and its good twin (rooted at /data/)."""
-    for bad_rooted_fpath in bad_rooted_fc_fpaths(rc):
+    i = 0
+    for i, bad_rooted_fpath in enumerate(bad_rooted_fc_fpaths(rc), start=1):
+        logging.info(f"Bad path #{i}: {bad_rooted_fpath}")
+
         try:
             evil_twin, good_twin = find_twins(rc, bad_rooted_fpath)
-            logging.info(
-                f'Found {evil_twin["logical_name"]} and {good_twin["logical_name"]}'
-            )
+            logging.info(f'Found good twin: {good_twin["logical_name"]}')
         except FileNotFoundError:
+            logging.warning("No good twin found.")
             continue
-        yield evil_twin
+
+        rc.request_seq("DELETE", f"/api/files/{evil_twin['uuid']}")
+        logging.info(f"Deleted: {i}")
+
+    return i
 
 
 def main() -> None:
@@ -153,14 +159,11 @@ def main() -> None:
     rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
 
     # Go
-    deleted = False
-    for i, evil_twin in enumerate(get_evil_twin_catalog_entries(rc), start=1):
-        deleted = True
-        rc.request_seq("DELETE", f"/api/files/{evil_twin['uuid']}")
-        logging.info(f"Deleted: {i}")
-
-    if not deleted:
+    total_deleted = delete_evil_twin_catalog_entries(rc)
+    if not total_deleted:
         raise Exception("No FC entries found/deleted")
+    else:
+        logging.info(f"Total Deleted: {total_deleted}")
 
 
 if __name__ == "__main__":
