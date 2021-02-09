@@ -7,14 +7,14 @@ where the duplicate is indexed under /mnt/lfs*/.
 import argparse
 import json
 import logging
-from typing import Any, cast, Dict, Generator, Tuple
+from typing import Any, cast, Dict, Generator, List, Tuple
 
 import coloredlogs  # type: ignore[import]
 
 # local imports
 from rest_tools.client import RestClient  # type: ignore[import]
 
-BATCH_SIZE = 10000
+PAGE_SIZE = 10000
 
 FCEntry = Dict[str, Any]
 
@@ -38,22 +38,28 @@ def _find_fc_entry(rc: RestClient, logical_name: str) -> FCEntry:
     return cast(FCEntry, results[0])
 
 
-def _get_good_path(bad_path: str) -> str:
-    def strip_prefix(string: str, prefix: str) -> str:
-        return string[len(prefix) :]
+def remove_prefix(string: str, prefix: str) -> str:
+    """Return string without the given prefix."""
+    return string[len(prefix) :]
 
-    if bad_path.startswith("/mnt/lfs6/exp/"):
-        return "/data/exp/" + strip_prefix(bad_path, "/mnt/lfs6/exp/")
 
-    elif bad_path.startswith("/mnt/lfs6/sim/"):
-        return "/data/sim/" + strip_prefix(bad_path, "/mnt/lfs6/exp/")
+def _get_good_path(fpath: str) -> str:
 
-    raise Exception(f"Unaccounted for prefix: {bad_path}")
+    replacement_roots = [
+        ("/mnt/lfs6/exp/", "/data/exp/"),
+        ("/mnt/lfs6/sim/", "/data/sim/"),
+    ]
+
+    for bad_root, good_root in replacement_roots:
+        if fpath.startswith(bad_root):
+            return good_root + remove_prefix(fpath, bad_root)
+
+    raise Exception(f"Unaccounted for prefix: {fpath}")
 
 
 def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[FCEntry, FCEntry]:
     """Get the FC entry that is indexed under `evil_twin`'s canonical path."""
-    # first, try to find entry w/ good path (otherwise, no point to continue)
+    # if no good twin -> FileNotFoundError
     good_twin = _find_fc_entry(rc, _get_good_path(bad_rooted_fpath))
     evil_twin = _find_fc_entry(rc, bad_rooted_fpath)
 
@@ -80,14 +86,44 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[FCEntry, FCEntry]
 
 
 def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
-    """Yield each FC filepath rooted at /mnt/lfs*/."""
-    files = rc.request_seq("GET", "/api/files")["files"]
+    """Yield each FC filepath rooted at /mnt/lfs*/.
 
-    bads = [
-        f["logical_name"] for f in files if f["logical_name"].startswith("/mnt/lfs")
-    ]
+    Search will be halted either by a REST error, or manually by the
+    user.
+    """
+    previous_page: List[Dict[str, Any]] = []
+    page = 0
+    while True:
+        logging.info(
+            f"Looking for more bad-rooted paths (page={page}, limit={PAGE_SIZE})..."
+        )
 
-    yield from bads
+        # Query
+        body = {"start": page * PAGE_SIZE, "limit": PAGE_SIZE}
+        files = rc.request_seq("GET", "/api/files", body)["files"]
+        if len(files) != PAGE_SIZE:
+            raise Exception(f"Asked for {PAGE_SIZE} files, received {len(files)}")
+
+        # Case 0: nothing was deleted from the bad-paths yield last time -> get next page
+        if files == previous_page:
+            logging.warning("This page is the same as the previous page.")
+            page += 1
+            continue
+
+        previous_page = files
+        bads = [
+            f["logical_name"] for f in files if f["logical_name"].startswith("/mnt/lfs")
+        ]
+
+        # Case 1a: there are no bad paths -> get next page
+        if not bads:
+            # since there were no bad paths, we know nothing will be deleted
+            logging.warning("No bad-rooted paths found in page.")
+            page += 1
+            continue
+
+        # Case 1b: there are bad paths
+        yield from bads
 
 
 def get_evil_twin_catalog_entries(rc: RestClient) -> Generator[FCEntry, None, None]:
@@ -118,7 +154,7 @@ def main() -> None:
 
     # Go
     deleted = False
-    for i, evil_twin in enumerate(get_evil_twin_catalog_entries(rc)):
+    for i, evil_twin in enumerate(get_evil_twin_catalog_entries(rc), start=1):
         deleted = True
         rc.request_seq("DELETE", f"/api/files/{evil_twin['uuid']}")
         logging.info(f"Deleted: {i}")
