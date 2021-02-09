@@ -58,8 +58,10 @@ def _get_good_path(fpath: str) -> str:
 
 
 def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[FCEntry, FCEntry]:
-    """Get the FC entry that is indexed under `evil_twin`'s canonical path."""
-    # if no good twin -> FileNotFoundError
+    """Get evil twin and good twin FC entries.
+
+    If no twin (good or bad) is found, raise FileNotFoundError.
+    """
     good_twin = _find_fc_entry(rc, _get_good_path(bad_rooted_fpath))
     evil_twin = _find_fc_entry(rc, bad_rooted_fpath)
 
@@ -127,7 +129,7 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
 
 
 def delete_evil_twin_catalog_entries(rc: RestClient) -> int:
-    """Yield each FC file and its good twin (rooted at /data/)."""
+    """Delete each bad-rooted path FC entry (if each has a good twin)."""
     i = 0
     for i, bad_rooted_fpath in enumerate(bad_rooted_fc_fpaths(rc), start=1):
         logging.info(f"Bad path #{i}: {bad_rooted_fpath}")
