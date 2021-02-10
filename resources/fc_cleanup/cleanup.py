@@ -114,23 +114,31 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
     evil_twin = _find_fc_entry(rc, bad_rooted_fpath)
     evil_twin_uuid = evil_twin["uuid"]
 
-    # compare "locations"-fields
-    if not _compatible_locations_values(evil_twin["locations"], good_twin["locations"]):
-        raise Exception(
-            f"Locations metadata not compatible: {evil_twin} vs {good_twin}"
-        )
+    try:
+        # compare "locations"-fields
+        if not _compatible_locations_values(
+            evil_twin["locations"], good_twin["locations"]
+        ):
+            raise Exception("Locations metadata not compatible")
 
-    # compare "meta_modify_date"-fields
-    if _evil_twin_updated_later(evil_twin, good_twin):
-        raise Exception(
-            f"Evil twin was updated after the good twin ({evil_twin} vs {good_twin})"
-        )
+        # compare "meta_modify_date"-fields
+        if _evil_twin_updated_later(evil_twin, good_twin):
+            raise Exception("Evil twin was updated after the good twin")
 
-    ignored_fields = ["_links", "logical_name", "uuid", "locations", "meta_modify_date"]
-    if not _compare_fc_entries(evil_twin, good_twin, ignored_fields):
-        raise Exception(
-            f"These don't match {evil_twin} vs {good_twin} (disregarding: {ignored_fields})"
-        )
+        # compare basic fields
+        ignored_fields = [
+            "_links",
+            "logical_name",
+            "uuid",
+            "locations",
+            "meta_modify_date",
+        ]
+        if not _compare_fc_entries(evil_twin, good_twin, ignored_fields):
+            raise Exception(f"Fields don't match (disregarding: {ignored_fields})")
+
+    except Exception:
+        logging.critical(f"(evil_twin={evil_twin} vs good_twin={good_twin})")
+        raise
 
     return evil_twin_uuid, good_twin_uuid
 
