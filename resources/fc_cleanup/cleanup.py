@@ -127,7 +127,8 @@ def _resolve_deprecated_fields(fc_entry: FCEntry) -> FCEntry:
 
 def _resolve_gcd_filepath(fc_entry: FCEntry) -> FCEntry:
     if "offline_processing_metadata" in fc_entry:
-        fc_entry["offline_processing_metadata"]["L2_gcd_file"] = "GCD-PLACEHOLDER"
+        path = _get_good_path(fc_entry["offline_processing_metadata"]["L2_gcd_file"])
+        fc_entry["offline_processing_metadata"]["L2_gcd_file"] = path
     return fc_entry
 
 
@@ -136,7 +137,8 @@ def _resolve_wipac_location_filepath(fc_entry: FCEntry) -> FCEntry:
     for i in range(len(fc_entry["locations"])):  # pylint: disable=C0200
         # allow in-line changes
         if fc_entry["locations"][i]["site"] == "WIPAC":
-            fc_entry["locations"][i]["path"] = "WIPAC-PLACEHOLDER"
+            path = _get_good_path(fc_entry["locations"][i]["path"])
+            fc_entry["locations"][i]["path"] = path
     return fc_entry
 
 
@@ -159,12 +161,8 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
 
     # resolve special fields
     evil_twin = _resolve_deprecated_fields(evil_twin)
-    #
     evil_twin = _resolve_gcd_filepath(evil_twin)
-    good_twin = _resolve_gcd_filepath(good_twin)
-    #
     evil_twin = _resolve_wipac_location_filepath(evil_twin)
-    good_twin = _resolve_wipac_location_filepath(good_twin)
     #
     evil_twin = _resolve_season_value(evil_twin)
     good_twin = _resolve_season_value(good_twin)
