@@ -61,12 +61,6 @@ def _get_good_path(fpath: str) -> str:
 def _compatible_locations_values(
     evil_twin_locations: List[Dict[str, str]], good_twin_locations: List[Dict[str, str]]
 ) -> bool:
-    # replace WIPAC-site path (these will differ b/c they are the logical_name)
-    for locations in [evil_twin_locations, good_twin_locations]:
-        for i in range(len(locations)):  # pylint: disable=C0200 # allow in-line changes
-            if locations[i]["site"] == "WIPAC":
-                locations[i]["path"] = "WIPAC-PLACEHOLDER"
-
     # are these the same?
     if evil_twin_locations == good_twin_locations:
         return True
@@ -128,6 +122,21 @@ def _resolve_deprecated_fields(fc_entry: FCEntry) -> FCEntry:
     return fc_entry
 
 
+def _resolve_gcd_filepath(fc_entry: FCEntry) -> FCEntry:
+    if "offline_processing_metadata" in fc_entry:
+        fc_entry["offline_processing_metadata"]["L2_gcd_file"] = "GCD-PLACEHOLDER"
+    return fc_entry
+
+
+def _resolve_wipac_location_filepath(fc_entry: FCEntry) -> FCEntry:
+    # replace WIPAC-site path (these will differ b/c they are the logical_name)
+    for i in range(len(fc_entry["locations"])):  # pylint: disable=C0200
+        # allow in-line changes
+        if fc_entry["locations"][i]["site"] == "WIPAC":
+            fc_entry["locations"][i]["path"] = "WIPAC-PLACEHOLDER"
+    return fc_entry
+
+
 def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
     """Get evil twin and good twin FC entries' uuids.
 
@@ -138,8 +147,14 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
     evil_twin = _find_fc_entry(rc, bad_rooted_fpath)
     evil_twin_uuid = evil_twin["uuid"]
 
+    # resolve special fields
     evil_twin = _resolve_deprecated_fields(evil_twin)
+    evil_twin = _resolve_gcd_filepath(evil_twin)
+    good_twin = _resolve_gcd_filepath(good_twin)
+    evil_twin = _resolve_wipac_location_filepath(evil_twin)
+    good_twin = _resolve_wipac_location_filepath(good_twin)
 
+    # compare metadata
     try:
         # compare "locations"-fields
         if not _compatible_locations_values(
