@@ -100,24 +100,27 @@ def _evil_twin_updated_later(evil_twin: FCEntry, good_twin: FCEntry) -> bool:
 
 def _resolve_deprecated_fields(fc_entry: FCEntry) -> FCEntry:
     deprecated_fields = [
-        "end_datetime",
-        "first_event",
-        "last_event",
-        "run_number",
-        "start_datetime",
-        "subrun_number",
+        ("end_datetime", "end_datetime"),
+        ("first_event", "first_event"),
+        ("last_event", "last_event"),
+        ("run_number", "run_number"),
+        ("start_datetime", "start_datetime"),
+        ("subrun_number", "subrun_number"),
+        ("events", "event_count"),
     ]
-    for field in deprecated_fields:
-        if field not in fc_entry:
+    for old_field, run_field in deprecated_fields:
+        if old_field not in fc_entry:
             continue
-        if field not in fc_entry["run"]:
-            raise Exception(f"Deprecated field: {field} is not also in 'run' object")
-        elif fc_entry[field] != fc_entry["run"][field]:
+        if run_field not in fc_entry["run"]:
             raise Exception(
-                f"Deprecated field: {field} has differing value than 'run' object "
-                f"({fc_entry[field]} vs {fc_entry['run'][field]})"
+                f"Deprecated field: {run_field} is not also in 'run' object"
             )
-        del fc_entry[field]
+        elif fc_entry[old_field] != fc_entry["run"][run_field]:
+            raise Exception(
+                f"Deprecated field: {old_field} has differing value than 'run' object "
+                f"({fc_entry[old_field]} vs {fc_entry['run'][run_field]})"
+            )
+        del fc_entry[old_field]
 
     return fc_entry
 
@@ -190,7 +193,8 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
             raise Exception(f"Fields don't match (disregarding: {ignored_fields})")
 
     except Exception:
-        logging.critical(f"(evil_twin={evil_twin}, good_twin={good_twin})")
+        logging.critical(f"evil_twin={evil_twin}")
+        logging.critical(f"good_twin={good_twin}")
         raise
 
     return evil_twin_uuid, good_twin_uuid
