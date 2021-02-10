@@ -84,7 +84,7 @@ def _compare_fc_entries(
             continue
         if evil_twin[key] != good_twin[key]:
             logging.error(
-                f"Field Mismatch: {key} ({evil_twin[key]} vs {good_twin[key]})"
+                f"Field Mismatch: {key} (evil_twin={evil_twin[key]}, good_twin={good_twin[key]})"
             )
             return False
 
@@ -137,6 +137,13 @@ def _resolve_wipac_location_filepath(fc_entry: FCEntry) -> FCEntry:
     return fc_entry
 
 
+def _resolve_season_value(fc_entry: FCEntry) -> FCEntry:
+    if "offline_processing_metadata" in fc_entry:
+        season = fc_entry["offline_processing_metadata"]["season"]
+        fc_entry["offline_processing_metadata"]["season"] = int(season)
+    return fc_entry
+
+
 def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
     """Get evil twin and good twin FC entries' uuids.
 
@@ -149,10 +156,15 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
 
     # resolve special fields
     evil_twin = _resolve_deprecated_fields(evil_twin)
+    #
     evil_twin = _resolve_gcd_filepath(evil_twin)
     good_twin = _resolve_gcd_filepath(good_twin)
+    #
     evil_twin = _resolve_wipac_location_filepath(evil_twin)
     good_twin = _resolve_wipac_location_filepath(good_twin)
+    #
+    evil_twin = _resolve_season_value(evil_twin)
+    good_twin = _resolve_season_value(good_twin)
 
     # compare metadata
     try:
@@ -178,7 +190,7 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
             raise Exception(f"Fields don't match (disregarding: {ignored_fields})")
 
     except Exception:
-        logging.critical(f"(evil_twin={evil_twin} vs good_twin={good_twin})")
+        logging.critical(f"(evil_twin={evil_twin}, good_twin={good_twin})")
         raise
 
     return evil_twin_uuid, good_twin_uuid
