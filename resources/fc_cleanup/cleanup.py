@@ -57,6 +57,40 @@ def _get_good_path(fpath: str) -> str:
     raise Exception(f"Unaccounted for prefix: {fpath}")
 
 
+def _compatible_locations_values(
+    evil_twin_locations: List[Dict[str, str]], good_twin_locations: List[Dict[str, str]]
+) -> bool:
+    evil_twin_locations_copy = evil_twin_locations.copy()
+    good_twin_locations_copy = good_twin_locations.copy()
+
+    # replace WIPAC-site path (these will differ b/c they are the logical_name)
+    for locations in [evil_twin_locations_copy, good_twin_locations_copy]:
+        for i in range(len(locations)):  # pylint: disable=C0200 # allow in-line changes
+            if locations[i]["site"] == "WIPAC":
+                locations[i]["path"] = "WIPAC-PLACEHOLDER"
+
+    # are these the same?
+    if evil_twin_locations_copy == good_twin_locations_copy:
+        return True
+    # does the good_twin just have extra locations? -- that's OK
+    elif set(evil_twin_locations_copy) - set(good_twin_locations_copy) == set():
+        return True
+    else:
+        return False
+
+
+def _compare_fc_entries(
+    evil_twin: FCEntry, good_twin: FCEntry, ignored_fields: List[str]
+) -> bool:
+    def copy_for_compare(entry: FCEntry) -> FCEntry:
+        xerox = entry.copy()
+        for field in ignored_fields:
+            del xerox[field]
+        return xerox
+
+    return copy_for_compare(evil_twin) == copy_for_compare(good_twin)
+
+
 def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[FCEntry, FCEntry]:
     """Get evil twin and good twin FC entries.
 
@@ -65,21 +99,14 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[FCEntry, FCEntry]
     good_twin = _find_fc_entry(rc, _get_good_path(bad_rooted_fpath))
     evil_twin = _find_fc_entry(rc, bad_rooted_fpath)
 
-    # ignore keys that aren't expected to match
-    # TODO - what other fields to ignore?
-    ignored_fields = ["_links", "logical_name", "uuid"]
+    # compare "locations"-field
+    if not _compatible_locations_values(evil_twin["locations"], good_twin["locations"]):
+        raise Exception(
+            f"Locations metadata not compatible: {evil_twin} vs {good_twin}"
+        )
 
-    def copy_for_compare(entry: FCEntry) -> FCEntry:
-        xerox = entry.copy()
-        for field in ignored_fields:
-            del xerox[field]
-        # replace logical_name in locations object with a placeholder value
-        for i, locus in enumerate(xerox["locations"].copy()):
-            if locus["path"] == entry["logical_name"]:
-                xerox["locations"][i]["path"] = "PLACEHOLDER"
-        return xerox
-
-    if copy_for_compare(evil_twin) != copy_for_compare(good_twin):
+    ignored_fields = ["_links", "logical_name", "uuid", "locations"]
+    if not _compare_fc_entries(evil_twin, good_twin, ignored_fields):
         raise Exception(
             f"These don't match {evil_twin} vs {good_twin} (disregarding: {ignored_fields})"
         )
