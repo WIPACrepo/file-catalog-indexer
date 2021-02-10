@@ -104,6 +104,30 @@ def _evil_twin_updated_later(evil_twin: FCEntry, good_twin: FCEntry) -> bool:
     return evil_twin_time > good_twin_time
 
 
+def _resolve_deprecated_fields(fc_entry: FCEntry) -> FCEntry:
+    deprecated_fields = [
+        "end_datetime",
+        "first_event",
+        "last_event",
+        "run_number",
+        "start_datetime",
+        "subrun_number",
+    ]
+    for field in deprecated_fields:
+        if field not in fc_entry:
+            continue
+        if field not in fc_entry["run"]:
+            raise Exception(f"Deprecated field: {field} is not also in 'run' object")
+        elif fc_entry[field] != fc_entry["run"][field]:
+            raise Exception(
+                f"Deprecated field: {field} has differing value than 'run' object "
+                f"({fc_entry[field]} vs {fc_entry['run'][field]})"
+            )
+        del fc_entry[field]
+
+    return fc_entry
+
+
 def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
     """Get evil twin and good twin FC entries' uuids.
 
@@ -113,6 +137,8 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
     good_twin_uuid = good_twin["uuid"]
     evil_twin = _find_fc_entry(rc, bad_rooted_fpath)
     evil_twin_uuid = evil_twin["uuid"]
+
+    evil_twin = _resolve_deprecated_fields(evil_twin)
 
     try:
         # compare "locations"-fields
