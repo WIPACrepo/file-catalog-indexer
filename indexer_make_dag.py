@@ -180,7 +180,7 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
 
             # WRITE TOP LEVEL DAG FILE
             with open(dagpath, "w") as file:
-                file.write("# TOP LEVEL DAG FILE\n")
+                file.write("# TOP-LEVEL DAG FILE\n")
                 file.write("\n# SPLICES\n")
                 for sdc in subdag_chunks:
                     file.write(f"SPLICE {subdag_name(sdc)} {subdag_name(sdc)}.dag\n")
@@ -188,18 +188,18 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
                 # for parent, child in zip(subdag_chunks[:-1], subdag_chunks[1:]):
                 #     file.write(f"PARENT {subdag_name(parent)} ")
                 #     file.write(f"CHILD {subdag_name(child)}\n")
-                file.write("\n# END TOP LEVEL DAG FILE\n")
+                file.write("\n# END TOP-LEVEL DAG FILE\n")
 
             # WRITE SUB-DAG FILES
             for sdc in subdag_chunks:
                 subdagpath = os.path.join(scratch, f"{subdag_name(sdc)}.dag")
                 with open(subdagpath, "w") as file:
-                    file.write(f"# CHILD DAG FILE: {subdag_name(sdc)}\n\n")
+                    file.write(f"# SUB-DAG FILE: {subdag_name(sdc)}\n\n")
                     for i, paths_file in sdc:
                         file.write(f"JOB job{i} condor\n")
                         file.write(f'VARS job{i} PATHS_FILE="{paths_file}"\n')
                         file.write(f'VARS job{i} JOBNUM="{i}"\n')
-                    file.write("\n# END CHILD DAG FILE\n")
+                    file.write("\n# END SUB-DAG FILE\n")
                 logging.debug(f"Queued {len(sdc)} sub-dag jobs in {subdagpath}.")
             logging.info(f"Queued {len(subdag_chunks)} total sub-dag files.")
         logging.info(f"Queued {len(paths)} total jobs starting from {dagpath}.")
