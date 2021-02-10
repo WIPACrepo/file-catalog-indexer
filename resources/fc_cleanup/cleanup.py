@@ -60,23 +60,20 @@ def _get_good_path(fpath: str) -> str:
 def _compatible_locations_values(
     evil_twin_locations: List[Dict[str, str]], good_twin_locations: List[Dict[str, str]]
 ) -> bool:
-    evil_twin_locations_copy = evil_twin_locations.copy()
-    good_twin_locations_copy = good_twin_locations.copy()
-
     # replace WIPAC-site path (these will differ b/c they are the logical_name)
-    for locations in [evil_twin_locations_copy, good_twin_locations_copy]:
+    for locations in [evil_twin_locations, good_twin_locations]:
         for i in range(len(locations)):  # pylint: disable=C0200 # allow in-line changes
             if locations[i]["site"] == "WIPAC":
                 locations[i]["path"] = "WIPAC-PLACEHOLDER"
 
     # are these the same?
-    if evil_twin_locations_copy == good_twin_locations_copy:
+    if evil_twin_locations == good_twin_locations:
         return True
 
     # does the evil twin have any locations that the good twin does not?
     # the good twin can have more locations--AKA it's been moved to NERSC
-    for evil_locus in evil_twin_locations_copy:
-        if evil_locus not in good_twin_locations_copy:
+    for evil_locus in evil_twin_locations:
+        if evil_locus not in good_twin_locations:
             return False
 
     return True
@@ -85,22 +82,29 @@ def _compatible_locations_values(
 def _compare_fc_entries(
     evil_twin: FCEntry, good_twin: FCEntry, ignored_fields: List[str]
 ) -> bool:
-    def copy_for_compare(entry: FCEntry) -> FCEntry:
-        xerox = entry.copy()
-        for field in ignored_fields:
-            del xerox[field]
-        return xerox
+    keys = set(list(evil_twin.keys()) + list(good_twin.keys()))
 
-    return copy_for_compare(evil_twin) == copy_for_compare(good_twin)
+    for key in keys:
+        if key in ignored_fields:
+            continue
+        if evil_twin[key] != good_twin[key]:
+            logging.info(
+                f"Field Mismatch: {key} ({evil_twin[key]} vs {good_twin[key]})"
+            )
+            return False
+
+    return True
 
 
-def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[FCEntry, FCEntry]:
-    """Get evil twin and good twin FC entries.
+def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[str, str]:
+    """Get evil twin and good twin FC entries' uuids.
 
     If no twin (good or bad) is found, raise FileNotFoundError.
     """
     good_twin = _find_fc_entry(rc, _get_good_path(bad_rooted_fpath))
+    good_twin_uuid = good_twin["uuid"]
     evil_twin = _find_fc_entry(rc, bad_rooted_fpath)
+    evil_twin_uuid = evil_twin["uuid"]
 
     # compare "locations"-field
     if not _compatible_locations_values(evil_twin["locations"], good_twin["locations"]):
@@ -114,7 +118,7 @@ def find_twins(rc: RestClient, bad_rooted_fpath: str) -> Tuple[FCEntry, FCEntry]
             f"These don't match {evil_twin} vs {good_twin} (disregarding: {ignored_fields})"
         )
 
-    return evil_twin, good_twin
+    return evil_twin_uuid, good_twin_uuid
 
 
 def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
@@ -168,8 +172,10 @@ def delete_evil_twin_catalog_entries(rc: RestClient, dryrun: bool = False) -> in
         logging.info(f"Bad path #{i}: {bad_rooted_fpath}")
 
         try:
-            evil_twin, good_twin = find_twins(rc, bad_rooted_fpath)
-            logging.info(f'Found good twin: {good_twin["logical_name"]}')
+            evil_twin_uuid, good_twin_uuid = find_twins(rc, bad_rooted_fpath)
+            logging.info(
+                f"Found: good-twin={good_twin_uuid} evil-twin={evil_twin_uuid}"
+            )
         except FileNotFoundError:
             logging.warning("No good twin found.")
             continue
@@ -179,7 +185,7 @@ def delete_evil_twin_catalog_entries(rc: RestClient, dryrun: bool = False) -> in
                 f"Dry-Run Enabled: Not DELETE'ing File Catalog entry! i={i}"
             )
         else:
-            rc.request_seq("DELETE", f"/api/files/{evil_twin['uuid']}")
+            rc.request_seq("DELETE", f"/api/files/{evil_twin_uuid}")
             logging.info(f"Deleted: {i}")
 
     return i
