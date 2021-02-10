@@ -103,6 +103,9 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
         # Query
         body = {"start": page * PAGE_SIZE, "limit": PAGE_SIZE}
         files = rc.request_seq("GET", "/api/files", body)["files"]
+        if not files:
+            logging.warning("No more files.")
+            return
         if len(files) != PAGE_SIZE:
             logging.warning(f"Asked for {PAGE_SIZE} files, received {len(files)}")
 
