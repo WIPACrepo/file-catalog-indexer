@@ -131,7 +131,7 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
         yield from bads
 
 
-def delete_evil_twin_catalog_entries(rc: RestClient) -> int:
+def delete_evil_twin_catalog_entries(rc: RestClient, dryrun: bool = False) -> int:
     """Delete each bad-rooted path FC entry (if each has a good twin)."""
     i = 0
     for i, bad_rooted_fpath in enumerate(bad_rooted_fc_fpaths(rc), start=1):
@@ -144,8 +144,13 @@ def delete_evil_twin_catalog_entries(rc: RestClient) -> int:
             logging.warning("No good twin found.")
             continue
 
-        rc.request_seq("DELETE", f"/api/files/{evil_twin['uuid']}")
-        logging.info(f"Deleted: {i}")
+        if dryrun:
+            logging.warning(
+                f"Dry-Run Enabled: Not DELETE'ing File Catalog entry! i={i}"
+            )
+        else:
+            rc.request_seq("DELETE", f"/api/files/{evil_twin['uuid']}")
+            logging.info(f"Deleted: {i}")
 
     return i
 
@@ -159,12 +164,20 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("--token", required=True, help="file catalog token")
+    parser.add_argument(
+        "--dryrun",
+        default=False,
+        action="store_true",
+        help="do everything except deleting File Catalog entries. "
+        "NOTE: since the FC will remain the same size, "
+        '"GET" @ "/api/files" will continue to return the same entries.',
+    )
     args = parser.parse_args()
 
     rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
 
     # Go
-    total_deleted = delete_evil_twin_catalog_entries(rc)
+    total_deleted = delete_evil_twin_catalog_entries(rc, args.dryrun)
     if not total_deleted:
         raise Exception("No FC entries found/deleted")
     else:
