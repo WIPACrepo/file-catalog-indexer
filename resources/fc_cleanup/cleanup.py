@@ -33,9 +33,9 @@ def _find_fc_entry(rc: RestClient, logical_name: str) -> FCEntry:
         raise Exception(f"Multiple FC matches for {logical_name}")
 
     # get full metadata
-    results = rc.request_seq("GET", f"/api/files/{results[0]['uuid']}")
+    metadata = rc.request_seq("GET", f"/api/files/{results[0]['uuid']}")
 
-    return cast(FCEntry, results[0])
+    return cast(FCEntry, metadata)
 
 
 def remove_prefix(string: str, prefix: str) -> str:
