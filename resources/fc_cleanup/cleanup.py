@@ -72,11 +72,14 @@ def _compatible_locations_values(
     # are these the same?
     if evil_twin_locations_copy == good_twin_locations_copy:
         return True
-    # does the good_twin just have extra locations? -- that's OK
-    elif set(evil_twin_locations_copy) - set(good_twin_locations_copy) == set():
-        return True
-    else:
-        return False
+
+    # does the evil twin have any locations that the good twin does not?
+    # the good twin can have more locations--AKA it's been moved to NERSC
+    for evil_locus in evil_twin_locations_copy:
+        if evil_locus not in good_twin_locations_copy:
+            return False
+
+    return True
 
 
 def _compare_fc_entries(
