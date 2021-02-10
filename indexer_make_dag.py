@@ -184,10 +184,10 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
                 file.write("\n# SPLICES\n")
                 for sdc in subdag_chunks:
                     file.write(f"SPLICE {subdag_name(sdc)} {subdag_name(sdc)}.dag\n")
-                file.write("\n# PARENT-CHILD CHAIN\n")
-                for parent, child in zip(subdag_chunks[:-1], subdag_chunks[1:]):
-                    file.write(f"PARENT {subdag_name(parent)} ")
-                    file.write(f"CHILD {subdag_name(child)}\n")
+                # file.write("\n# PARENT-CHILD CHAIN\n")
+                # for parent, child in zip(subdag_chunks[:-1], subdag_chunks[1:]):
+                #     file.write(f"PARENT {subdag_name(parent)} ")
+                #     file.write(f"CHILD {subdag_name(child)}\n")
                 file.write("\n# END TOP LEVEL DAG FILE\n")
 
             # WRITE SUB-DAG FILES
