@@ -207,7 +207,7 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
     previous_page: List[Dict[str, Any]] = []
     page = 0
     while True:
-        logging.info(
+        logging.warning(
             f"Looking for more bad-rooted paths (page={page}, limit={PAGE_SIZE})..."
         )
 
@@ -215,14 +215,14 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
         body = {"start": page * PAGE_SIZE, "limit": PAGE_SIZE}
         files = rc.request_seq("GET", "/api/files", body)["files"]
         if not files:
-            logging.warning("No more files.")
+            logging.error("No more files.")
             return
         if len(files) != PAGE_SIZE:
-            logging.warning(f"Asked for {PAGE_SIZE} files, received {len(files)}")
+            logging.error(f"Asked for {PAGE_SIZE} files, received {len(files)}")
 
         # Case 0: nothing was deleted from the bad-paths yield last time -> get next page
         if files == previous_page:
-            logging.warning("This page is the same as the previous page.")
+            logging.error("This page is the same as the previous page.")
             page += 1
             continue
 
@@ -234,7 +234,7 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
         # Case 1a: there are no bad paths -> get next page
         if not bads:
             # since there were no bad paths, we know nothing will be deleted
-            logging.warning("No bad-rooted paths found in page.")
+            logging.error("No bad-rooted paths found in page.")
             page += 1
             continue
 
@@ -246,7 +246,7 @@ def delete_evil_twin_catalog_entries(rc: RestClient, dryrun: bool = False) -> in
     """Delete each bad-rooted path FC entry (if each has a good twin)."""
     i = 0
     for i, bad_rooted_fpath in enumerate(bad_rooted_fc_fpaths(rc), start=1):
-        logging.info(f"Bad path #{i}: {bad_rooted_fpath}")
+        logging.warning(f"Bad path #{i}: {bad_rooted_fpath}")
 
         try:
             evil_twin_uuid, good_twin_uuid = find_twins(rc, bad_rooted_fpath)
@@ -254,24 +254,20 @@ def delete_evil_twin_catalog_entries(rc: RestClient, dryrun: bool = False) -> in
                 f"Found: good-twin={good_twin_uuid} evil-twin={evil_twin_uuid}"
             )
         except FileNotFoundError:
-            logging.warning("No good twin found.")
+            logging.error("No good twin found.")
             continue
 
         if dryrun:
-            logging.warning(
-                f"Dry-Run Enabled: Not DELETE'ing File Catalog entry! i={i}"
-            )
+            logging.error(f"Dry-Run Enabled: Not DELETE'ing File Catalog entry! i={i}")
         else:
             rc.request_seq("DELETE", f"/api/files/{evil_twin_uuid}")
-            logging.info(f"Deleted: {i}")
+            logging.warning(f"DELETED #{i}")
 
     return i
 
 
 def main() -> None:
     """Do Main."""
-    coloredlogs.install(level=logging.INFO)
-
     # Args
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -285,8 +281,10 @@ def main() -> None:
         "NOTE: since the FC will remain the same size, "
         '"GET" @ "/api/files" will continue to return the same entries.',
     )
+    parser.add_argument("-l", "--log", default="WARNING", help="output logging level")
     args = parser.parse_args()
 
+    coloredlogs.install(level=args.log)
     rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
 
     # Go
@@ -294,7 +292,7 @@ def main() -> None:
     if not total_deleted:
         raise Exception("No FC entries found/deleted")
     else:
-        logging.info(f"Total Deleted: {total_deleted}")
+        logging.warning(f"Total Deleted: {total_deleted}")
 
 
 if __name__ == "__main__":
