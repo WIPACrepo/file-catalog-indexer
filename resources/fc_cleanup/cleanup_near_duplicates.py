@@ -260,10 +260,12 @@ def delete_evil_twin_catalog_entries(rc: RestClient, dryrun: bool = False) -> in
             continue
 
         if dryrun:
-            logging.error(f"Dry-Run Enabled: Not DELETE'ing File Catalog entry! i={i}")
+            logging.error(
+                f"Dry-Run Enabled: Not DELETE'ing File Catalog entry! i={i}  -- {evil_twin_uuid}"
+            )
         else:
             rc.request_seq("DELETE", f"/api/files/{evil_twin_uuid}")
-            logging.warning(f"DELETED #{i}")
+            logging.warning(f"DELETED #{i} -- {evil_twin_uuid}")
 
     return i
 
