@@ -227,19 +227,21 @@ def bad_rooted_fc_fpaths(rc: RestClient) -> Generator[str, None, None]:
             continue
 
         previous_page = files
-        bads = [
+        bad_paths = [
             f["logical_name"] for f in files if f["logical_name"].startswith("/mnt/lfs")
         ]
 
         # Case 1a: there are no bad paths -> get next page
-        if not bads:
+        if not bad_paths:
             # since there were no bad paths, we know nothing will be deleted
             logging.error("No bad-rooted paths found in page.")
             page += 1
             continue
 
         # Case 1b: there *are* bad paths
-        yield from bads
+        for path in bad_paths:
+            logging.warning(f"PAGE-{page}")
+            yield path
 
 
 def delete_evil_twin_catalog_entries(rc: RestClient, dryrun: bool = False) -> int:
