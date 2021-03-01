@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           command: |
-            pip install -r requirements.txt --use-feature=2020-resolver
+            pip install -r requirements.txt
             pytest tests/unit --mypy --flake8 -vvvvv --ignore=src
 
   integration:
@@ -18,7 +18,7 @@ jobs:
       - checkout
       - run:
           command: |
-            pip install -r requirements.txt --use-feature=2020-resolver
+            pip install -r requirements.txt
             cp ./resources/path_collector/traverser.py ./traverser.py
             cp ./resources/path_collector/common_args.py ./common_args.py
             pytest tests/integration -vvvvv

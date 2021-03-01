@@ -5,7 +5,9 @@ import logging
 import re
 from typing import Dict, List, Optional, Pattern, Tuple
 
-from ...utils import types, utils
+from file_catalog.schema import types
+
+from ...utils import utils
 from ..i3 import I3FileMetadata
 from .iceprod_tools import (
     DatasetNotFound,

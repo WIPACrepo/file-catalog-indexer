@@ -6,7 +6,9 @@ import os
 from datetime import date
 from typing import cast
 
-from ..utils import types, utils
+from file_catalog.schema import types
+
+from ..utils import utils
 
 
 class BasicFileMetadata:

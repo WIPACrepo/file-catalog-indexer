@@ -10,14 +10,11 @@ import logging
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import pymysql
-
-# local imports
+from file_catalog.schema import types
 from iceprod.core import dataclasses  # type: ignore[import]
 from iceprod.core.parser import ExpParser  # type: ignore[import]
 from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
-
-from ...utils import types
 
 try:
     from typing import TypedDict
