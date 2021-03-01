@@ -13,11 +13,11 @@ from typing import List, Optional
 
 import coloredlogs  # type: ignore[import]
 import requests
+from file_catalog.schema import types
+from rest_tools.client import RestClient  # type: ignore[import]
 
 # local imports
 from indexer_api.metadata_manager import MetadataManager
-from indexer_api.utils import types
-from rest_tools.client import RestClient  # type: ignore[import]
 
 try:
     from typing import TypedDict, Final

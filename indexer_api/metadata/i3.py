@@ -4,7 +4,9 @@
 import typing
 from typing import Optional
 
-from ..utils import types, utils
+from file_catalog.schema import types
+
+from ..utils import utils
 from .basic import BasicFileMetadata
 
 

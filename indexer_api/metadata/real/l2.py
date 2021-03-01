@@ -5,7 +5,9 @@ import datetime
 import re
 from typing import Any, cast, Dict, List, Optional, Tuple
 
-from ...utils import types, utils
+from file_catalog.schema import types
+
+from ...utils import utils
 from . import filename_patterns
 from .data_exp import DataExpI3FileMetadata
 

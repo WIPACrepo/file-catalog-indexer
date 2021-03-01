@@ -4,13 +4,14 @@
 import sys
 from typing import List
 
+from file_catalog.schema import types
+
 try:
     from typing import TypedDict
 except ImportError:
     from typing_extensions import TypedDict
 
 sys.path.append(".")
-from indexer_api.utils import types  # isort:skip # noqa # pylint: disable=C0413
 from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
     iceprod_tools,
 )

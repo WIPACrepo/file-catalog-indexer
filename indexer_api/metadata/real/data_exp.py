@@ -12,8 +12,9 @@ from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 
 import xmltodict  # type: ignore[import]
+from file_catalog.schema import types
 
-from ...utils import types, utils
+from ...utils import utils
 from ..i3 import I3FileMetadata
 
 
