@@ -35,9 +35,10 @@ def main() -> None:
     )
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
+    parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
 
     args = parser.parse_args()
-    coloredlogs.install(level="DEBUG")
+    coloredlogs.install(level=args.log)
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
@@ -60,7 +61,7 @@ def main() -> None:
             metadata = manager.new_file(fpath).generate()
             pprint.pprint(metadata)
         elif os.path.isdir(fpath):
-            logging.debug(f"Appending directory's contents to queue: {fpath}")
+            logging.info(f"Appending directory's contents to queue: {fpath}")
             filepath_queue.extend(
                 dir_entry.path
                 for dir_entry in os.scandir(fpath)
