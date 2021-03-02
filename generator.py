@@ -22,7 +22,7 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "paths", metavar="PATHS", nargs="*", help="path(s) to scan for files."
+        "paths", metavar="PATHS", nargs="+", help="path(s) to scan for files."
     )
     parser.add_argument(
         "-s", "--site", required=True, help='site value of the "locations" object'
