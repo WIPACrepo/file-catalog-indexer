@@ -68,3 +68,7 @@ def main() -> None:
             )
         else:
             raise Exception(f"Unaccounted for file type: {fpath}")
+
+
+if __name__ == "__main__":
+    main()
