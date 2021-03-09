@@ -75,8 +75,8 @@ def get_parser_w_common_args(
         parser.add_argument(
             "--chunk-size",
             type=_parse_to_bytes,
-            default=0,
-            help="aggregate file-size limit per chunk/job (bytes, KB, MB, ...), by default, one chunk is made.",
+            default="200GB",
+            help="aggregate file-size limit per chunk/job (KB, MB, GB, ...); set to '0' to skip chunking all together (1 job total).",
         )
     if (not only) or ("--fast-forward" in only):
         parser.add_argument(
