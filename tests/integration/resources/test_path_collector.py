@@ -15,7 +15,7 @@ from typing import Any, List, Tuple
 
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]
-import pytest
+import pytest  # type: ignore[import]
 
 try:
     from typing import Final
@@ -244,6 +244,7 @@ def test_w_fast_forward() -> None:  # pylint: disable=R0915
                 f"python ./resources/path_collector/path_collector.py {root}"
                 f" --staging-dir {stage}"
                 f" --fast-forward"
+                f" --chunk-size 0"
                 f" --workers 1".split(),
                 cwd=".",
             )
@@ -449,6 +450,7 @@ def test_previous_traverse() -> None:
             f"python ./resources/path_collector/path_collector.py {root}"
             f" --staging-dir {stage}"
             f" --previous-traverse {prev_traverse}"
+            f" --chunk-size 0"
             f" --workers 1".split(),
             cwd=".",
         )
