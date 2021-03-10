@@ -46,7 +46,7 @@ class IndexerFlags(TypedDict):
     """TypedDict for Indexer bool parameters."""
 
     basic_only: bool
-    no_patch: bool
+    patch: bool
     iceprodv2_rc_token: str
     iceprodv1_db_pass: str
     dryrun: bool
@@ -137,7 +137,7 @@ def sorted_unique_filepaths(
 async def request_post_patch(
     fc_rc: RestClient,
     metadata: types.Metadata,
-    dont_patch: bool = False,
+    patch: bool = False,
     dryrun: bool = False,
 ) -> RestClient:
     """POST metadata, and PATCH if file is already in the file catalog."""
@@ -151,12 +151,12 @@ async def request_post_patch(
         logging.debug("POSTed.")
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 409:
-            if dont_patch:
-                logging.debug("File already exists, not replacing.")
-            else:
+            if patch:
                 patch_path = e.response.json()["file"]  # /api/files/{uuid}
                 _ = await fc_rc.request("PATCH", patch_path, metadata)
                 logging.debug("PATCHed.")
+            else:
+                logging.debug("File already exists, not patching entry.")
         else:
             raise
     return fc_rc
@@ -166,7 +166,7 @@ async def process_file(
     filepath: str,
     manager: MetadataManager,
     fc_rc: RestClient,
-    no_patch: bool,
+    patch: bool,
     dryrun: bool,
 ) -> None:
     """Gather and POST metadata for a file."""
@@ -183,24 +183,24 @@ async def process_file(
 
     logging.debug(f"{filepath} gathered.")
     logging.debug(metadata)
-    await request_post_patch(fc_rc, metadata, no_patch, dryrun)
+    await request_post_patch(fc_rc, metadata, patch, dryrun)
 
 
 async def process_paths(
     paths: List[str],
     manager: MetadataManager,
     fc_rc: RestClient,
-    no_patch: bool,
+    patch: bool,
     dryrun: bool,
 ) -> List[str]:
     """POST metadata of files given by paths, and return any directories."""
     sub_files: List[str] = []
 
-    for p in paths:
+    for p in paths:  # pylint: disable=C0103
         try:
             if is_processable_path(p):
                 if os.path.isfile(p):
-                    await process_file(p, manager, fc_rc, no_patch, dryrun)
+                    await process_file(p, manager, fc_rc, patch, dryrun)
                 elif os.path.isdir(p):
                     logging.debug(f"Directory found, {p}. Queuing its contents...")
                     sub_files.extend(
@@ -267,7 +267,7 @@ def process_work(
     )
     sub_files = asyncio.get_event_loop().run_until_complete(
         process_paths(
-            paths, manager, fc_rc, indexer_flags["no_patch"], indexer_flags["dryrun"]
+            paths, manager, fc_rc, indexer_flags["patch"], indexer_flags["dryrun"]
         )
     )
 
@@ -299,7 +299,7 @@ def gather_file_info(  # pylint: disable=R0913
     """
     # Get full paths
     starting_paths = [os.path.abspath(p) for p in starting_paths]
-    for p in starting_paths:
+    for p in starting_paths:  # pylint: disable=C0103
         check_path(p)
 
     # Traverse paths and process files
@@ -393,13 +393,10 @@ def main() -> None:
         help="only collect basic metadata",
     )
     parser.add_argument(
-        "--no-patch",
+        "--patch",
         default=False,
         action="store_true",
-        help="do not replace/overwrite existing File-Catalog entries (aka don't patch). "
-        "NOTE: this should be used *only* as a fail-safe mechanism "
-        "(this option will not save any processing time); "
-        "use --blacklist-file if you know what files you want to skip",
+        help="replace/overwrite any existing File-Catalog entries (aka patch)",
     )
     parser.add_argument(
         "--blacklist-file", help="blacklist file containing filepaths to skip",
@@ -440,7 +437,7 @@ def main() -> None:
     }
     indexer_flags: IndexerFlags = {
         "basic_only": args.basic_only,
-        "no_patch": args.no_patch,
+        "patch": args.patch,
         "iceprodv2_rc_token": args.iceprodv2_rc_token,
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
         "dryrun": args.dryrun,
