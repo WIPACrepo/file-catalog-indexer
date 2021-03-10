@@ -262,10 +262,11 @@ def index(
     if not paths:
         return []
 
-    # Check blacklist
+    # Filter
+    paths = sorted_unique_filepaths(list_of_filepaths=paths)
     paths = [p for p in paths if not path_in_blacklist(p, blacklist)]
 
-    # Process Paths
+    # Prep
     fc_rc = RestClient(
         rest_client_args["url"],
         token=rest_client_args["token"],
@@ -278,6 +279,8 @@ def index(
         iceprodv2_rc_token=indexer_flags["iceprodv2_rc_token"],
         iceprodv1_db_pass=indexer_flags["iceprodv1_db_pass"],
     )
+
+    # Index
     child_paths = asyncio.get_event_loop().run_until_complete(
         index_paths(
             paths, manager, fc_rc, indexer_flags["patch"], indexer_flags["dryrun"]
@@ -359,7 +362,6 @@ def recursively_index(  # pylint: disable=R0913
         i = 0
         while queue:
             logging.debug(f"Queue Iteration #{i}")
-            queue = sorted_unique_filepaths(list_of_filepaths=queue)
             queue = index(queue, blacklist, rest_client_args, site, indexer_flags)
             i += 1
 
@@ -391,13 +393,22 @@ def main() -> None:
     parser.add_argument(
         "--paths-file",
         default=None,
-        help="file containing path(s) to scan for files. (use this option for a large number of paths)",
+        help="file containing path(s) to scan for files. "
+        "(use this option for a large number of paths)",
+    )
+    parser.add_argument(
+        "-n",
+        "--non-recursive",
+        default=False,
+        action="store_true",
+        help="do not recursively index / do not descend into subdirectories",
     )
     parser.add_argument(
         "--processes",
         type=int,
         default=1,
-        help="number of processes for multi-processing",
+        help="number of processes for multi-processing "
+        "(ignored if using --non-recursive)",
     )
     parser.add_argument(
         "-u",
@@ -484,9 +495,12 @@ def main() -> None:
     }
 
     # Go!
-    recursively_index(
-        paths, blacklist, rest_client_args, args.site, indexer_flags, args.processes
-    )
+    if args.non_recursive:
+        index(paths, blacklist, rest_client_args, args.site, indexer_flags)
+    else:
+        recursively_index(
+            paths, blacklist, rest_client_args, args.site, indexer_flags, args.processes
+        )
 
 
 if __name__ == "__main__":
