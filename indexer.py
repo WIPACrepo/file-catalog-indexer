@@ -206,8 +206,8 @@ async def process_paths(
     patch: bool,
     dryrun: bool,
 ) -> List[str]:
-    """POST metadata of files given by paths, and return any directories."""
-    sub_files: List[str] = []
+    """POST metadata of files given by paths, and return all child paths."""
+    child_paths: List[str] = []
 
     for p in paths:  # pylint: disable=C0103
         try:
@@ -216,7 +216,7 @@ async def process_paths(
                     await process_file(p, manager, fc_rc, patch, dryrun)
                 elif os.path.isdir(p):
                     logging.debug(f"Directory found, {p}. Queuing its contents...")
-                    sub_files.extend(
+                    child_paths.extend(
                         dir_entry.path
                         for dir_entry in os.scandir(p)
                         if not dir_entry.is_symlink()
@@ -227,7 +227,7 @@ async def process_paths(
         except (PermissionError, FileNotFoundError, NotADirectoryError) as e:
             logging.info(f"Skipping {p}, {e.__class__.__name__}.")
 
-    return sub_files
+    return child_paths
 
 
 def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
@@ -255,7 +255,7 @@ def process_work(
 ) -> List[str]:
     """Wrap async function, `process_paths`.
 
-    Return files nested under any directories.
+    Return all child paths nested under any directories.
     """
     if not isinstance(paths, list):
         raise TypeError(f"`paths` object is not list {paths}")
@@ -278,14 +278,14 @@ def process_work(
         iceprodv2_rc_token=indexer_flags["iceprodv2_rc_token"],
         iceprodv1_db_pass=indexer_flags["iceprodv1_db_pass"],
     )
-    sub_files = asyncio.get_event_loop().run_until_complete(
+    child_paths = asyncio.get_event_loop().run_until_complete(
         process_paths(
             paths, manager, fc_rc, indexer_flags["patch"], indexer_flags["dryrun"]
         )
     )
 
     fc_rc.close()
-    return sub_files
+    return child_paths
 
 
 def check_path(path: str) -> None:
