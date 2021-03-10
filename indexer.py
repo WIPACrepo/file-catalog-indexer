@@ -76,9 +76,6 @@ def is_processable_path(path: str) -> bool:
     )
 
 
-# Functions ----------------------------------------------------------------------------
-
-
 def sorted_unique_filepaths(
     file_of_filepaths: Optional[str] = None,
     list_of_filepaths: Optional[List[str]] = None,
@@ -134,7 +131,10 @@ def sorted_unique_filepaths(
     return filepaths
 
 
-async def request_post_patch(
+# Indexing Functions -------------------------------------------------------------------
+
+
+async def post_metadata(
     fc_rc: RestClient,
     metadata: types.Metadata,
     patch: bool = False,
@@ -168,7 +168,7 @@ async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
     return bool(ret["files"])
 
 
-async def process_file(
+async def index_file(
     filepath: str,
     manager: MetadataManager,
     fc_rc: RestClient,
@@ -196,10 +196,10 @@ async def process_file(
 
     logging.debug(f"{filepath} gathered.")
     logging.debug(metadata)
-    await request_post_patch(fc_rc, metadata, patch, dryrun)
+    await post_metadata(fc_rc, metadata, patch, dryrun)
 
 
-async def process_paths(
+async def index_paths(
     paths: List[str],
     manager: MetadataManager,
     fc_rc: RestClient,
@@ -213,7 +213,7 @@ async def process_paths(
         try:
             if is_processable_path(p):
                 if os.path.isfile(p):
-                    await process_file(p, manager, fc_rc, patch, dryrun)
+                    await index_file(p, manager, fc_rc, patch, dryrun)
                 elif os.path.isdir(p):
                     logging.debug(f"Directory found, {p}. Queuing its contents...")
                     child_paths.extend(
@@ -246,14 +246,14 @@ def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
     return False
 
 
-def process_work(
+def index(
     paths: List[str],
     blacklist: List[str],
     rest_client_args: RestClientArgs,
     site: str,
     indexer_flags: IndexerFlags,
 ) -> List[str]:
-    """Wrap async function, `process_paths`.
+    """Index paths, excluding any matching the blacklist.
 
     Return all child paths nested under any directories.
     """
@@ -279,7 +279,7 @@ def process_work(
         iceprodv1_db_pass=indexer_flags["iceprodv1_db_pass"],
     )
     child_paths = asyncio.get_event_loop().run_until_complete(
-        process_paths(
+        index_paths(
             paths, manager, fc_rc, indexer_flags["patch"], indexer_flags["dryrun"]
         )
     )
@@ -288,17 +288,10 @@ def process_work(
     return child_paths
 
 
-def check_path(path: str) -> None:
-    """Check if `path` is rooted at a white-listed root path."""
-    for root in ACCEPTED_ROOTS:
-        if root == os.path.commonpath([path, root]):
-            return
-    message = f"{path} is not rooted at: {', '.join(ACCEPTED_ROOTS)}"
-    logging.critical(message)
-    raise Exception(f"Invalid path ({message}).")
+# Recursively-Indexing Functions -------------------------------------------------------
 
 
-def gather_file_info_multiprocessed(  # pylint: disable=R0913
+def recursively_index_multiprocessed(  # pylint: disable=R0913
     starting_paths: List[str],
     blacklist: List[str],
     rest_client_args: RestClientArgs,
@@ -327,7 +320,7 @@ def gather_file_info_multiprocessed(  # pylint: disable=R0913
                     )
                     futures.append(
                         pool.submit(
-                            process_work,
+                            index,
                             paths,
                             blacklist,
                             rest_client_args,
@@ -348,27 +341,7 @@ def gather_file_info_multiprocessed(  # pylint: disable=R0913
             logging.debug(f"Worker finished: {future} (enqueued {len(result)}).")
 
 
-def gather_file_info_single_processed(  # pylint: disable=R0913
-    starting_paths: List[str],
-    blacklist: List[str],
-    rest_client_args: RestClientArgs,
-    site: str,
-    indexer_flags: IndexerFlags,
-) -> None:
-    """Gather and post metadata from files rooted at `starting_paths`.
-
-    Do this single-processed.
-    """
-    queue = starting_paths
-    i = 0
-    while queue:
-        logging.debug(f"Queue Iteration #{i}")
-        queue = sorted_unique_filepaths(list_of_filepaths=queue)
-        queue = process_work(queue, blacklist, rest_client_args, site, indexer_flags)
-        i += 1
-
-
-def gather_file_info(  # pylint: disable=R0913
+def recursively_index(  # pylint: disable=R0913
     starting_paths: List[str],
     blacklist: List[str],
     rest_client_args: RestClientArgs,
@@ -377,19 +350,31 @@ def gather_file_info(  # pylint: disable=R0913
     processes: int,
 ) -> None:
     """Gather and post metadata from files rooted at `starting_paths`."""
-    # Get full paths
-    starting_paths = [os.path.abspath(p) for p in starting_paths]
-    for p in starting_paths:  # pylint: disable=C0103
-        check_path(p)
-
     if processes > 1:
-        gather_file_info_multiprocessed(
+        recursively_index_multiprocessed(
             starting_paths, blacklist, rest_client_args, site, indexer_flags, processes
         )
     else:
-        gather_file_info_single_processed(
-            starting_paths, blacklist, rest_client_args, site, indexer_flags
-        )
+        queue = starting_paths
+        i = 0
+        while queue:
+            logging.debug(f"Queue Iteration #{i}")
+            queue = sorted_unique_filepaths(list_of_filepaths=queue)
+            queue = index(queue, blacklist, rest_client_args, site, indexer_flags)
+            i += 1
+
+
+# Main ---------------------------------------------------------------------------------
+
+
+def validate_path(path: str) -> None:
+    """Check if `path` is rooted at a white-listed root path."""
+    for root in ACCEPTED_ROOTS:
+        if root == os.path.commonpath([path, root]):
+            return
+    message = f"{path} is not rooted at: {', '.join(ACCEPTED_ROOTS)}"
+    logging.critical(message)
+    raise Exception(f"Invalid path ({message}).")
 
 
 def main() -> None:
@@ -472,10 +457,13 @@ def main() -> None:
         f"Collecting metadata from {args.paths} and those in file (at {args.paths_file})..."
     )
 
-    # Aggregate and sort filepaths
+    # Aggregate, sort, and validate filepaths
     paths = sorted_unique_filepaths(
         file_of_filepaths=args.paths_file, list_of_filepaths=args.paths
     )
+    paths = [os.path.abspath(p) for p in paths]
+    for p in paths:  # pylint: disable=C0103
+        validate_path(p)
 
     # Read blacklisted paths
     blacklist = sorted_unique_filepaths(file_of_filepaths=args.blacklist_file)
@@ -496,7 +484,7 @@ def main() -> None:
     }
 
     # Go!
-    gather_file_info(
+    recursively_index(
         paths, blacklist, rest_client_args, args.site, indexer_flags, args.processes
     )
 

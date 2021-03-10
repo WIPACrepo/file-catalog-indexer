@@ -8,7 +8,7 @@ import pytest
 sys.path.append(".")
 from indexer import (  # isort:skip # noqa # pylint: disable=C0413
     ACCEPTED_ROOTS,
-    check_path,
+    validate_path,
     path_in_blacklist,
     sorted_unique_filepaths,
 )
@@ -21,19 +21,19 @@ def test_accepted_roots() -> None:
 
 def test_check_path() -> None:
     """Test filepath white-listing."""
-    check_path("/data/foo")
-    check_path("/data/foo/bar")
-    check_path("/data/")
-    check_path("/data")
+    validate_path("/data/foo")
+    validate_path("/data/foo/bar")
+    validate_path("/data/")
+    validate_path("/data")
 
     with pytest.raises(Exception):
-        check_path("foo")
+        validate_path("foo")
     with pytest.raises(Exception):
-        check_path("/data2")
+        validate_path("/data2")
     with pytest.raises(Exception):
-        check_path("~/data")
+        validate_path("~/data")
     with pytest.raises(Exception):
-        check_path("data/")
+        validate_path("data/")
 
 
 def test_blacklist() -> None:
