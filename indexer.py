@@ -298,7 +298,7 @@ def check_path(path: str) -> None:
     raise Exception(f"Invalid path ({message}).")
 
 
-def gather_file_info(  # pylint: disable=R0913
+def gather_file_info_multiprocessed(  # pylint: disable=R0913
     starting_paths: List[str],
     blacklist: List[str],
     rest_client_args: RestClientArgs,
@@ -310,11 +310,6 @@ def gather_file_info(  # pylint: disable=R0913
 
     Do this multi-processed.
     """
-    # Get full paths
-    starting_paths = [os.path.abspath(p) for p in starting_paths]
-    for p in starting_paths:  # pylint: disable=C0103
-        check_path(p)
-
     # Traverse paths and process files
     futures: List[Future] = []  # type: ignore[type-arg]
     with ProcessPoolExecutor() as pool:
@@ -351,6 +346,50 @@ def gather_file_info(  # pylint: disable=R0913
                 queue.extend(result)
                 split = math.ceil(len(queue) / processes)
             logging.debug(f"Worker finished: {future} (enqueued {len(result)}).")
+
+
+def gather_file_info_single_processed(  # pylint: disable=R0913
+    starting_paths: List[str],
+    blacklist: List[str],
+    rest_client_args: RestClientArgs,
+    site: str,
+    indexer_flags: IndexerFlags,
+) -> None:
+    """Gather and post metadata from files rooted at `starting_paths`.
+
+    Do this single-processed.
+    """
+    queue = starting_paths
+    i = 0
+    while queue:
+        logging.debug(f"Queue Iteration #{i}")
+        queue = sorted_unique_filepaths(list_of_filepaths=queue)
+        queue = process_work(queue, blacklist, rest_client_args, site, indexer_flags)
+        i += 1
+
+
+def gather_file_info(  # pylint: disable=R0913
+    starting_paths: List[str],
+    blacklist: List[str],
+    rest_client_args: RestClientArgs,
+    site: str,
+    indexer_flags: IndexerFlags,
+    processes: int,
+) -> None:
+    """Gather and post metadata from files rooted at `starting_paths`."""
+    # Get full paths
+    starting_paths = [os.path.abspath(p) for p in starting_paths]
+    for p in starting_paths:  # pylint: disable=C0103
+        check_path(p)
+
+    if processes > 1:
+        gather_file_info_multiprocessed(
+            starting_paths, blacklist, rest_client_args, site, indexer_flags, processes
+        )
+    else:
+        gather_file_info_single_processed(
+            starting_paths, blacklist, rest_client_args, site, indexer_flags
+        )
 
 
 def main() -> None:
