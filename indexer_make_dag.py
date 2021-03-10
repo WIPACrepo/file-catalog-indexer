@@ -38,7 +38,6 @@ class IndexerArgs(TypedDict):
     iceprodv2_rc_token: str
     iceprodv1_db_pass: str
     dryrun_indexer: bool
-    no_patch: bool
 
 
 # --------------------------------------------------------------------------------------
@@ -115,7 +114,6 @@ def make_condor_file(
 
             # flags
             dryrun = "--dryrun" if indexer_args["dryrun_indexer"] else ""
-            no_patch = "--no-patch" if indexer_args["no_patch"] else ""
 
             # write executable
             executable = make_executable(path_to_virtualenv)
@@ -123,7 +121,7 @@ def make_condor_file(
             # write
             file.write(
                 f"""executable = {os.path.abspath(executable)}
-arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC --paths-file $(PATHS_FILE) -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} {no_patch} {dryrun}
+arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC --paths-file $(PATHS_FILE) -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} {dryrun}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
 log = {scratch}/$(JOBNUM).log
@@ -290,13 +288,7 @@ def main() -> None:
         "--dryrun-indexer",
         default=False,
         action="store_true",
-        help="do everything except POSTing/PATCHing to the File Catalog",
-    )
-    parser.add_argument(
-        "--no-patch",
-        default=False,
-        action="store_true",
-        help="do not replace/overwrite existing File-Catalog entries",
+        help="do everything except POSTing to the File Catalog",
     )
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
@@ -333,7 +325,6 @@ def main() -> None:
         "iceprodv2_rc_token": args.iceprodv2_rc_token,
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
         "dryrun_indexer": args.dryrun_indexer,
-        "no_patch": args.no_patch,
     }
     make_condor_file(scratch, args.memory, indexer_args, args.path_to_virtualenv)
 
