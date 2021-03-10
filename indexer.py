@@ -79,6 +79,7 @@ def is_processable_path(path: str) -> bool:
 def sorted_unique_filepaths(
     file_of_filepaths: Optional[str] = None,
     list_of_filepaths: Optional[List[str]] = None,
+    abspaths: bool = False,
 ) -> List[str]:
     """Return an aggregated, sorted, and set-unique list of filepaths.
 
@@ -86,8 +87,9 @@ def sorted_unique_filepaths(
     in `list_of_filepaths` list. Do not check if filepaths exist.
 
     Keyword Arguments:
-        file_of_filepaths {Optional[str]} -- a file with a filepath on each line (default: {None})
-        list_of_filepaths {Optional[List[str]]} -- a list of filepaths (default: {None})
+        file_of_filepaths -- a file with a filepath on each line
+        list_of_filepaths -- a list of filepaths
+        abspaths -- call `os.path.abspath()` on each filepath
 
     Returns:
         List[str] -- all unique filepaths
@@ -127,6 +129,8 @@ def sorted_unique_filepaths(
                 if path:
                     filepaths.append(path)
 
+    if abspaths:
+        filepaths = [os.path.abspath(p) for p in filepaths]
     filepaths = [f for f in sorted(set(filepaths)) if f]
     return filepaths
 
@@ -470,14 +474,15 @@ def main() -> None:
 
     # Aggregate, sort, and validate filepaths
     paths = sorted_unique_filepaths(
-        file_of_filepaths=args.paths_file, list_of_filepaths=args.paths
+        file_of_filepaths=args.paths_file, list_of_filepaths=args.paths, abspaths=True
     )
-    paths = [os.path.abspath(p) for p in paths]
     for p in paths:  # pylint: disable=C0103
         validate_path(p)
 
     # Read blacklisted paths
-    blacklist = sorted_unique_filepaths(file_of_filepaths=args.blacklist_file)
+    blacklist = sorted_unique_filepaths(
+        file_of_filepaths=args.blacklist_file, abspaths=True
+    )
 
     # Grab and pack args
     rest_client_args: RestClientArgs = {
