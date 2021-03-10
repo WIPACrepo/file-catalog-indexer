@@ -162,6 +162,12 @@ async def request_post_patch(
     return fc_rc
 
 
+async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
+    """Return whether the filepath is currently in the File Catalog."""
+    ret = await fc_rc.request("GET", "/api/files", {"path": filepath})
+    return bool(ret["files"])
+
+
 async def process_file(
     filepath: str,
     manager: MetadataManager,
@@ -170,6 +176,13 @@ async def process_file(
     dryrun: bool,
 ) -> None:
     """Gather and POST metadata for a file."""
+    if not patch and await file_exists_in_fc(fc_rc, filepath):
+        logging.info(
+            f"File already exists in the File Catalog (use --patch to overwrite); "
+            f"skipping ({filepath})"
+        )
+        return
+
     try:
         metadata_file = manager.new_file(filepath)
         metadata = metadata_file.generate()
