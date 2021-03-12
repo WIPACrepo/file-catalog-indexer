@@ -20,9 +20,9 @@ from rest_tools.client import RestClient  # type: ignore[import]
 from indexer_api.metadata_manager import MetadataManager
 
 try:
-    from typing import TypedDict, Final
+    from typing import Final, TypedDict
 except ImportError:
-    from typing_extensions import TypedDict, Final  # type: ignore[misc]
+    from typing_extensions import Final, TypedDict  # type: ignore[misc]
 
 
 _DEFAULT_TIMEOUT: Final[int] = 30  # seconds
@@ -451,9 +451,19 @@ def main() -> None:
         help="replace/overwrite any existing File-Catalog entries (aka patch)",
     )
     parser.add_argument(
-        "--blacklist-file", help="blacklist file containing filepaths to skip",
+        "--blacklist",
+        metavar="BLACKPATH",
+        nargs="+",
+        default=None,
+        help="list of blacklisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*",
     )
-    parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
+    parser.add_argument(
+        "--blacklist-file",
+        help="a file containing blacklisted filepaths on each line "
+        "(this is a useful alternative to `--blacklist` when there's many blacklisted paths); "
+        "Ex: /foo/bar/ will skip /foo/bar/*",
+    )
+    parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
     parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
     parser.add_argument(
@@ -479,9 +489,11 @@ def main() -> None:
     for p in paths:  # pylint: disable=C0103
         validate_path(p)
 
-    # Read blacklisted paths
+    # Aggregate & sort blacklisted paths
     blacklist = sorted_unique_filepaths(
-        file_of_filepaths=args.blacklist_file, abspaths=True
+        file_of_filepaths=args.blacklist_file,
+        list_of_filepaths=args.blacklist,
+        abspaths=True,
     )
 
     # Grab and pack args
