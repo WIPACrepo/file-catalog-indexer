@@ -14,7 +14,7 @@ docutils==0.16
 fasteners==0.15
 git+https://github.com/WIPACrepo/file_catalog@v1.7.5#egg=file_catalog
 git+https://github.com/WIPACrepo/rest-tools@v1.0.7#egg=rest_tools
-git+https://github.com/WIPACrepo/iceprod@v2.5.6#egg=iceprod
+git+https://github.com/WIPACrepo/iceprod@v2.5.7#egg=iceprod
 httplib2==0.18.1
 idna==2.10
 imagesize==1.2.0
