@@ -19,7 +19,7 @@ def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> None:
     non_indexed = f"{thread_id}.nonindexed.paths"
     with open(non_indexed, "w") as nonindexed_f:
         for i, fpath in enumerate(fpaths, start=1):
-            if i % 100000 == 0:
+            if i % 100000 == 1:
                 logging.warning(f"thread-{thread_id} processed total: {i}")
             logging.info(f"#{i}")
             logging.debug(f"Looking at {fpath}")
