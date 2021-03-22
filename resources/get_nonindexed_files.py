@@ -37,6 +37,7 @@ with open(args.traverse_file) as f, open(NON_INDEXED, "w") as nonindexed_f:
         logging.info(f"#{i}")
         fpath = line.strip()
         logging.debug(f"Looking at {fpath}")
+        print(fpath)
         result = rc.request_seq("GET", "/api/files", {"path": fpath})["files"]
         if result:
             logging.debug("file is already indexed")
