@@ -30,6 +30,8 @@ def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> None:
 
 
 def _split_up_infile(trav_file: str, npieces: int) -> List[List[str]]:
+    logging.info(f"Splitting up {trav_file} into {npieces} pieces")
+
     fpaths = [ln.strip() for ln in open(trav_file)]
 
     return [list(c) for c in mit.divide(npieces, fpaths)]
@@ -66,6 +68,7 @@ def main() -> None:
     # spawn threads
     file_workers: List[concurrent.futures.Future] = []  # type: ignore[type-arg]
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.threads) as pool:
+        logging.info(f"Spinning off thread jobs ({args.threads})")
         file_workers.extend(
             pool.submit(_check_fpaths, c, args.token, i)
             for i, c in enumerate(fpath_chunks)
