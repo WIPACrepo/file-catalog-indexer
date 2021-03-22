@@ -13,7 +13,12 @@ from rest_tools.client import RestClient  # type: ignore[import]
 
 def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> None:
     # setup
-    rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=token)
+    rc = RestClient(
+        "https://file-catalog.icecube.wisc.edu/",
+        token=token,
+        timeout=60 * 60,  # 1 hour
+        retries=24,  # 1 day
+    )
 
     # scan
     non_indexed = f"{thread_id}.nonindexed.paths"
