@@ -13,9 +13,8 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument(
-    "traverse_file",
-    metavar="TRAV_FILE",
-    nargs=1,
+    "--traverse-file",
+    required=True,
     help="traverse file containing superset of filepaths",
 )
 parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
