@@ -74,12 +74,14 @@ def main() -> None:
 
     # spawn threads
     file_workers: List[concurrent.futures.Future] = []  # type: ignore[type-arg]
-    with concurrent.futures.ProcessPoolExecutor(max_workers=args.threads) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as pool:
         logging.warning(f"Spinning off thread jobs ({args.threads})")
         file_workers.extend(
             pool.submit(_check_fpaths, c, args.token, i)
             for i, c in enumerate(fpath_chunks)
         )
+
+    logging.warning("All done.")
 
 
 if __name__ == "__main__":
