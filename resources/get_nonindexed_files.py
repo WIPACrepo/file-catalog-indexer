@@ -97,6 +97,8 @@ def main() -> None:
     for fpath in nonindexed_fpaths:
         print(fpath)
 
+    logging.warning("All done.")
+
 
 if __name__ == "__main__":
     main()
