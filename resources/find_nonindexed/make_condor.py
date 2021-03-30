@@ -26,7 +26,7 @@ LOG_LEVEL = "warning"
 
 # Arguments
 parser = argparse.ArgumentParser(
-    description="Submit HTCondor DAGMan jobs for bulk indexing files for the File Catalog",
+    description="Submit condor job for get_nonindexed_files.py",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument(
