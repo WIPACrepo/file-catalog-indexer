@@ -21,7 +21,7 @@ def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> List[str]:
     )
 
     # scan
-    nonindexed_fpaths = []
+    nonindexed_fpaths: List[str] = []
     for i, fpath in enumerate(fpaths, start=1):
         if i % 100000 == 1:
             logging.warning(
