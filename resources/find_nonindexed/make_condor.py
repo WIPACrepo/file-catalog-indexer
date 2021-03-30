@@ -46,6 +46,7 @@ for arg, val in vars(args).items():
 
 # Write Environment Executable
 with open(ENV_EXCUTABLE, "w") as file:
+    logging.info(f"Writing {ENV_EXCUTABLE}...")
     file.write(
         f"""#!/bin/bash
 eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
@@ -57,6 +58,7 @@ eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
 # Write Condor
 os.makedirs(SCRATCH)
 with open(CONDORPATH, "w") as file:
+    logging.info(f"Writing {CONDORPATH}...")
     file.write(
         f"""executable = {os.path.abspath(ENV_EXCUTABLE)}
 arguments = python {os.path.abspath('./get_nonindexed_files.py')} -t {args.token} --traverse-file {TRAVERSE_FILE} --log {LOG_LEVEL} --threads {THREADS}
