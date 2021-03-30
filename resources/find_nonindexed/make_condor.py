@@ -45,12 +45,14 @@ for arg, val in vars(args).items():
 
 
 # Write Environment Executable
+if not args.path_to_virtualenv.endswith("/bin/activate"):
+    raise Exception("--path-to-virtualenv must end with /bin/activate")
 with open(ENV_EXCUTABLE, "w") as file:
     logging.info(f"Writing {ENV_EXCUTABLE}...")
     file.write(
         f"""#!/bin/bash
 eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
-. {args.path_to_virtualenv}
+. {os.path.abspath(args.path_to_virtualenv)}
 """
     )
 
