@@ -57,6 +57,7 @@ with open(ENV_EXCUTABLE, "w") as file:
         f"""#!/bin/bash
 eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
 . {os.path.abspath(args.path_to_virtualenv)}
+$@
 """
     )
 
