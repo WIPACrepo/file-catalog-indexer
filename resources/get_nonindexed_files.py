@@ -11,7 +11,7 @@ import more_itertools as mit  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
 
 
-def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> None:
+def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> List[str]:
     # setup
     rc = RestClient(
         "https://file-catalog.icecube.wisc.edu/",
@@ -21,19 +21,25 @@ def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> None:
     )
 
     # scan
-    non_indexed = f"{thread_id}.nonindexed.paths"
-    with open(non_indexed, "w") as nonindexed_f:
-        for i, fpath in enumerate(fpaths, start=1):
-            if i % 100000 == 1:
-                logging.warning(f"thread-{thread_id} processed total: {i}")
-            logging.info(f"#{i}")
-            logging.debug(f"Looking at {fpath}")
-            result = rc.request_seq("GET", "/api/files", {"path": fpath})["files"]
-            if result:
-                logging.debug("file is already indexed")
-                continue
-            logging.info(f"file is *not* indexed -> appending to {non_indexed}")
-            print(fpath, file=nonindexed_f)
+    nonindexed_fpaths = []
+    for i, fpath in enumerate(fpaths, start=1):
+        if i % 100000 == 1:
+            logging.warning(
+                f"thread-{thread_id} processed total: {i} (found {len(nonindexed_fpaths)} non-indexed)"
+            )
+        logging.info(f"#{i}")
+        logging.debug(f"Looking at {fpath}")
+        result = rc.request_seq("GET", "/api/files", {"path": fpath})["files"]
+        if result:
+            logging.debug("file is already indexed")
+            continue
+        logging.info("file is *not* indexed -> appending to list")
+        nonindexed_fpaths.append(fpath)
+
+    logging.warning(
+        f"Thread-{thread_id} found {len(nonindexed_fpaths)} non-indexed filepaths."
+    )
+    return nonindexed_fpaths
 
 
 def _split_up_infile(trav_file: str, npieces: int) -> List[List[str]]:
@@ -73,15 +79,23 @@ def main() -> None:
     fpath_chunks = _split_up_infile(args.traverse_file, args.threads)
 
     # spawn threads
-    file_workers: List[concurrent.futures.Future] = []  # type: ignore[type-arg]
+    workers: List[concurrent.futures.Future] = []  # type: ignore[type-arg]
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as pool:
         logging.warning(f"Spinning off thread jobs ({args.threads})")
-        file_workers.extend(
+        workers.extend(
             pool.submit(_check_fpaths, c, args.token, i)
             for i, c in enumerate(fpath_chunks)
         )
 
-    logging.warning("All done.")
+    # collect
+    nonindexed_fpaths = []
+    for worker in concurrent.futures.as_completed(workers):
+        nonindexed_fpaths.extend(worker.result())
+
+    # print
+    logging.warning(f"Found {len(nonindexed_fpaths)} non-indexed filepaths.")
+    for fpath in nonindexed_fpaths:
+        print(fpath)
 
 
 if __name__ == "__main__":
