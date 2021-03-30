@@ -90,7 +90,11 @@ def main() -> None:
     # collect
     nonindexed_fpaths = []
     for worker in concurrent.futures.as_completed(workers):
-        nonindexed_fpaths.extend(worker.result())
+        result_fpaths = worker.result()
+        nonindexed_fpaths.extend(result_fpaths)
+        logging.warning(
+            f"Appending {len(result_fpaths)} non-indexed filepaths; now {len(nonindexed_fpaths)} total"
+        )
 
     # print
     logging.warning(f"Found {len(nonindexed_fpaths)} non-indexed filepaths.")
