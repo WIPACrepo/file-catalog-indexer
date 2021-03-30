@@ -6,6 +6,8 @@ import logging
 import os
 import subprocess
 
+import coloredlogs  # type: ignore[import]
+
 # Check CWD
 if not os.getcwd().endswith("/find_nonindexed"):
     raise Exception("Must run script from find_nonindexed/")
@@ -40,6 +42,7 @@ parser.add_argument(
     help="do everything except submitting the condor job(s)",
 )
 args = parser.parse_args()
+coloredlogs.install(level="DEBUG")
 for arg, val in vars(args).items():
     logging.warning(f"{arg}: {val}")
 
