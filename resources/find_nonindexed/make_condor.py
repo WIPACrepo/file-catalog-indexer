@@ -14,6 +14,7 @@ if not os.getcwd().endswith("/find_nonindexed"):
 
 
 # Constants
+PY_SCRIPT = "get_nonindexed_files.py"
 SCRATCH = "/scratch/eevans/nonindexed_condor"
 CONDORPATH = os.path.join(SCRATCH, "condor")
 ENV_EXCUTABLE = "./nonindexed_env.sh"
@@ -26,7 +27,7 @@ LOG_LEVEL = "warning"
 
 # Arguments
 parser = argparse.ArgumentParser(
-    description="Submit condor job for get_nonindexed_files.py",
+    description=f"Submit condor job for {PY_SCRIPT}",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument(
@@ -66,19 +67,19 @@ with open(CONDORPATH, "w") as file:
     logging.info(f"Writing {CONDORPATH}...")
     file.write(
         f"""executable = {os.path.abspath(ENV_EXCUTABLE)}
-arguments = python {os.path.abspath('./get_nonindexed_files.py')} -t {args.token} --traverse-file {TRAVERSE_FILE} --log {LOG_LEVEL} --threads {THREADS}
+arguments = python {PY_SCRIPT} -t {args.token} --traverse-file {TRAVERSE_FILE} --log {LOG_LEVEL} --threads {THREADS}
 output = {SCRATCH}/nonindexed.out
 error = {SCRATCH}/nonindexed.err
 log = {SCRATCH}/nonindexed.log
 +FileSystemDomain = "blah"
 should_transfer_files = YES
+transfer_input_files = {",".join([os.path.abspath(f) for f in [PY_SCRIPT]])}
 request_cpus = {CPUS}
 request_memory = {MEMORY}
 notification = Error
 queue
 """
     )
-    # transfer_input_files = {",".join([os.path.abspath(f) for f in transfer_input_files])}
 
 
 # Execute
