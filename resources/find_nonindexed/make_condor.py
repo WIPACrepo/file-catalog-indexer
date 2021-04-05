@@ -18,9 +18,7 @@ PY_SCRIPT = "get_nonindexed_files.py"
 SCRATCH = "/scratch/eevans/nonindexed_condor"
 CONDORPATH = os.path.join(SCRATCH, "condor")
 ENV_EXCUTABLE = "./nonindexed_env.sh"
-CPUS = 3
 MEMORY = "20GB"
-THREADS = 25
 TRAVERSE_FILE = "/data/user/eevans/data-sim-2020-12-03T14:11:32"
 LOG_LEVEL = "warning"
 
@@ -35,13 +33,15 @@ parser.add_argument(
     required=True,
     help="an NPX-accessible path to the python virtual environment",
 )
-parser.add_argument("-t", "--token", help="REST token for File Catalog", required=True)
+parser.add_argument("--token", help="REST token for File Catalog", required=True)
 parser.add_argument(
     "--dryrun",
     default=False,
     action="store_true",
     help="do everything except submitting the condor job(s)",
 )
+parser.add_argument("--cpus", type=int, help="number of cpus", required=True)
+parser.add_argument("--threads", type=int, help="number of threads", required=True)
 args = parser.parse_args()
 coloredlogs.install(level="DEBUG")
 for arg, val in vars(args).items():
@@ -68,14 +68,14 @@ with open(CONDORPATH, "w") as file:
     logging.info(f"Writing {CONDORPATH}...")
     file.write(
         f"""executable = {os.path.abspath(ENV_EXCUTABLE)}
-arguments = python {PY_SCRIPT} -t {args.token} --traverse-file {TRAVERSE_FILE} --log {LOG_LEVEL} --threads {THREADS}
+arguments = python {PY_SCRIPT} -t {args.token} --traverse-file {TRAVERSE_FILE} --log {LOG_LEVEL} --threads {args.threads}
 output = {SCRATCH}/nonindexed.out
 error = {SCRATCH}/nonindexed.err
 log = {SCRATCH}/nonindexed.log
 +FileSystemDomain = "blah"
 should_transfer_files = YES
 transfer_input_files = {",".join([os.path.abspath(f) for f in [PY_SCRIPT]])}
-request_cpus = {CPUS}
+request_cpus = {args.cpus}
 request_memory = {MEMORY}
 notification = Error
 +AccountingGroup="2_week.$ENV(USER)"
