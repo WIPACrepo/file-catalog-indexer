@@ -78,6 +78,7 @@ transfer_input_files = {",".join([os.path.abspath(f) for f in [PY_SCRIPT]])}
 request_cpus = {CPUS}
 request_memory = {MEMORY}
 notification = Error
++AccountingGroup="2_week.$ENV(USER)"
 queue
 """
     )
