@@ -17,7 +17,7 @@ def main() -> None:
     """Traverse paths, recursively, and print out metadata."""
     parser = argparse.ArgumentParser(
         description="Find files under PATH(s), compute their metadata and "
-        "upload it to File Catalog.",
+        "print it. (No communication with File Catalog)",
         epilog="Notes: (1) symbolic links are never followed.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
