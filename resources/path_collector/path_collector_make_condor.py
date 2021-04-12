@@ -27,6 +27,26 @@ def make_condor_scratch_dir(traverse_root: str) -> str:
     return scratch
 
 
+def make_executable(path_to_virtualenv: str) -> str:
+    """Make executable script."""
+    fpath = "./path_collector_env.sh"
+    logging.info(f"Writing executable ({fpath})...")
+
+    virtualenv = os.path.join(path_to_virtualenv, "bin/activate")
+    logging.debug(f"Including Path to Python Virtual Env: {virtualenv}")
+
+    with open(fpath, "w") as file:
+        file.write(
+            f"""#!/bin/bash
+eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
+. {virtualenv}
+$SROOT/metaprojects/combo/stable/env-shell.sh $@
+"""
+        )
+
+    return fpath
+
+
 def make_condor_file(  # pylint: disable=R0913,R0914
     scratch: str,
     prev_traverse: str,
@@ -37,6 +57,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
     excluded_paths: List[str],
     fast_forward: bool,
     accounting_group: str,
+    path_to_virtualenv: str,
 ) -> str:
     """Make the condor file."""
     condorpath = os.path.join(scratch, "condor")
@@ -47,7 +68,6 @@ def make_condor_file(  # pylint: disable=R0913,R0914
             "path_collector.py",
             "traverser.py",
             "common_args.py",
-            "../../requirements.txt",
         ]
         # optional args
         previous_arg = f"--previous-traverse {prev_traverse}" if prev_traverse else ""
@@ -63,7 +83,7 @@ def make_condor_file(  # pylint: disable=R0913,R0914
 
         # write
         file.write(
-            f"""executable = {os.path.abspath('../indexer_env.sh')}
+            f"""executable = {os.path.abspath(make_executable(path_to_virtualenv))}
 arguments = python path_collector.py {traverse_root} --staging-dir {staging_dir} --workers {cpus} {previous_arg} --exclude {exculdes_args} {chunk_size_arg} {fast_forward_arg}
 output = {scratch}/path_collector.out
 error = {scratch}/path_collector.err
@@ -112,6 +132,11 @@ def main() -> None:
         help="the accounting group to use, ex: 1_week. "
         "By default no accounting group is used.",
     )
+    parser.add_argument(
+        "--path-to-virtualenv",
+        required=True,
+        help="an NPX-accessible path to the python virtual environment",
+    )
     parser.add_argument("--cpus", type=int, help="number of CPUs", default=8)
     parser.add_argument("--memory", help="amount of memory", default="20GB")
     args = parser.parse_args()
@@ -133,6 +158,7 @@ def main() -> None:
         args.exclude,
         args.fast_forward,
         args.accounting_group,
+        args.path_to_virtualenv,
     )
 
     # Execute
