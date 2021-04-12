@@ -85,7 +85,8 @@ def get_parser_w_common_args(
             default=False,
             action="store_true",
             help="If *STAGING* files already exist, pick up where it left off"
-            " -- useful for condor restarts and tweaking controls",
+            " -- useful for condor restarts and tweaking controls. "
+            "This will look for traverse.unique, traverse.sorted, and traverse.raw files.",
         )
 
     return parser
