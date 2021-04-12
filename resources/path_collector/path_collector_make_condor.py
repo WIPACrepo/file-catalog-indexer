@@ -102,6 +102,18 @@ queue
     return condorpath
 
 
+def get_full_path(path: str) -> str:
+    """Check that the path exists and return the full path."""
+    if not path:
+        return path
+
+    full_path = os.path.abspath(path)
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(full_path)
+
+    return full_path
+
+
 def main() -> None:
     """Prep and execute Condor job (to run path_collector.py).
 
@@ -134,6 +146,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--path-to-virtualenv",
+        type=get_full_path,
         required=True,
         help="an NPX-accessible path to the python virtual environment",
     )
