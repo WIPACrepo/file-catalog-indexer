@@ -12,6 +12,7 @@ import coloredlogs  # type: ignore[import]
 sys.path.append(".")
 from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     get_parser_w_common_args,
+    get_full_path,
 )
 
 
@@ -100,18 +101,6 @@ queue
         )
 
     return condorpath
-
-
-def get_full_path(path: str) -> str:
-    """Check that the path exists and return the full path."""
-    if not path:
-        return path
-
-    full_path = os.path.abspath(path)
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(full_path)
-
-    return full_path
 
 
 def main() -> None:
