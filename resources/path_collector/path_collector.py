@@ -2,6 +2,11 @@
 
 These chunks are outputted files, which are used as input in
 indexer_make_dag.py jobs.
+
+NOTE - If this script is used regularly in the future,
+consider breaking-up/refactoring the pipeline for usability.
+Currently the process of fast-forwarding is convoluted if
+the use case is anything other than a condor restart.
 """
 
 import logging
