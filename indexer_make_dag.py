@@ -8,15 +8,15 @@ import os
 import re
 import subprocess
 import sys
-from typing import cast, List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 
 import coloredlogs  # type: ignore[import]
 import natsort  # type: ignore[import]
 
 try:
-    from typing import TypedDict, Final
+    from typing import Final, TypedDict
 except ImportError:
-    from typing_extensions import TypedDict, Final  # type: ignore[misc]
+    from typing_extensions import Final, TypedDict  # type: ignore[misc]
 
 
 MAX_DAG_JOBS: Final[int] = 2000
@@ -93,7 +93,7 @@ def make_condor_file(
     else:
         with open(condorpath, "w") as file:
             # configure transfer_input_files
-            transfer_input_files = ["requirements.txt"]
+            transfer_input_files = []
             blacklist_arg = ""
             if indexer_args["blacklist"]:
                 blacklist_arg = f"--blacklist {indexer_args['blacklist']}"
