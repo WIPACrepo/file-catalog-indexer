@@ -900,4 +900,5 @@ regex_patterns = [
     r"Level3_nugen_numu_(IC\d+\.\d\d\d\d)\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))_muon(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"__trash_Level2_(IC\d+\.\d\d\d\d)_wimp_sun_(m\d+)_(ch\d+)\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"Level3a_(IC\d+\.\d\d\d\d)_wimp_earth_(m\d+)_(ch\d+)\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))_highE\.strange_FR_events(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
+    r"MCSNInjector(spice_mie|icemodel)?([a-zA-Z_]*)(\d+MeV)(?P<single>\d+)(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
 ]
