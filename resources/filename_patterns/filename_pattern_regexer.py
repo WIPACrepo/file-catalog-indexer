@@ -41,7 +41,8 @@ else:
 
 # Regex-ify!
 for string in strings:
-    pattern = string.replace(".", r"\.")
+    # escape special regex characters
+    pattern = re.escape(string)
 
     has_num_sequences = any(
         num_sequence["token"] in pattern for num_sequence in NUM_SEQUENCES
@@ -50,6 +51,7 @@ for string in strings:
     #
     # First-stage tokenization
 
+    # number-based tokens
     pattern = pattern.replace("YYYY", r"\d\d\d\d")
     if not has_num_sequences:  # make a named group for the last #
         if "#" in pattern:
@@ -59,6 +61,7 @@ for string in strings:
     pattern = pattern.replace("#", r"\d+")
     pattern = pattern.replace("^", r"\d+")
 
+    # i3-extensions token
     I3_EXT_REGEX = "(" + "|".join(x.replace(".", r"\.") for x in I3_EXTENSIONS) + ")"
     pattern = pattern.replace(I3_EXT_TOKEN.replace(".", r"\."), I3_EXT_REGEX)
 
@@ -92,6 +95,7 @@ for string in strings:
             pattern = "".join(parts[:-1]) + group_name + parts[-1]
             logging.debug(f"Removed duplicate '{group_name}' group names: {pattern}.")
 
+    # make pattern match the whole string
     pattern = pattern + "$"
 
     #
