@@ -1,7 +1,14 @@
-"""Regex patterns for /data/sim/ filename patterns."""
+"""Regex patterns for /data/sim/ filename patterns.
+
+These patterns are arranged by descending frequency for best
+performance.
+"""
 
 
 regex_patterns = [
+    ####################################################################################
+    # First, Programmatically Generated Patterns
+    ####################################################################################
     r"Level2_(IC\d+\.\d\d\d\d)_corsika\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"corsika\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"TopSimulator_IC\d+_corsika_icetop\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
@@ -657,7 +664,6 @@ regex_patterns = [
     r"GeoCalibDetectorStatus_IC\d+\.(?P<single>\d+)_L2a(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"genie_pingu((v|V)\d+)_numu_domLaunchTest_fixed\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))_weighted(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"genie_pingu((v|V)\d+)a_nutau_reducedDomEff\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
-    r"GeoCalibDetectorStatus_ICUpgrade\.((v|V)\d+)\.sDOM\.((v|V)\d+)(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"L1CEMic\d+_ic\d+f_CORSIKA_\d+_SIBYLL_F\d+slope\d+_MAR_emin((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"Level3_genie_nutau_(IC\d+\.\d\d\d\d)\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+)(_|\.)\d+)files(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"GeoCalibDetectorStatus_IC\d+\.(?P<single>\d+)_candidate(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
@@ -900,5 +906,9 @@ regex_patterns = [
     r"Level3_nugen_numu_(IC\d+\.\d\d\d\d)\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))_muon(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"__trash_Level2_(IC\d+\.\d\d\d\d)_wimp_sun_(m\d+)_(ch\d+)\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"Level3a_(IC\d+\.\d\d\d\d)_wimp_earth_(m\d+)_(ch\d+)\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))_highE\.strange_FR_events(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
+    ####################################################################################
+    # Now, Handwritten Patterns
+    ####################################################################################
     r"MCSNInjector(spice_mie|icemodel)?([a-zA-Z_]*)(\d+MeV)(?P<single>\d+)(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
+    r"GeoCalibDetectorStatus_ICUpgrade\.((v|V)\d+)\.sDOM\.((v|V)(\d+|\*))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
 ]
