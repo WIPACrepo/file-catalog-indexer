@@ -195,7 +195,7 @@ regex_patterns = [
     r"MCSNInjectoricemodel(DAT\d+)(?P<single>\d+)(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"Level2a_IC\d+_nugen_nutau\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"hit((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
-    r"RunSNInjCLSim-((?P<alpha>\d+)(_|\.)(?P<beta>\d+))[\d+]\.jasper-usradm\.westgrid\.ca(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
+    r"RunSNInjCLSim-((?P<alpha>\d+)(_|\.)(?P<beta>\d+))\[\d+\]\.jasper-usradm\.westgrid\.ca(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"Level2_(IC\d+\.\d\d\d\d)_muongun\.((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"photons_DOMoversize_\d+_corsika_((?P<alpha>\d+)(_|\.)(?P<beta>\d+))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"MCSNInjectorspice_mie(DAT\d+)(?P<single>\d+)(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
