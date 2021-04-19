@@ -911,4 +911,5 @@ regex_patterns = [
     ####################################################################################
     r"MCSNInjector(spice_mie|icemodel)?([a-zA-Z_]*)(\d+MeV)(?P<single>\d+)(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
     r"GeoCalibDetectorStatus_ICUpgrade\.((v|V)\d+)\.sDOM\.((v|V)(\d+|\*))(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
+    r"MCSN(\d+MeV)([a-zA-Z_]*)(1B)?([a-zA-Z_]*)(\.i3|\.i3\.gz|\.i3\.bz2|\.i3\.zst)$",
 ]
