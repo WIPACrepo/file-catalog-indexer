@@ -7,7 +7,7 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 
 import functools
 import logging
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import pymysql
 from file_catalog.schema import types
@@ -238,6 +238,9 @@ def _get_iceprod2_dataset_job_config(
 
     ret = iceprod_conn.get_iceprodv2_rc().request_seq("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
+
+    if "parameters" not in job_config["steering"]:
+        job_config["steering"]["parameters"] = {}
 
     return job_config
 
