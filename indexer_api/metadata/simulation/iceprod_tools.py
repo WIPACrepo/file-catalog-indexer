@@ -238,6 +238,8 @@ def _get_iceprod2_dataset_job_config(
 
     ret = iceprod_conn.get_iceprodv2_rc().request_seq("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
+    if not job_config:
+        job_config = dataclasses.Job()
 
     if "parameters" not in job_config["steering"]:
         job_config["steering"]["parameters"] = {}
