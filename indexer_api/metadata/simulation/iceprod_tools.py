@@ -139,7 +139,9 @@ class _IceProdQuerier:
 def _get_iceprod1_dataset_steering_params(
     iceprod_conn: IceProdConnection, dataset_num: int
 ) -> List[Dict[str, Any]]:
-    logging.info(f"No cache hit for dataset_num={dataset_num}. Querying IceProd1 DB...")
+    logging.debug(
+        f"No cache hit for dataset_num={dataset_num}. Querying IceProd1 DB..."
+    )
 
     sql = (
         "SELECT * FROM steering_parameter "
@@ -163,7 +165,7 @@ class _IceProdV1Querier(_IceProdQuerier):
     def _query_steering_params(self) -> SteeringParameters:
         steering_params = {}
 
-        logging.info(f"Grabbing steering parameters ({self.filepath})...")
+        logging.debug(f"Grabbing steering parameters ({self.filepath})...")
         results = _get_iceprod1_dataset_steering_params(
             self.iceprod_conn, self.dataset_num
         )
@@ -214,7 +216,7 @@ def _get_all_iceprod2_datasets(
     iceprod_conn: IceProdConnection,
 ) -> Dict[int, _IP2RESTDataset]:
     """Return dict of datasets keyed by their dataset num."""
-    logging.info("No cache hit for all datasets. Requesting IceProd2...")
+    logging.debug("No cache hit for all datasets. Requesting IceProd2...")
 
     datasets = iceprod_conn.get_iceprodv2_rc().request_seq(
         "GET", "/datasets?keys=dataset_id|dataset|jobs_submitted"
@@ -234,7 +236,7 @@ def _get_all_iceprod2_datasets(
 def _get_iceprod2_dataset_job_config(
     iceprod_conn: IceProdConnection, dataset_id: str
 ) -> dataclasses.Job:
-    logging.info(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2...")
+    logging.debug(f"No cache hit for dataset_id={dataset_id}. Requesting IceProd2...")
 
     ret = iceprod_conn.get_iceprodv2_rc().request_seq("GET", f"/config/{dataset_id}")
     job_config = dict_to_dataclasses(ret)
@@ -251,7 +253,7 @@ def _get_iceprod2_dataset_job_config(
 def _get_iceprod2_dataset_tasks(
     iceprod_conn: IceProdConnection, dataset_id: str, job_index: int
 ) -> Dict[str, _IP2RESTDatasetTask]:
-    logging.info(
+    logging.debug(
         f"No cache hit for dataset_id={dataset_id}, job_index={job_index}. "
         "Requesting IceProd2..."
     )
@@ -271,7 +273,7 @@ class _IceProdV2Querier(_IceProdQuerier):
     """Manage IceProd v2 queries."""
 
     def _get_dataset_info(self) -> Tuple[str, int]:
-        logging.info(f"Grabbing dataset info ({self.filepath})...")
+        logging.debug(f"Grabbing dataset info ({self.filepath})...")
         datasets = _get_all_iceprod2_datasets(self.iceprod_conn)
         try:
             dataset_id = datasets[self.dataset_num]["dataset_id"]
@@ -359,7 +361,7 @@ class _IceProdV2Querier(_IceProdQuerier):
         if job_index is None or task_name is None:
             raise TaskNotFound()
 
-        logging.info(f"Grabbing task info ({self.filepath})...")
+        logging.debug(f"Grabbing task info ({self.filepath})...")
         task_dicts = _get_iceprod2_dataset_tasks(
             self.iceprod_conn, dataset_id, job_index
         )
@@ -381,7 +383,7 @@ class _IceProdV2Querier(_IceProdQuerier):
         else:  # otherwise, look at each job from dataset
             job_search = list(range(jobs_submitted))
 
-        logging.info(f"Grabbing dataset job config ({self.filepath})...")
+        logging.debug(f"Grabbing dataset job config ({self.filepath})...")
         job_config = _get_iceprod2_dataset_job_config(self.iceprod_conn, dataset_id,)
         job_config["options"].update(
             {
@@ -400,7 +402,7 @@ class _IceProdV2Querier(_IceProdQuerier):
                 path = url
             else:
                 path = "/" + url.split("//", 1)[1].split("/", 1)[1]
-            logging.info(
+            logging.debug(
                 f"Looking for outfile ({self.filepath}) "
                 f"({job_config['options']} -> {path})..."
             )
