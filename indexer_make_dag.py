@@ -275,7 +275,7 @@ def main() -> None:
         "--local-storage",
         type=int,
         help="amount of local storage (MB) for stderr & stdout",
-        default=10000,
+        default=20000,
     )
     parser.add_argument(
         "--dir-of-paths-files",
