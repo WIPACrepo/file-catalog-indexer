@@ -80,7 +80,11 @@ $SROOT/metaprojects/combo/stable/env-shell.sh $@
 
 
 def make_condor_file(
-    scratch: str, memory: str, indexer_args: IndexerArgs, path_to_virtualenv: str
+    scratch: str,
+    memory: str,
+    indexer_args: IndexerArgs,
+    path_to_virtualenv: str,
+    local_storage: int,
 ) -> None:
     """Make the condor file."""
     logging.info("Writing Condor file...")
@@ -130,6 +134,7 @@ should_transfer_files = YES
 transfer_input_files = {",".join([os.path.abspath(f) for f in transfer_input_files])}
 request_cpus = {indexer_args['cpus']}
 request_memory = {memory}
+requestDisk = {local_storage}
 notification = Error
 queue
 """
@@ -267,6 +272,12 @@ def main() -> None:
         "--memory", type=int, help="amount of memory (MB)", default=2000
     )
     parser.add_argument(
+        "--local-storage",
+        type=int,
+        help="amount of local storage (MB) for stderr & stdout",
+        default=10000,
+    )
+    parser.add_argument(
         "--dir-of-paths-files",
         type=get_full_path,
         required=True,
@@ -326,7 +337,9 @@ def main() -> None:
         "iceprodv1_db_pass": args.iceprodv1_db_pass,
         "dryrun_indexer": args.dryrun_indexer,
     }
-    make_condor_file(scratch, args.memory, indexer_args, args.path_to_virtualenv)
+    make_condor_file(
+        scratch, args.memory, indexer_args, args.path_to_virtualenv, args.local_storage
+    )
 
     # make DAG file
     dagpath = make_dag_file(scratch, args.dir_of_paths_files)
