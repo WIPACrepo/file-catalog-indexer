@@ -11,9 +11,9 @@ from ...utils import utils
 from ..i3 import I3FileMetadata
 from .iceprod_tools import (
     DatasetNotFound,
-    get_steering_params_and_ip_metadata,
     IceProdConnection,
     SteeringParameters,
+    get_steering_params_and_ip_metadata,
 )
 
 
@@ -239,7 +239,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
             )
 
         except DatasetNotFound:
-            logging.error(
+            logging.warning(
                 f"Dataset {self.iceprod_dataset_num} not found. "
                 f"No IceProd/Simulation metadata recorded for {self.file.path}."
             )
