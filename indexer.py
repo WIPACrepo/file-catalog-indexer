@@ -321,7 +321,7 @@ def recursively_index_multiprocessed(  # pylint: disable=R0913
     Do this multi-processed.
     """
     # Traverse paths and process files
-    futures: List[Future] = []  # type: ignore[type-arg]
+    futures: List[Future] = []
     with ProcessPoolExecutor() as pool:
         queue = starting_paths
         split = math.ceil(len(queue) / processes)
