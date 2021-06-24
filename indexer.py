@@ -61,6 +61,16 @@ ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
 # Utilities ----------------------------------------------------------------------------
 
 
+def commonpath(paths: List[str]) -> str:
+    """Wrap `os.path.commonpath()`."""
+    if len(set(paths)) == 1:  # small optimization
+        return paths[0]
+    try:
+        return os.path.commonpath(paths)
+    except ValueError as e:
+        raise ValueError(f'{e}: {", ".join(p for p in paths)}')
+
+
 def is_processable_path(path: str) -> bool:
     """Return `True` if `path` is processable.
 
@@ -242,7 +252,7 @@ def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
     - `path` has a parent path in `blacklist`.
     """
     for bad_path in blacklist:
-        if (path == bad_path) or (os.path.commonpath([path, bad_path]) == bad_path):
+        if bad_path == commonpath([path, bad_path]):
             logging.debug(
                 f"Skipping {path}, file and/or directory path is blacklisted ({bad_path})."
             )
@@ -376,7 +386,7 @@ def recursively_index(  # pylint: disable=R0913
 def validate_path(path: str) -> None:
     """Check if `path` is rooted at a white-listed root path."""
     for root in ACCEPTED_ROOTS:
-        if root == os.path.commonpath([path, root]):
+        if root == commonpath([path, root]):
             return
     message = f"{path} is not rooted at: {', '.join(ACCEPTED_ROOTS)}"
     logging.critical(message)
