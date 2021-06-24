@@ -5,11 +5,6 @@ import os
 from enum import Enum
 from typing import Dict, Optional
 
-import pymysql
-
-# local imports
-from rest_tools.client import RestClient  # type: ignore[import]
-
 
 class FileInfo:  # pylint: disable=R0903
     """Wrapper around common file information.
