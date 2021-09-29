@@ -30,6 +30,7 @@ def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> List[str]:
         logging.info(f"#{i}")
         logging.debug(f"Looking at {fpath}")
         result = rc.request_seq("GET", "/api/files", {"path": fpath})["files"]
+        # TODO
         if result:
             logging.debug("file is already indexed")
             continue

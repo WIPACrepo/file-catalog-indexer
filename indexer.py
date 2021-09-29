@@ -179,6 +179,7 @@ async def post_metadata(
 async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
     """Return whether the filepath is currently in the File Catalog."""
     ret = await fc_rc.request("GET", "/api/files", {"path": filepath})
+    # TODO
     return bool(ret["files"])
 
 
