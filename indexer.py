@@ -190,8 +190,9 @@ async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
     # NOTE - if there is no response, it's still possible this file-version exists in FC:
     # (1) file was at WIPAC & indexed
     # (2) then moved to NERSC (`location` added) & deleted from WIPAC (`location` removed)
-    # (3) now is being re-indexed at WIPAC
-    # (4) CONFLICT -> has the same logical_name+checksum.sha512 but differing `locations`
+    # (3) file was brought back to WIPAC
+    # (4) now is being re-indexed at WIPAC
+    # (5) CONFLICT -> has the same logical_name+checksum.sha512 but differing `locations`
     return bool(ret["files"])
 
 
