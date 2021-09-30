@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 import math
 import os
@@ -178,8 +179,19 @@ async def post_metadata(
 
 async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
     """Return whether the filepath is currently in the File Catalog."""
-    ret = await fc_rc.request("GET", "/api/files", {"path": filepath})
-    # TODO
+    ret = await fc_rc.request(
+        "GET",
+        "/api/files",
+        {
+            "logical_name": filepath,  # filepath may exist as multiple logical_names
+            "query": json.dumps({"locations.path": filepath}),
+        },
+    )
+    # NOTE - if there is no response, it's still possible we get a 409 conflict:
+    # (1) file was at WIPAC & indexed
+    # (2) then moved to NERSC (`location` added) & deleted from WIPAC (`location` removed)
+    # (3) now is being re-indexed at WIPAC
+    # (4) CONFLICT -> has the same logical_name+checksum.sha512 but differing `locations`
     return bool(ret["files"])
 
 
