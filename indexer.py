@@ -193,6 +193,9 @@ async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
     # (3) file was brought back to WIPAC
     # (4) now is being re-indexed at WIPAC
     # (5) CONFLICT -> has the same logical_name+checksum.sha512 but differing `locations`
+    # So, don't point the indexer at restored files. The indexer is for
+    # never-before-indexed files regardless of their current/prior location.
+    # They'll be ignored, unless you use `--patch` (which also replaces `locations` field)
     return bool(ret["files"])
 
 
