@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 import math
 import os
@@ -170,7 +171,7 @@ async def post_metadata(
                 _ = await fc_rc.request("PATCH", patch_path, metadata)
                 logging.debug("PATCHed.")
             else:
-                logging.debug("File already exists, not patching entry.")
+                logging.debug("File (file-version) already exists, not patching entry.")
         else:
             raise
     return fc_rc
@@ -178,7 +179,16 @@ async def post_metadata(
 
 async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
     """Return whether the filepath is currently in the File Catalog."""
-    ret = await fc_rc.request("GET", "/api/files", {"path": filepath})
+    ret = await fc_rc.request(
+        "GET",
+        "/api/files",
+        {
+            "logical_name": filepath,  # filepath may exist as multiple logical_names
+            "query": json.dumps({"locations.path": filepath}),
+        },
+    )
+    # NOTE - if there is no response, it's still possible this file-version exists in FC
+    # See: https://github.com/WIPACrepo/file-catalog-indexer/tree/master#re-indexing-files-is-tricky-two-scenarios
     return bool(ret["files"])
 
 

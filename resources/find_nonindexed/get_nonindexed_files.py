@@ -3,6 +3,7 @@
 
 import argparse
 import concurrent.futures
+import json
 import logging
 from typing import List
 
@@ -29,8 +30,15 @@ def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> List[str]:
             )
         logging.info(f"#{i}")
         logging.debug(f"Looking at {fpath}")
-        result = rc.request_seq("GET", "/api/files", {"path": fpath})["files"]
-        if result:
+        result = rc.request_seq(
+            "GET",
+            "/api/files",
+            {
+                "logical_name": fpath,  # filepath may exist as multiple logical_names
+                "query": json.dumps({"locations.path": fpath}),
+            },
+        )
+        if result["files"]:
             logging.debug("file is already indexed")
             continue
         logging.info("file is *not* indexed -> appending to list")
