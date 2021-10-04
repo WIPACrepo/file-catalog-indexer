@@ -171,7 +171,7 @@ async def post_metadata(
                 _ = await fc_rc.request("PATCH", patch_path, metadata)
                 logging.debug("PATCHed.")
             else:
-                logging.debug("File already exists, not patching entry.")
+                logging.debug("File (file-version) already exists, not patching entry.")
         else:
             raise
     return fc_rc
