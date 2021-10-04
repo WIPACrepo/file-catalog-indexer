@@ -187,15 +187,8 @@ async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
             "query": json.dumps({"locations.path": filepath}),
         },
     )
-    # NOTE - if there is no response, it's still possible this file-version exists in FC:
-    # (1) file was at WIPAC & indexed
-    # (2) then moved to NERSC (`location` added) & deleted from WIPAC (`location` removed)
-    # (3) file was brought back to WIPAC
-    # (4) now is being re-indexed at WIPAC
-    # (5) CONFLICT -> has the same logical_name+checksum.sha512 but differing `locations`
-    # So, don't point the indexer at restored files. The indexer is for
-    # never-before-indexed files regardless of their current/prior location.
-    # They'll be ignored, unless you use `--patch` (which also replaces `locations` field)
+    # NOTE - if there is no response, it's still possible this file-version exists in FC
+    # See: https://github.com/WIPACrepo/file-catalog-indexer/tree/master#re-indexing-files-is-tricky-two-scenarios
     return bool(ret["files"])
 
 
