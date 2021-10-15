@@ -21,6 +21,9 @@ def is_processable_path(path: str) -> bool:
     """Return `True` if `path` is processable.
 
     AKA, not a symlink, a socket, a FIFO, a device, nor char device.
+
+    Raises:
+        FileNotFoundError - if `path` does not exist
     """
     mode = os.lstat(path).st_mode
     return not (
