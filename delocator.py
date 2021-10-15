@@ -18,7 +18,7 @@ class FileNotProcessableError(Exception):
     """Raised for non-processable filepaths."""
 
 
-async def delocate(fpath: str, rc: RestClient) -> None:
+async def delocate(fpath: str, rc: RestClient, site: str) -> None:
     """Remove the fpath from a matching FC record."""
     response = await rc.request(
         "GET",
@@ -33,14 +33,20 @@ async def delocate(fpath: str, rc: RestClient) -> None:
         ) from e
 
     # De-locate
-    response = await rc.request("POST", f"/api/files/{uuid}/actions/remove_location")
+    response = await rc.request(
+        "POST",
+        f"/api/files/{uuid}/actions/remove_location",
+        {"site": site, "path": fpath},
+    )
     if not response:
         logging.info(f"Removed Entire Record: uuid={uuid}, fpath={fpath}")
     else:
         logging.info(f"Removed Location: uuid={uuid}, fpath={fpath}")
 
 
-def recursively_delocate_filepaths(fpath_queue: List[str], rc: RestClient) -> None:
+def recursively_delocate_filepaths(
+    fpath_queue: List[str], rc: RestClient, site: str
+) -> None:
     """De-locate all the files starting with those in the queue, recursively."""
     while fpath_queue:
         fpath = fpath_queue.pop(0)
@@ -50,7 +56,7 @@ def recursively_delocate_filepaths(fpath_queue: List[str], rc: RestClient) -> No
         # Is this even a file?
         elif os.path.isfile(fpath):
             logging.info(f"De-locating File: {fpath}")
-            delocate(fpath, rc)
+            delocate(fpath, rc, site)
             continue
         # Well, is it a directory?
         elif os.path.isdir(fpath):
@@ -87,7 +93,9 @@ def main() -> None:
 
     rc = RestClient(args.url, token=args.token)
 
-    recursively_delocate_filepaths([os.path.abspath(p) for p in args.paths], rc)
+    recursively_delocate_filepaths(
+        [os.path.abspath(p) for p in args.paths], rc, args.site
+    )
 
 
 if __name__ == "__main__":
