@@ -6,11 +6,9 @@ import json
 import logging
 import math
 import os
-import stat
-import string
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import List, Optional
+from typing import List
 
 import coloredlogs  # type: ignore[import]
 import requests
@@ -18,6 +16,7 @@ from file_catalog.schema import types
 from rest_tools.client import RestClient  # type: ignore[import]
 
 # local imports
+import file_utils
 from indexer_api.metadata_manager import MetadataManager
 
 try:
@@ -57,93 +56,6 @@ class IndexerFlags(TypedDict):
 
 
 ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
-
-
-# Utilities ----------------------------------------------------------------------------
-
-
-def commonpath(paths: List[str]) -> str:
-    """Wrap `os.path.commonpath()`."""
-    if len(set(paths)) == 1:  # small optimization
-        return paths[0]
-    try:
-        return os.path.commonpath(paths)
-    except ValueError as e:
-        raise ValueError(f'{e}: {", ".join(p for p in paths)}')
-
-
-def is_processable_path(path: str) -> bool:
-    """Return `True` if `path` is processable.
-
-    AKA, not a symlink, a socket, a FIFO, a device, nor char device.
-    """
-    mode = os.lstat(path).st_mode
-    return not (
-        stat.S_ISLNK(mode)
-        or stat.S_ISSOCK(mode)
-        or stat.S_ISFIFO(mode)
-        or stat.S_ISBLK(mode)
-        or stat.S_ISCHR(mode)
-    )
-
-
-def sorted_unique_filepaths(
-    file_of_filepaths: Optional[str] = None,
-    list_of_filepaths: Optional[List[str]] = None,
-    abspaths: bool = False,
-) -> List[str]:
-    """Return an aggregated, sorted, and set-unique list of filepaths.
-
-    Read in lines from the `file_of_filepaths` file, and/or aggregate with those
-    in `list_of_filepaths` list. Do not check if filepaths exist.
-
-    Keyword Arguments:
-        file_of_filepaths -- a file with a filepath on each line
-        list_of_filepaths -- a list of filepaths
-        abspaths -- call `os.path.abspath()` on each filepath
-
-    Returns:
-        List[str] -- all unique filepaths
-    """
-
-    def convert_to_good_string(b_string: bytes) -> Optional[str]:
-        # strip trailing new-line char
-        if b_string[-1] == ord("\n"):
-            b_string = b_string[:-1]
-        # ASCII parse
-        for b_char in b_string:
-            if not (ord(" ") <= b_char <= ord("~")):  # pylint: disable=C0325
-                logging.info(
-                    f"Invalid filename, {b_string!r}, has special character(s)."
-                )
-                return None
-        # Decode UTF-8
-        try:
-            path = b_string.decode("utf-8", "strict").rstrip()
-        except UnicodeDecodeError as e:
-            logging.info(f"Invalid filename, {b_string!r}, {e.__class__.__name__}.")
-            return None
-        # Non-printable chars
-        if not set(path).issubset(string.printable):
-            logging.info(f"Invalid filename, {path}, has non-printable character(s).")
-            return None
-        # all good
-        return path
-
-    filepaths = []
-    if list_of_filepaths:
-        filepaths.extend(list_of_filepaths)
-    if file_of_filepaths:
-        with open(file_of_filepaths, "rb") as bin_file:
-            for bin_line in bin_file:
-                path = convert_to_good_string(bin_line)
-                if path:
-                    filepaths.append(path)
-
-    if abspaths:
-        filepaths = [os.path.abspath(p) for p in filepaths]
-    filepaths = [f for f in sorted(set(filepaths)) if f]
-    return filepaths
 
 
 # Indexing Functions -------------------------------------------------------------------
@@ -235,7 +147,7 @@ async def index_paths(
 
     for p in paths:  # pylint: disable=C0103
         try:
-            if is_processable_path(p):
+            if file_utils.is_processable_path(p):
                 if os.path.isfile(p):
                     await index_file(p, manager, fc_rc, patch, dryrun)
                 elif os.path.isdir(p):
@@ -262,7 +174,7 @@ def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
     - `path` has a parent path in `blacklist`.
     """
     for bad_path in blacklist:
-        if bad_path == commonpath([path, bad_path]):
+        if bad_path == file_utils.commonpath([path, bad_path]):
             logging.debug(
                 f"Skipping {path}, file and/or directory path is blacklisted ({bad_path})."
             )
@@ -287,7 +199,7 @@ def index(
         return []
 
     # Filter
-    paths = sorted_unique_filepaths(list_of_filepaths=paths)
+    paths = file_utils.sorted_unique_filepaths(list_of_filepaths=paths)
     paths = [p for p in paths if not path_in_blacklist(p, blacklist)]
 
     # Prep
@@ -339,7 +251,7 @@ def recursively_index_multiprocessed(  # pylint: disable=R0913
             logging.debug(f"Queue: {len(queue)}.")
             # Divvy up queue among available worker(s). Each worker gets 1/nth of the queue.
             if queue:
-                queue = sorted_unique_filepaths(list_of_filepaths=queue)
+                queue = file_utils.sorted_unique_filepaths(list_of_filepaths=queue)
                 while processes != len(futures):
                     paths, queue = queue[:split], queue[split:]
                     logging.debug(
@@ -396,7 +308,7 @@ def recursively_index(  # pylint: disable=R0913
 def validate_path(path: str) -> None:
     """Check if `path` is rooted at a white-listed root path."""
     for root in ACCEPTED_ROOTS:
-        if root == commonpath([path, root]):
+        if root == file_utils.commonpath([path, root]):
             return
     message = f"{path} is not rooted at: {', '.join(ACCEPTED_ROOTS)}"
     logging.critical(message)
@@ -503,14 +415,14 @@ def main() -> None:
     )
 
     # Aggregate, sort, and validate filepaths
-    paths = sorted_unique_filepaths(
+    paths = file_utils.sorted_unique_filepaths(
         file_of_filepaths=args.paths_file, list_of_filepaths=args.paths, abspaths=True
     )
     for p in paths:  # pylint: disable=C0103
         validate_path(p)
 
     # Aggregate & sort blacklisted paths
-    blacklist = sorted_unique_filepaths(
+    blacklist = file_utils.sorted_unique_filepaths(
         file_of_filepaths=args.blacklist_file,
         list_of_filepaths=args.blacklist,
         abspaths=True,

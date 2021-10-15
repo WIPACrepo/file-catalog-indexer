@@ -9,7 +9,7 @@ import pprint
 import coloredlogs  # type: ignore[import]
 
 # local imports
-import indexer
+import file_utils
 from indexer_api.metadata_manager import MetadataManager
 
 
@@ -53,7 +53,7 @@ def main() -> None:
 
     while filepath_queue:
         fpath = filepath_queue.pop(0)
-        if not indexer.is_processable_path(fpath):  # pylint: disable=R1724
+        if not file_utils.is_processable_path(fpath):  # pylint: disable=R1724
             logging.warning(f"File is not processable: {fpath}")
             continue
         elif os.path.isfile(fpath):
