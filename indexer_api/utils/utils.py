@@ -38,6 +38,7 @@ class IceCubeSeason:
         2018: "IC86-8",
         2019: "IC86-9",
         2020: "IC86-10",
+        2021: "IC86-11",
     }
 
     @staticmethod
