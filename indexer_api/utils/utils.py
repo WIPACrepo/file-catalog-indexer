@@ -18,6 +18,10 @@ class FileInfo:  # pylint: disable=R0903
         self.stat = lambda: os.stat(self.path)
 
 
+class IceCubeSeasonException(Exception):
+    """Raised when there's a problem detecting the season/year."""
+
+
 class IceCubeSeason:
     """Wrapper static class encapsulating season-name - season-year mapping logic."""
 
@@ -49,7 +53,7 @@ class IceCubeSeason:
         for season_year, season_name in IceCubeSeason.SEASONS.items():
             if season_name == name:
                 return int(season_year)
-        raise Exception(f"No season found for {name}.")
+        raise IceCubeSeasonException(f"No season-year found for season:`{name}`.")
 
     @staticmethod
     def year_to_name(season_year: Optional[int]) -> Optional[str]:
@@ -59,11 +63,13 @@ class IceCubeSeason:
         try:
             return IceCubeSeason.SEASONS[season_year]
         except KeyError:
-            raise Exception(f"No season found for {season_year}.")
+            raise IceCubeSeasonException(f"No season found for year:`{season_year}`.")
 
 
 class ProcessingLevel(Enum):
     """Enum for processing-level constants."""
+
+    # pylint:disable=invalid-name
 
     PFRaw = "PFRaw"  # exp
     PFFilt = "PFFilt"  # exp
