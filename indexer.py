@@ -152,11 +152,7 @@ async def index_paths(
                     await index_file(p, manager, fc_rc, patch, dryrun)
                 elif os.path.isdir(p):
                     logging.debug(f"Directory found, {p}. Queuing its contents...")
-                    child_paths.extend(
-                        dir_entry.path
-                        for dir_entry in os.scandir(p)
-                        if not dir_entry.is_symlink()
-                    )  # don't add symbolic links
+                    child_paths.extend(file_utils.get_subpaths(p))
             else:
                 logging.info(f"Skipping {p}, not a directory nor file.")
 

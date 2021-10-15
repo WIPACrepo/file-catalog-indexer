@@ -32,6 +32,18 @@ def is_processable_path(path: str) -> bool:
     )
 
 
+def get_subpaths(filepath: str) -> List[str]:
+    """Get all nested filepaths at directory, `filepath`.
+
+    Don't add symbolic links.
+    """
+    return [
+        dir_entry.path
+        for dir_entry in os.scandir(filepath)
+        if not dir_entry.is_symlink()
+    ]
+
+
 def sorted_unique_filepaths(
     file_of_filepaths: Optional[str] = None,
     list_of_filepaths: Optional[List[str]] = None,

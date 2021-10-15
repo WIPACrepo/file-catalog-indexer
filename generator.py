@@ -62,11 +62,7 @@ def main() -> None:
             pprint.pprint(metadata)
         elif os.path.isdir(fpath):
             logging.info(f"Appending directory's contents to queue: {fpath}")
-            filepath_queue.extend(
-                dir_entry.path
-                for dir_entry in os.scandir(fpath)
-                if not dir_entry.is_symlink()  # don't add symbolic links
-            )
+            filepath_queue.extend(file_utils.get_subpaths(fpath))
         else:
             raise Exception(f"Unaccounted for file type: {fpath}")
 
