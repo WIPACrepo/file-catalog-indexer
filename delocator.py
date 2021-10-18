@@ -2,6 +2,7 @@
 
 
 import argparse
+import asyncio
 import json
 import logging
 import os
@@ -10,12 +11,9 @@ from typing import List
 import coloredlogs  # type: ignore[import]
 from rest_tools.client import RestClient
 
-# local imports
-import file_utils
 
-
-class FileNotProcessableError(Exception):
-    """Raised for non-processable filepaths."""
+class FCRecordNotFoundError(Exception):
+    """Raised when a File Catalog record is not found."""
 
 
 async def delocate(fpath: str, rc: RestClient, site: str) -> None:
@@ -28,7 +26,7 @@ async def delocate(fpath: str, rc: RestClient, site: str) -> None:
     try:
         uuid = response["files"][0]["uuid"]
     except KeyError as e:
-        raise FileNotFoundError(
+        raise FCRecordNotFoundError(
             f"There's no matching location entry in FC for `{fpath}`"
         ) from e
 
@@ -44,27 +42,16 @@ async def delocate(fpath: str, rc: RestClient, site: str) -> None:
         logging.info(f"Removed Location: uuid={uuid}, fpath={fpath}")
 
 
-def recursively_delocate_filepaths(
-    fpath_queue: List[str], rc: RestClient, site: str
-) -> None:
-    """De-locate all the files starting with those in the queue, recursively."""
-    while fpath_queue:
-        fpath = fpath_queue.pop(0)
-        # Is this a processable path?
-        if not file_utils.is_processable_path(fpath):  # pylint: disable=R1724
-            raise FileNotProcessableError(f"File is not processable: {fpath}")
-        # Is this even a file?
-        elif os.path.isfile(fpath):
-            logging.info(f"De-locating File: {fpath}")
-            delocate(fpath, rc, site)
-            continue
-        # Well, is it a directory?
-        elif os.path.isdir(fpath):
-            logging.debug(f"Appending directory's contents to queue: {fpath}")
-            fpath_queue.extend(file_utils.get_subpaths(fpath))
-        # Who knows what this is...
-        else:
-            raise FileNotProcessableError(f"Unaccounted for file type: {fpath}")
+async def delocate_filepaths(fpath_queue: List[str], rc: RestClient, site: str) -> None:
+    """De-locate all the filepaths in the queue."""
+    for fpath in fpath_queue:
+        if os.path.exists(fpath):
+            raise FileExistsError(
+                f"Filepath `{fpath}` exists; can only de-locate already FS-deleted filepaths"
+            )
+
+        logging.info(f"De-locating File: {fpath}")
+        await delocate(fpath, rc, site)
 
 
 def main() -> None:
@@ -92,9 +79,8 @@ def main() -> None:
         logging.warning(f"{arg}: {val}")
 
     rc = RestClient(args.url, token=args.token)
-
-    recursively_delocate_filepaths(
-        [os.path.abspath(p) for p in args.paths], rc, args.site
+    asyncio.get_event_loop().run_until_complete(
+        delocate_filepaths(args.paths, rc, args.site)
     )
 
 
