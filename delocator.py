@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 from typing import List, cast
 
 import coloredlogs  # type: ignore[import]
@@ -12,6 +13,14 @@ from rest_tools.client import RestClient
 
 # local imports
 import file_utils
+
+
+def file_does_not_exist(fpath: str) -> None:
+    """Raise `FileExistsError` is the filepath exists."""
+    if os.path.exists(fpath):
+        raise FileExistsError(
+            f"Filepath `{fpath}` exists; can only de-locate already FS-deleted filepaths"
+        )
 
 
 class FCRecordNotFoundError(Exception):
@@ -49,7 +58,7 @@ async def delocate(fpath: str, rc: RestClient, site: str, uuid: str) -> None:
 async def delocate_filepaths(fpath_queue: List[str], rc: RestClient, site: str) -> None:
     """De-locate all the filepaths in the queue."""
     for fpath in fpath_queue:
-        file_utils.file_does_not_exist(fpath)  # point of no-return so do this again
+        file_does_not_exist(fpath)  # point of no-return so do this again
         logging.info(f"De-locating File: {fpath}")
         uuid = await get_uuid(fpath, rc)
         await delocate(fpath, rc, site, uuid)
@@ -92,7 +101,7 @@ def main() -> None:
         file_of_filepaths=args.paths_file, list_of_filepaths=args.paths, abspaths=False
     )
     for fpath in paths:
-        file_utils.file_does_not_exist(fpath)
+        file_does_not_exist(fpath)
 
     # de-locate
     rc = RestClient(args.url, token=args.token)

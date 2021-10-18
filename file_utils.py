@@ -7,14 +7,6 @@ import string
 from typing import List, Optional
 
 
-def file_does_not_exist(fpath: str) -> None:
-    """Raise `FileExistsError` is the filepath exists."""
-    if os.path.exists(fpath):
-        raise FileExistsError(
-            f"Filepath `{fpath}` exists; can only de-locate already FS-deleted filepaths"
-        )
-
-
 def commonpath(paths: List[str]) -> str:
     """Wrap `os.path.commonpath()`."""
     if len(set(paths)) == 1:  # small optimization
