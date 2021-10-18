@@ -5,7 +5,7 @@ import argparse
 import asyncio
 import json
 import logging
-from typing import List
+from typing import List, cast
 
 import coloredlogs  # type: ignore[import]
 from rest_tools.client import RestClient
@@ -18,21 +18,23 @@ class FCRecordNotFoundError(Exception):
     """Raised when a File Catalog record is not found."""
 
 
-async def delocate(fpath: str, rc: RestClient, site: str) -> None:
-    """Remove the fpath from a matching FC record."""
+async def get_uuid(fpath: str, rc: RestClient) -> str:
+    """Grab the matching FC record's uuid."""
     response = await rc.request(
         "GET",
         "/api/files",
         {"query": json.dumps({"locations.path": fpath})},
     )
     try:
-        uuid = response["files"][0]["uuid"]
+        return cast(str, response["files"][0]["uuid"])
     except KeyError as e:
         raise FCRecordNotFoundError(
             f"There's no matching location entry in FC for `{fpath}`"
         ) from e
 
-    # De-locate
+
+async def delocate(fpath: str, rc: RestClient, site: str, uuid: str) -> None:
+    """Remove the fpath from the record at uuid."""
     response = await rc.request(
         "POST",
         f"/api/files/{uuid}/actions/remove_location",
@@ -49,7 +51,8 @@ async def delocate_filepaths(fpath_queue: List[str], rc: RestClient, site: str) 
     for fpath in fpath_queue:
         file_utils.file_does_not_exist(fpath)  # point of no-return so do this again
         logging.info(f"De-locating File: {fpath}")
-        await delocate(fpath, rc, site)
+        uuid = await get_uuid(fpath, rc)
+        await delocate(fpath, rc, site, uuid)
 
 
 def main() -> None:
