@@ -323,9 +323,10 @@ def main() -> None:
         "paths", metavar="PATHS", nargs="*", help="path(s) to scan for files."
     )
     parser.add_argument(
+        "-f",
         "--paths-file",
         default=None,
-        help="file containing path(s) to scan for files. "
+        help="new-line-delimited text file containing path(s) to scan for files. "
         "(use this option for a large number of paths)",
     )
     parser.add_argument(

@@ -5,11 +5,13 @@ import argparse
 import asyncio
 import json
 import logging
-import os
 from typing import List
 
 import coloredlogs  # type: ignore[import]
 from rest_tools.client import RestClient
+
+# local imports
+import file_utils
 
 
 class FCRecordNotFoundError(Exception):
@@ -45,11 +47,7 @@ async def delocate(fpath: str, rc: RestClient, site: str) -> None:
 async def delocate_filepaths(fpath_queue: List[str], rc: RestClient, site: str) -> None:
     """De-locate all the filepaths in the queue."""
     for fpath in fpath_queue:
-        if os.path.exists(fpath):
-            raise FileExistsError(
-                f"Filepath `{fpath}` exists; can only de-locate already FS-deleted filepaths"
-            )
-
+        file_utils.file_does_not_exist(fpath)  # point of no-return so do this again
         logging.info(f"De-locating File: {fpath}")
         await delocate(fpath, rc, site)
 
@@ -63,7 +61,14 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "paths", metavar="PATHS", nargs="+", help="path(s) to scan for files."
+        "paths", metavar="PATHS", nargs="*", help="filepath(s) to de-locate"
+    )
+    parser.add_argument(
+        "-f",
+        "--paths-file",
+        default=None,
+        help="new-line-delimited text file containing filepath(s) to de-locate "
+        "(use this option for a large number of paths)",
     )
     parser.add_argument(
         "-s", "--site", required=True, help='site value of the "locations" object'
@@ -73,14 +78,23 @@ def main() -> None:
     )
     parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
 
+    # grab args
     args = parser.parse_args()
     coloredlogs.install(level=args.log)
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
+    # aggregate filepaths & make sure none exist
+    paths = file_utils.sorted_unique_filepaths(
+        file_of_filepaths=args.paths_file, list_of_filepaths=args.paths, abspaths=False
+    )
+    for fpath in paths:
+        file_utils.file_does_not_exist(fpath)
+
+    # de-locate
     rc = RestClient(args.url, token=args.token)
     asyncio.get_event_loop().run_until_complete(
-        delocate_filepaths(args.paths, rc, args.site)
+        delocate_filepaths(paths, rc, args.site)
     )
 
 
