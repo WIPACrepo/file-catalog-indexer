@@ -10,8 +10,8 @@ from indexer import (  # isort:skip # noqa # pylint: disable=C0413
     ACCEPTED_ROOTS,
     validate_path,
     path_in_blacklist,
-    sorted_unique_filepaths,
 )
+from file_utils import sorted_unique_filepaths  # noqa # pylint: disable=C0413
 
 
 def test_accepted_roots() -> None:
