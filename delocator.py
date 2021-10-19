@@ -104,7 +104,7 @@ def main() -> None:
         file_does_not_exist(fpath)
 
     # de-locate
-    rc = RestClient(args.url, token=args.token)
+    rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
     asyncio.get_event_loop().run_until_complete(
         delocate_filepaths(paths, rc, args.site)
     )
