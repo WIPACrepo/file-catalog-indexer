@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import List, cast
+from typing import List, Tuple, cast
 
 import coloredlogs  # type: ignore[import]
 from rest_tools.client import RestClient
@@ -57,8 +57,11 @@ async def delocate(fpath: str, rc: RestClient, site: str, uuid: str) -> None:
 
 async def delocate_filepaths(
     fpath_queue: List[str], rc: RestClient, site: str, skip_missing_locations: bool
-) -> None:
+) -> Tuple[int, int]:
     """De-locate all the filepaths in the queue."""
+    delocated = 0
+    skipped = 0
+
     for fpath in fpath_queue:
         file_does_not_exist(fpath)  # point of no-return so do this again
         logging.info(f"De-locating File: {fpath}")
@@ -67,9 +70,13 @@ async def delocate_filepaths(
         except FCRecordNotFoundError as e:
             if skip_missing_locations:
                 logging.warning(f"Skipping Location: {str(e)}")
+                skipped += 1
                 continue
             raise
         await delocate(fpath, rc, site, uuid)
+        delocated += 1
+
+    return delocated, skipped
 
 
 def main() -> None:
@@ -119,9 +126,16 @@ def main() -> None:
 
     # de-locate
     rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
-    asyncio.get_event_loop().run_until_complete(
+    delocated, skipped = asyncio.get_event_loop().run_until_complete(
         delocate_filepaths(paths, rc, args.site, args.skip_missing_locations)
     )
+
+    logging.info(f"De-located Locations = {delocated} ")
+    logging.info(
+        f"Skipped Locations    = {skipped} "
+        f"(--skip-missing-locations was {'' if args.skip_missing_locations else 'NOT'} included)"
+    )
+    logging.info("Done.")
 
 
 if __name__ == "__main__":
