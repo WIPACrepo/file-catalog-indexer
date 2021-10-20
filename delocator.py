@@ -36,7 +36,7 @@ async def get_uuid(fpath: str, rc: RestClient) -> str:
     )
     try:
         return cast(str, response["files"][0]["uuid"])
-    except KeyError as e:
+    except (KeyError, IndexError) as e:
         raise FCRecordNotFoundError(
             f"There's no matching location entry in FC for `{fpath}`"
         ) from e
@@ -55,12 +55,20 @@ async def delocate(fpath: str, rc: RestClient, site: str, uuid: str) -> None:
         logging.info(f"Removed Location: uuid={uuid}, fpath={fpath}")
 
 
-async def delocate_filepaths(fpath_queue: List[str], rc: RestClient, site: str) -> None:
+async def delocate_filepaths(
+    fpath_queue: List[str], rc: RestClient, site: str, skip_missing_locations: bool
+) -> None:
     """De-locate all the filepaths in the queue."""
     for fpath in fpath_queue:
         file_does_not_exist(fpath)  # point of no-return so do this again
         logging.info(f"De-locating File: {fpath}")
-        uuid = await get_uuid(fpath, rc)
+        try:
+            uuid = await get_uuid(fpath, rc)
+        except FCRecordNotFoundError as e:
+            if skip_missing_locations:
+                logging.warning(f"Skipping Location: {str(e)}")
+                continue
+            raise
         await delocate(fpath, rc, site, uuid)
 
 
@@ -88,6 +96,12 @@ def main() -> None:
     parser.add_argument(
         "-t", "--token", required=True, help="REST token for File Catalog"
     )
+    parser.add_argument(
+        "--skip-missing-locations",
+        default=False,
+        action="store_true",
+        help="don't exit when a filepath already isn't in the File Catalog",
+    )
     parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
 
     # grab args
@@ -106,7 +120,7 @@ def main() -> None:
     # de-locate
     rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
     asyncio.get_event_loop().run_until_complete(
-        delocate_filepaths(paths, rc, args.site)
+        delocate_filepaths(paths, rc, args.site, args.skip_missing_locations)
     )
 
 
