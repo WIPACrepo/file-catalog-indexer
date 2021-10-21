@@ -9,6 +9,7 @@ import os
 from typing import Dict, List, Tuple, cast
 
 import coloredlogs  # type: ignore[import]
+import requests
 from rest_tools.client import RestClient
 
 # local imports
@@ -53,9 +54,7 @@ async def get_uuid(location: Location, rc: RestClient) -> str:
     try:
         return cast(str, response["files"][0]["uuid"])
     except (KeyError, IndexError) as e:
-        raise FCRecordNotFoundError(
-            f"There's no matching location entry in FC for {location}"
-        ) from e
+        raise FCRecordNotFoundError("There's no matching location entry in FC") from e
 
 
 async def remove_location(location: Location, rc: RestClient, uuid: str) -> None:
@@ -73,29 +72,42 @@ async def remove_location(location: Location, rc: RestClient, uuid: str) -> None
 
 async def delocate_filepaths(
     fpath_queue: List[str], rc: RestClient, site: str, skip_missing_locations: bool
-) -> Tuple[int, int]:
+) -> Tuple[int, int, int]:
     """De-locate all the filepaths in the queue."""
     delocated = 0
     skipped = 0
+    already_deleted = 0
 
     for fpath in fpath_queue:
         file_does_not_exist(fpath)  # point of no-return so do this again
         location = Location(fpath, site)
-
         logging.info(f"De-locating: {location}")
+
+        # Grab uuid
         try:
             uuid = await get_uuid(location, rc)
             logging.info(f"Found uuid: {uuid}, {location}")
         except FCRecordNotFoundError as e:
             if skip_missing_locations:
-                logging.warning(f"Skipping Location, {location}: {str(e)}")
+                logging.warning(f"Skipping Location, {uuid}, {location}: {str(e)}")
                 skipped += 1
                 continue
             raise
-        await remove_location(location, rc, uuid)
-        delocated += 1
 
-    return delocated, skipped
+        # Remove location
+        try:
+            await remove_location(location, rc, uuid)
+            delocated += 1
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logging.warning(
+                    f"Skipping Record {uuid}, {location}: Record already deleted"
+                )
+                already_deleted += 1
+                continue
+            raise
+
+    return delocated, skipped, already_deleted
 
 
 def main() -> None:
@@ -145,15 +157,17 @@ def main() -> None:
 
     # de-locate
     rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
-    delocated, skipped = asyncio.get_event_loop().run_until_complete(
+    delocated, skipped, already_deleted = asyncio.get_event_loop().run_until_complete(
         delocate_filepaths(paths, rc, args.site, args.skip_missing_locations)
     )
 
-    logging.info(f"De-located Locations = {delocated} ")
+    logging.info("--------------------------------------")
+    logging.info(f"De-located Locations    = {delocated} ")
     logging.info(
-        f"Skipped Locations    = {skipped} "
+        f"Skipped Locations       = {skipped} "
         f"(--skip-missing-locations was {'' if args.skip_missing_locations else 'NOT'} included)"
     )
+    logging.info(f"Already-Deleted Records = {already_deleted} ")
     logging.info("Done.")
 
 
