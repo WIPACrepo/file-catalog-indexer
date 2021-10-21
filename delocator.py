@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import List, Tuple, cast
+from typing import Dict, List, Tuple, cast
 
 import coloredlogs  # type: ignore[import]
 from rest_tools.client import RestClient
@@ -27,32 +27,48 @@ class FCRecordNotFoundError(Exception):
     """Raised when a File Catalog record is not found."""
 
 
-async def get_uuid(fpath: str, rc: RestClient) -> str:
+class Location:
+    """Represent a location object."""
+
+    def __init__(self, fpath: str, site: str) -> None:
+        self.fpath = fpath
+        self.site = site
+
+    def __str__(self) -> str:
+        """Get string for printing."""
+        return f"(fpath={self.fpath}, site={self.site})"
+
+    def to_dict(self) -> Dict[str, str]:
+        """Convert location to dict for REST querying."""
+        return {"site": self.site, "path": self.fpath}
+
+
+async def get_uuid(location: Location, rc: RestClient) -> str:
     """Grab the matching FC record's uuid."""
     response = await rc.request(
         "GET",
         "/api/files",
-        {"query": json.dumps({"locations.path": fpath})},
+        {"query": json.dumps({"locations": {"$elemMatch": location.to_dict()}})},
     )
     try:
         return cast(str, response["files"][0]["uuid"])
     except (KeyError, IndexError) as e:
         raise FCRecordNotFoundError(
-            f"There's no matching location entry in FC for `{fpath}`"
+            f"There's no matching location entry in FC for {location}"
         ) from e
 
 
-async def delocate(fpath: str, rc: RestClient, site: str, uuid: str) -> None:
+async def remove_location(location: Location, rc: RestClient, uuid: str) -> None:
     """Remove the fpath from the record at uuid."""
     response = await rc.request(
         "POST",
         f"/api/files/{uuid}/actions/remove_location",
-        {"site": site, "path": fpath},
+        location.to_dict(),
     )
     if not response:
-        logging.info(f"Removed Entire Record: uuid={uuid}, fpath={fpath}")
+        logging.info(f"Removed Entire Record: uuid={uuid}, {location}")
     else:
-        logging.info(f"Removed Location: uuid={uuid}, fpath={fpath}")
+        logging.info(f"Removed Location: uuid={uuid}, {location}")
 
 
 async def delocate_filepaths(
@@ -64,16 +80,19 @@ async def delocate_filepaths(
 
     for fpath in fpath_queue:
         file_does_not_exist(fpath)  # point of no-return so do this again
-        logging.info(f"De-locating File: {fpath}")
+        location = Location(fpath, site)
+
+        logging.info(f"De-locating: {location}")
         try:
-            uuid = await get_uuid(fpath, rc)
+            uuid = await get_uuid(location, rc)
+            logging.info(f"Found uuid: {uuid}, {location}")
         except FCRecordNotFoundError as e:
             if skip_missing_locations:
-                logging.warning(f"Skipping Location: {str(e)}")
+                logging.warning(f"Skipping Location, {location}: {str(e)}")
                 skipped += 1
                 continue
             raise
-        await delocate(fpath, rc, site, uuid)
+        await remove_location(location, rc, uuid)
         delocated += 1
 
     return delocated, skipped
