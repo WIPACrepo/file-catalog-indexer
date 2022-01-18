@@ -14,7 +14,6 @@ except ImportError:
     from typing_extensions import Final  # type: ignore[misc]
 
 
-
 class PFFiltFileMetadata(DataExpI3FileMetadata):
     """Metadata for PFFilt i3 files."""
 
