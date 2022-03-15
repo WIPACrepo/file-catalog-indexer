@@ -20,19 +20,25 @@ def commonpath(paths: List[str]) -> str:
 def is_processable_path(path: str) -> bool:
     """Return `True` if `path` is processable.
 
-    AKA, not a symlink, a socket, a FIFO, a device, nor char device.
+    AKA, not a symbolic link, a socket, a FIFO, a device, nor char device.
 
     Raises:
         FileNotFoundError - if `path` does not exist
     """
     mode = os.lstat(path).st_mode
-    return not (
+    ok = not (
         stat.S_ISLNK(mode)
         or stat.S_ISSOCK(mode)
         or stat.S_ISFIFO(mode)
         or stat.S_ISBLK(mode)
         or stat.S_ISCHR(mode)
     )
+    if not ok:
+        logging.warning(
+            f"File is not processable "
+            f"(either a symbolic link, socket, FIFO, device, or char device): '{path}'"
+        )
+    return ok
 
 
 def get_subpaths(filepath: str) -> List[str]:
@@ -40,10 +46,19 @@ def get_subpaths(filepath: str) -> List[str]:
 
     Don't add symbolic links.
     """
+
+    def is_a_symlink(dir_entry: os.DirEntry) -> bool:  # type: ignore[type-arg]
+        is_sym = dir_entry.is_symlink()
+        if is_sym:
+            logging.warning(
+                f"Skipping nested file -- not processable (symbolic link): '{dir_entry}'"
+            )
+        return is_sym
+
     return [
         dir_entry.path
         for dir_entry in os.scandir(filepath)
-        if not dir_entry.is_symlink()
+        if not is_a_symlink(dir_entry)
     ]
 
 
