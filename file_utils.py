@@ -51,7 +51,7 @@ def get_subpaths(filepath: str) -> List[str]:
         is_sym = dir_entry.is_symlink()
         if is_sym:
             logging.warning(
-                f"Nested file is not processable (symbolic link): '{dir_entry}'"
+                f"Skipping nested file -- not processable (symbolic link): '{dir_entry}'"
             )
         return is_sym
 
