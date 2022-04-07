@@ -311,143 +311,63 @@ def validate_path(path: str) -> None:
     raise Exception(f"Invalid path ({message}).")
 
 
-def main() -> None:
+def main(
+    paths: List[str],
+    paths_file: str,
+    blacklist: List[str],
+    blacklist_file: str,
+    url: str,
+    token: str,
+    timeout: int,
+    retries: int,
+    basic_only: bool,
+    patch: bool,
+    iceprodv2_rc_token: str,
+    iceprodv1_db_pass: str,
+    dryrun: bool,
+    non_recursive: bool,
+    site: str,
+    processes: int,
+) -> None:
     """Traverse paths, recursively, and index."""
-    parser = argparse.ArgumentParser(
-        description="Find files under PATH(s), compute their metadata and "
-        "upload it to File Catalog.",
-        epilog="Notes: (1) symbolic links are never followed.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "paths", metavar="PATHS", nargs="*", help="path(s) to scan for files."
-    )
-    parser.add_argument(
-        "-f",
-        "--paths-file",
-        default=None,
-        help="new-line-delimited text file containing path(s) to scan for files. "
-        "(use this option for a large number of paths)",
-    )
-    parser.add_argument(
-        "-n",
-        "--non-recursive",
-        default=False,
-        action="store_true",
-        help="do not recursively index / do not descend into subdirectories",
-    )
-    parser.add_argument(
-        "--processes",
-        type=int,
-        default=1,
-        help="number of processes for multi-processing "
-        "(ignored if using --non-recursive)",
-    )
-    parser.add_argument(
-        "-u",
-        "--url",
-        default="https://file-catalog.icecube.wisc.edu/",  # 'http://localhost:8888'
-        help="File Catalog URL",
-    )
-    parser.add_argument(
-        "-s", "--site", required=True, help='site value of the "locations" object'
-    )
-    parser.add_argument(
-        "-t", "--token", required=True, help="REST token for File Catalog"
-    )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=_DEFAULT_RETRIES,
-        help="timeout duration (seconds) for File Catalog REST requests",
-    )
-    parser.add_argument(
-        "--retries",
-        type=int,
-        default=_DEFAULT_TIMEOUT,
-        help="number of retries for File Catalog REST requests",
-    )
-    parser.add_argument(
-        "--basic-only",
-        default=False,
-        action="store_true",
-        help="only collect basic metadata",
-    )
-    parser.add_argument(
-        "--patch",
-        default=False,
-        action="store_true",
-        help="replace/overwrite any existing File-Catalog entries (aka patch)",
-    )
-    parser.add_argument(
-        "--blacklist",
-        metavar="BLACKPATH",
-        nargs="+",
-        default=None,
-        help="list of blacklisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*",
-    )
-    parser.add_argument(
-        "--blacklist-file",
-        help="a file containing blacklisted filepaths on each line "
-        "(this is a useful alternative to `--blacklist` when there's many blacklisted paths); "
-        "Ex: /foo/bar/ will skip /foo/bar/*",
-    )
-    parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
-    parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
-    parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
-    parser.add_argument(
-        "--dryrun",
-        default=False,
-        action="store_true",
-        help="do everything except POSTing/PATCHing to the File Catalog",
-    )
-
-    args = parser.parse_args()
-    coloredlogs.install(level=args.log.upper())
-    for arg, val in vars(args).items():
-        logging.warning(f"{arg}: {val}")
 
     logging.info(
-        f"Collecting metadata from {args.paths} and those in file (at {args.paths_file})..."
+        f"Collecting metadata from {paths} and those in file (at {paths_file})..."
     )
 
     # Aggregate, sort, and validate filepaths
     paths = file_utils.sorted_unique_filepaths(
-        file_of_filepaths=args.paths_file, list_of_filepaths=args.paths, abspaths=True
+        file_of_filepaths=paths_file, list_of_filepaths=paths, abspaths=True
     )
     for p in paths:  # pylint: disable=C0103
         validate_path(p)
 
     # Aggregate & sort blacklisted paths
     blacklist = file_utils.sorted_unique_filepaths(
-        file_of_filepaths=args.blacklist_file,
-        list_of_filepaths=args.blacklist,
+        file_of_filepaths=blacklist_file,
+        list_of_filepaths=blacklist,
         abspaths=True,
     )
 
     # Grab and pack args
     rest_client_args: RestClientArgs = {
-        "url": args.url,
-        "token": args.token,
-        "timeout": args.timeout,
-        "retries": args.retries,
+        "url": url,
+        "token": token,
+        "timeout": timeout,
+        "retries": retries,
     }
     indexer_flags: IndexerFlags = {
-        "basic_only": args.basic_only,
-        "patch": args.patch,
-        "iceprodv2_rc_token": args.iceprodv2_rc_token,
-        "iceprodv1_db_pass": args.iceprodv1_db_pass,
-        "dryrun": args.dryrun,
+        "basic_only": basic_only,
+        "patch": patch,
+        "iceprodv2_rc_token": iceprodv2_rc_token,
+        "iceprodv1_db_pass": iceprodv1_db_pass,
+        "dryrun": dryrun,
     }
 
     # Go!
-    if args.non_recursive:
-        index(paths, blacklist, rest_client_args, args.site, indexer_flags)
+    if non_recursive:
+        index(paths, blacklist, rest_client_args, site, indexer_flags)
     else:
         recursively_index(
-            paths, blacklist, rest_client_args, args.site, indexer_flags, args.processes
+            paths, blacklist, rest_client_args, site, indexer_flags, processes
         )
-
-
-if __name__ == "__main__":
-    main()
