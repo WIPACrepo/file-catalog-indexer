@@ -11,7 +11,7 @@ import sys
 from typing import List, Optional, Tuple, cast
 
 import coloredlogs  # type: ignore[import]
-import natsort  # type: ignore[import]
+import natsort
 
 try:
     from typing import Final, TypedDict

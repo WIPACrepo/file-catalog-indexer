@@ -8,9 +8,8 @@ import pprint
 
 import coloredlogs  # type: ignore[import]
 
-# local imports
-import file_utils
-from indexer_api.metadata_manager import MetadataManager
+from indexer.metadata_manager import MetadataManager
+from indexer.utils import file_utils
 
 
 def main() -> None:

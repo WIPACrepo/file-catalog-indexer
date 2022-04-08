@@ -10,18 +10,18 @@ from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Optional
 
-import file_utils
-import requests
-from file_catalog.schema import types
-from indexer_api.metadata_manager import MetadataManager
-from rest_tools.client import RestClient  # type: ignore[import]
-
 try:
     from typing import TypedDict
 except ImportError:
     from typing_extensions import TypedDict
 
+import requests
+from file_catalog.schema import types
+from rest_tools.client import RestClient
+
 from . import defaults
+from .metadata_manager import MetadataManager
+from .utils import file_utils
 
 # Types --------------------------------------------------------------------------------
 
