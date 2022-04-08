@@ -327,7 +327,44 @@ def index(
     non_recursive: bool = defaults.NON_RECURSIVE,
     n_processes: int = defaults.N_PROCESSES,
 ) -> None:
-    """Traverse paths, recursively, and index."""
+    """Traverse paths and index.
+
+    Arguments:
+        `token`:
+            REST token for File Catalog
+        `site`:
+            site value of the "locations" object (WIPAC, NERSC, etc.)
+
+    Keyword Arguments:
+        `paths`:
+            path(s) to scan for files
+        `paths_file`:
+            new-line-delimited text file containing path(s) to scan for files
+        `blacklist`:
+            list of blacklisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*
+        `blacklist_file`:
+            a file containing blacklisted filepaths on each line (this is a useful alternative to `--blacklist` when there's many blacklisted paths); Ex: /foo/bar/ will skip /foo/bar/*
+        `url`:
+            File Catalog URL
+        `timeout`:
+            timeout duration (seconds) for File Catalog REST requests
+        `retries`:
+            number of retries for File Catalog REST requests
+        `basic_only`:
+            only post basic metadata
+        `patch`:
+            replace/overwrite any existing File-Catalog entries (aka patch)
+        `iceprodv2_rc_token`:
+            IceProd2 REST token
+        `iceprodv1_db_pass`:
+            IceProd1 SQL password
+        `dryrun`:
+            do everything except POSTing/PATCHing to the File Catalog
+        `non_recursive`:
+            do not recursively index / do not descend into sub-directories
+        `n_processes`:
+            number of processes for multi-processing (ignored if `non_recursive=True`)
+    """
 
     logging.info(
         f"Collecting metadata from {paths} and those in file (at {paths_file})..."
