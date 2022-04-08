@@ -5,14 +5,15 @@ import sys
 
 import pytest
 
+from indexer.utils.file_utils import (  # noqa # pylint: disable=C0413
+    sorted_unique_filepaths,
+)
+
 sys.path.append(".")
-from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer.index import (  # isort:skip # noqa # pylint: disable=C0413
     ACCEPTED_ROOTS,
     validate_path,
     path_in_blacklist,
-)
-from indexer.utils.file_utils import (  # noqa # pylint: disable=C0413
-    sorted_unique_filepaths,
 )
 
 
