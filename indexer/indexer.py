@@ -225,7 +225,7 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
     rest_client_args: RestClientArgs,
     site: str,
     indexer_flags: IndexerFlags,
-    processes: int,
+    n_processes: int,
 ) -> None:
     """Gather and post metadata from files rooted at `starting_paths`.
 
@@ -235,16 +235,16 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
     futures: List[Future] = []  # type: ignore[type-arg]
     with ProcessPoolExecutor() as pool:
         queue = starting_paths
-        split = math.ceil(len(queue) / processes)
+        split = math.ceil(len(queue) / n_processes)
         while futures or queue:
             logging.debug(f"Queue: {len(queue)}.")
             # Divvy up queue among available worker(s). Each worker gets 1/nth of the queue.
             if queue:
                 queue = file_utils.sorted_unique_filepaths(list_of_filepaths=queue)
-                while processes != len(futures):
+                while n_processes != len(futures):
                     paths, queue = queue[:split], queue[split:]
                     logging.debug(
-                        f"Worker Assigned: {len(futures)+1}/{processes} ({len(paths)} paths)."
+                        f"Worker Assigned: {len(futures)+1}/{n_processes} ({len(paths)} paths)."
                     )
                     futures.append(
                         pool.submit(
@@ -265,7 +265,7 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
             result = future.result()
             if result:
                 queue.extend(result)
-                split = math.ceil(len(queue) / processes)
+                split = math.ceil(len(queue) / n_processes)
             logging.debug(f"Worker finished: {future} (enqueued {len(result)}).")
 
 
@@ -275,12 +275,17 @@ def _recursively_index(  # pylint: disable=R0913
     rest_client_args: RestClientArgs,
     site: str,
     indexer_flags: IndexerFlags,
-    processes: int,
+    n_processes: int,
 ) -> None:
     """Gather and post metadata from files rooted at `starting_paths`."""
-    if processes > 1:
+    if n_processes > 1:
         _recursively_index_multiprocessed(
-            starting_paths, blacklist, rest_client_args, site, indexer_flags, processes
+            starting_paths,
+            blacklist,
+            rest_client_args,
+            site,
+            indexer_flags,
+            n_processes,
         )
     else:
         queue = starting_paths
@@ -320,7 +325,7 @@ def index(
     iceprodv1_db_pass: str = defaults.ICEPRODV1_DB_PASS,
     dryrun: bool = defaults.DRYRUN,
     non_recursive: bool = defaults.NON_RECURSIVE,
-    processes: int = defaults.PROCESSES,
+    n_processes: int = defaults.N_PROCESSES,
 ) -> None:
     """Traverse paths, recursively, and index."""
 
@@ -362,5 +367,5 @@ def index(
         _index(paths, blacklist, rest_client_args, site, indexer_flags)
     else:
         _recursively_index(
-            paths, blacklist, rest_client_args, site, indexer_flags, processes
+            paths, blacklist, rest_client_args, site, indexer_flags, n_processes
         )

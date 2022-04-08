@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--processes",
         type=int,
-        default=defaults.PROCESSES,
+        default=defaults.N_PROCESSES,
         help="number of processes for multi-processing "
         "(ignored if using --non-recursive)",
     )
