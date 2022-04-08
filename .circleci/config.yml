@@ -9,7 +9,6 @@ jobs:
       - checkout
       - run: |
           pip install --user tox
-          pip install -r requirements.txt
           tox tests/unit -vv
 
   integration:
@@ -19,7 +18,6 @@ jobs:
       - checkout
       - run: |
           pip install --user tox
-          pip install -r requirements.txt
           tox tests/integration -vv
 
 workflows:
