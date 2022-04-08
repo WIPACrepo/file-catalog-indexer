@@ -63,12 +63,16 @@ def test_1(
         # mock SQL queries & REST requests
         dir_ = path.dirname(fullpath)
         if any(f.startswith("ip1-") for f in listdir(dir_)):
-            sps = json.load(open(path.join(dir_, "ip1-dataset-steering-params.json")))
+            with open(path.join(dir_, "ip1-dataset-steering-params.json")) as f:
+                sps = json.load(f)
             pymysql_connect.return_value.cursor.return_value.fetchall.return_value = sps
         elif any(f.startswith("ip2-") for f in listdir(dir_)):
-            datasets = json.load(open(path.join(dir_, "ip2-datasets.json")))
-            job_config = json.load(open(path.join(dir_, "ip2-job-config.json")))
-            tasks = json.load(open(path.join(dir_, "ip2-dataset-tasks.json")))
+            with open(path.join(dir_, "ip2-datasets.json")) as f:
+                datasets = json.load(f)
+            with open(path.join(dir_, "ip2-job-config.json")) as f:
+                job_config = json.load(f)
+            with open(path.join(dir_, "ip2-dataset-tasks.json")) as f:
+                tasks = json.load(f)
             rest_client_request_seq.side_effect = [datasets, job_config, tasks]
         else:
             raise Exception("Missing testing data")
@@ -87,4 +91,4 @@ def test_1(
             if field in SKIP_FIELDS:
                 continue
             print(field)
-            assert metadata[field] == generated_metadata[field]  # type: ignore[misc]
+            assert metadata[field] == generated_metadata[field]
