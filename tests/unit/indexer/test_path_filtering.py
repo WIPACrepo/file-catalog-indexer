@@ -6,12 +6,14 @@ import sys
 import pytest
 
 sys.path.append(".")
-from indexer import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer.indexer import (  # isort:skip # noqa # pylint: disable=C0413
     ACCEPTED_ROOTS,
     validate_path,
     path_in_blacklist,
 )
-from file_utils import sorted_unique_filepaths  # noqa # pylint: disable=C0413
+from indexer.utils.file_utils import (  # noqa # pylint: disable=C0413
+    sorted_unique_filepaths,
+)
 
 
 def test_accepted_roots() -> None:
