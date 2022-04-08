@@ -17,6 +17,8 @@ jobs:
     steps:
       - checkout
       - run: |
+          cp ./resources/path_collector/traverser.py ./traverser.py  # fixes relative paths
+          cp ./resources/path_collector/common_args.py ./common_args.py  # fixes relative paths
           pip install --user tox
           tox tests/integration -vv
 
