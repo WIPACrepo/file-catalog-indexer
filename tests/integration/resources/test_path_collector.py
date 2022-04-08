@@ -15,7 +15,7 @@ from typing import Any, List, Tuple
 
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]
-import pytest  # type: ignore[import]
+import pytest
 
 try:
     from typing import Final
@@ -91,7 +91,9 @@ def _get_archive_file(stage: str) -> os.DirEntry:  # type: ignore[type-arg]
 
 
 def _assert_out_files(
-    stage: str, ran_via_shell: bool, no_traverser_log: bool = False,
+    stage: str,
+    ran_via_shell: bool,
+    no_traverser_log: bool = False,
 ) -> None:
     """Test outputted files and directories."""
     # 2 entries in staging directory

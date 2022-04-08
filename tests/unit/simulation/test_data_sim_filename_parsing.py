@@ -3,23 +3,16 @@
 # pylint: disable=W0621
 
 import re
-import sys
 from typing import List, Pattern
 
 import pytest
+from indexer.metadata.simulation import data_sim, filename_patterns
+from indexer.utils import utils
 
-# local imports
 import filepath_data as data
 
-sys.path.append(".")
-from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
-    data_sim,
-    filename_patterns,
-)
-from indexer_api.utils import utils  # isort:skip # noqa # pylint: disable=C0413
 
-
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def sim_regexes() -> List[Pattern[str]]:
     """List of compiled regex patterns."""
     return [re.compile(r) for r in filename_patterns.regex_patterns]

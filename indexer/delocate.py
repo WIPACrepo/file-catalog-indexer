@@ -12,8 +12,7 @@ import coloredlogs  # type: ignore[import]
 import requests
 from rest_tools.client import RestClient
 
-# local imports
-import file_utils
+from indexer.utils import file_utils
 
 
 def file_does_not_exist(fpath: str) -> None:

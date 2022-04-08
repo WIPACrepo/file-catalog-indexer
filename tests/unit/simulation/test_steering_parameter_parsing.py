@@ -4,19 +4,13 @@
 
 
 import logging
-import sys
 from typing import Any, Dict
 from unittest.mock import ANY
 
 from _pytest.logging import LogCaptureFixture
+from indexer.metadata.simulation import data_sim
 
-# local imports
 import steering_param_data as data
-
-sys.path.append(".")
-from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
-    data_sim,
-)
 
 
 def test_good() -> None:

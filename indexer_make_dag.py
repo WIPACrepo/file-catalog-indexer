@@ -11,7 +11,7 @@ import sys
 from typing import List, Optional, Tuple, cast
 
 import coloredlogs  # type: ignore[import]
-import natsort  # type: ignore[import]
+import natsort
 
 try:
     from typing import Final, TypedDict
@@ -27,7 +27,7 @@ MAX_DAG_JOBS: Final[int] = 2000
 
 
 class IndexerArgs(TypedDict):
-    """Arguments for indexer.py."""
+    """Arguments for indexer_script.py."""
 
     path_to_indexer: str
     blacklist: str
@@ -242,7 +242,7 @@ def main() -> None:
         "--path-to-indexer",
         type=get_full_path,
         required=True,
-        help="an NPX-accessible path to `file-catalog-indexer/indexer.py`"
+        help="an NPX-accessible path to `file-catalog-indexer/indexer_script.py`"
         " (with additional necessary python files adjacent)",
     )
     parser.add_argument(
@@ -317,9 +317,9 @@ def main() -> None:
         )
 
     # check paths in args
-    if not args.path_to_indexer.endswith("/file-catalog-indexer/indexer.py"):
+    if not args.path_to_indexer.endswith("/file-catalog-indexer/indexer_script.py"):
         raise RuntimeError(
-            "--path-to-indexer needs to be a path to `file-catalog-indexer/indexer.py`"
+            "--path-to-indexer needs to be a path to `file-catalog-indexer/indexer_script.py`"
         )
 
     # make condor scratch directory

@@ -2,10 +2,7 @@
 
 # pylint: disable=W0212
 
-import sys
-
-sys.path.append(".")
-from indexer_api import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
+from indexer import metadata_manager
 
 
 def test_new_file_logic() -> None:

@@ -1,20 +1,15 @@
 """Example IceProd dataset steering parameter dicts."""
 
 
-import sys
 from typing import List
 
 from file_catalog.schema import types
+from indexer.metadata.simulation import iceprod_tools
 
 try:
     from typing import TypedDict
 except ImportError:
     from typing_extensions import TypedDict
-
-sys.path.append(".")
-from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
-    iceprod_tools,
-)
 
 
 class _TestingExampleSet(TypedDict):
