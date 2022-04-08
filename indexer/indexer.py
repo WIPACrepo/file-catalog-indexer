@@ -178,7 +178,10 @@ def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
     return False
 
 
-def index(
+# Indexing-Wrapper Functions --------------------------------------------------
+
+
+def _index(
     paths: List[str],
     blacklist: List[str],
     rest_client_args: RestClientArgs,
@@ -223,10 +226,7 @@ def index(
     return child_paths
 
 
-# Recursively-Indexing Functions -------------------------------------------------------
-
-
-def recursively_index_multiprocessed(  # pylint: disable=R0913
+def _recursively_index_multiprocessed(  # pylint: disable=R0913
     starting_paths: List[str],
     blacklist: List[str],
     rest_client_args: RestClientArgs,
@@ -239,7 +239,7 @@ def recursively_index_multiprocessed(  # pylint: disable=R0913
     Do this multi-processed.
     """
     # Traverse paths and process files
-    futures: List[Future] = []
+    futures: List[Future] = []  # type: ignore[type-arg]
     with ProcessPoolExecutor() as pool:
         queue = starting_paths
         split = math.ceil(len(queue) / processes)
@@ -255,7 +255,7 @@ def recursively_index_multiprocessed(  # pylint: disable=R0913
                     )
                     futures.append(
                         pool.submit(
-                            index,
+                            _index,
                             paths,
                             blacklist,
                             rest_client_args,
@@ -276,7 +276,7 @@ def recursively_index_multiprocessed(  # pylint: disable=R0913
             logging.debug(f"Worker finished: {future} (enqueued {len(result)}).")
 
 
-def recursively_index(  # pylint: disable=R0913
+def _recursively_index(  # pylint: disable=R0913
     starting_paths: List[str],
     blacklist: List[str],
     rest_client_args: RestClientArgs,
@@ -286,7 +286,7 @@ def recursively_index(  # pylint: disable=R0913
 ) -> None:
     """Gather and post metadata from files rooted at `starting_paths`."""
     if processes > 1:
-        recursively_index_multiprocessed(
+        _recursively_index_multiprocessed(
             starting_paths, blacklist, rest_client_args, site, indexer_flags, processes
         )
     else:
@@ -294,7 +294,7 @@ def recursively_index(  # pylint: disable=R0913
         i = 0
         while queue:
             logging.debug(f"Queue Iteration #{i}")
-            queue = index(queue, blacklist, rest_client_args, site, indexer_flags)
+            queue = _index(queue, blacklist, rest_client_args, site, indexer_flags)
             i += 1
 
 
@@ -366,8 +366,8 @@ def main(
 
     # Go!
     if non_recursive:
-        index(paths, blacklist, rest_client_args, site, indexer_flags)
+        _index(paths, blacklist, rest_client_args, site, indexer_flags)
     else:
-        recursively_index(
+        _recursively_index(
             paths, blacklist, rest_client_args, site, indexer_flags, processes
         )
