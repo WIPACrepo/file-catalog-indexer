@@ -8,8 +8,11 @@ jobs:
     steps:
       - checkout
       - run: |
-          pip install --user tox
-          tox tests/unit -vv
+          python3 -m virtualenv -p python3 env
+          . env/bin/activate
+          pip install .
+          pip install -r requirements-dev.txt -r requirements.txt
+          pytest -vvv tests/unit
 
   integration:
     docker:
