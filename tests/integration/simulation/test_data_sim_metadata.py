@@ -44,6 +44,7 @@ def test_1(
 
         # prep
         fullpath = path.join(path.dirname(path.realpath(__file__)), fpath)
+        print(fullpath)
         orignal_path = metadata["logical_name"]
         metadata.update(
             {
