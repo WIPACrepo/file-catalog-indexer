@@ -1,10 +1,10 @@
 bitmath
 git+https://github.com/WIPACrepo/file_catalog@v1.7.5#egg=file_catalog
 git+https://github.com/WIPACrepo/iceprod@v2.5.10#egg=iceprod
-git+https://github.com/WIPACrepo/rest-tools@v1.0.7#egg=rest_tools
 PyMySQL
+requests
 requests-futures
 requests-toolbelt
-requests
 typing-extensions
+wipac-rest-tools
 xmltodict
