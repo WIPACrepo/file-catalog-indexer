@@ -12,7 +12,7 @@ except ImportError:
     from typing_extensions import TypedDict
 
 sys.path.append(".")
-from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
     iceprod_tools,
 )
 

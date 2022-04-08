@@ -12,11 +12,11 @@ import pytest
 import filepath_data as data
 
 sys.path.append(".")
-from indexer_api.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
+from indexer.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
     data_sim,
     filename_patterns,
 )
-from indexer_api.utils import utils  # isort:skip # noqa # pylint: disable=C0413
+from indexer.utils import utils  # isort:skip # noqa # pylint: disable=C0413
 
 
 @pytest.fixture  # type: ignore

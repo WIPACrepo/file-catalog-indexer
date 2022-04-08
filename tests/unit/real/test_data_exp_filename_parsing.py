@@ -6,7 +6,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import pytest
 
 sys.path.append(".")
-from indexer_api.metadata import real  # isort:skip # noqa # pylint: disable=C0413
+from indexer.metadata import real  # isort:skip # noqa # pylint: disable=C0413
 
 
 def test_run_number() -> None:
@@ -68,7 +68,8 @@ def _test_bad_filenames_parsing(bad_filenames: List[str], patterns: List[str]) -
 
 
 def _test_valid_filenames(
-    filenames: Iterable[str], is_valid_filename_function: Callable[[str], bool],
+    filenames: Iterable[str],
+    is_valid_filename_function: Callable[[str], bool],
 ) -> None:
     for f in filenames:
         print(f)

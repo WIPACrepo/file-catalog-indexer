@@ -9,13 +9,13 @@ import json
 import sys
 from datetime import date
 from os import listdir, path
-from unittest.mock import ANY, AsyncMock, Mock, patch, PropertyMock
+from unittest.mock import ANY, AsyncMock, Mock, PropertyMock, patch
 
 # local imports
 import sim_data as data
 
 sys.path.append(".")
-from indexer_api import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
+from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
 
 
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
@@ -24,12 +24,12 @@ SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 @patch("rest_tools.client.RestClient.request_seq")
 @patch("pymysql.connect")
 @patch(
-    "indexer_api.metadata.simulation.iceprod_tools._IceProdV2Querier.filepath",
+    "indexer.metadata.simulation.iceprod_tools._IceProdV2Querier.filepath",
     new_callable=PropertyMock,
 )
-@patch("indexer_api.metadata.i3.I3FileMetadata._get_events_data")
-@patch("indexer_api.metadata_manager.MetadataManager._is_data_sim_filepath")
-@patch("indexer_api.metadata_manager.MetadataManager._is_data_exp_filepath")
+@patch("indexer.metadata.i3.I3FileMetadata._get_events_data")
+@patch("indexer.metadata_manager.MetadataManager._is_data_sim_filepath")
+@patch("indexer.metadata_manager.MetadataManager._is_data_exp_filepath")
 def test_1(
     _is_data_exp_filepath: Mock,
     _is_data_sim_filepath: Mock,
@@ -78,7 +78,9 @@ def test_1(
 
         # run
         manager = metadata_manager.MetadataManager(
-            "WIPAC", iceprodv2_rc_token=ANY, iceprodv1_db_pass=ANY,
+            "WIPAC",
+            iceprodv2_rc_token=ANY,
+            iceprodv1_db_pass=ANY,
         )
         metadata_file = manager.new_file(fullpath)
         generated_metadata = metadata_file.generate()
