@@ -4,3 +4,4 @@ mypy
 pytest
 pytest-asyncio
 pytest-mock
+requests-mock
