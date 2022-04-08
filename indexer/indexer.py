@@ -1,6 +1,6 @@
 """Data-indexing script for File Catalog."""
 
-import argparse
+
 import asyncio
 import json
 import logging
@@ -8,27 +8,20 @@ import math
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import List
+from typing import List, Optional
 
-import coloredlogs  # type: ignore[import]
+import file_utils
 import requests
 from file_catalog.schema import types
+from indexer_api.metadata_manager import MetadataManager
 from rest_tools.client import RestClient  # type: ignore[import]
 
-# local imports
-import file_utils
-from indexer_api.metadata_manager import MetadataManager
-
 try:
-    from typing import Final, TypedDict
+    from typing import TypedDict
 except ImportError:
-    from typing_extensions import Final, TypedDict  # type: ignore[misc]
+    from typing_extensions import TypedDict
 
-
-_DEFAULT_TIMEOUT: Final[int] = 30  # seconds
-_AGGREGATE_LATENCY_MINUTES: Final[int] = 30  # minutes
-_DEFAULT_RETRIES: Final[int] = int((60 / _DEFAULT_TIMEOUT) * _AGGREGATE_LATENCY_MINUTES)
-
+from . import defaults
 
 # Types --------------------------------------------------------------------------------
 
@@ -311,23 +304,23 @@ def validate_path(path: str) -> None:
     raise Exception(f"Invalid path ({message}).")
 
 
-def main(
-    paths: List[str],
-    paths_file: str,
-    blacklist: List[str],
-    blacklist_file: str,
-    url: str,
+def index(
     token: str,
-    timeout: int,
-    retries: int,
-    basic_only: bool,
-    patch: bool,
-    iceprodv2_rc_token: str,
-    iceprodv1_db_pass: str,
-    dryrun: bool,
-    non_recursive: bool,
     site: str,
-    processes: int,
+    paths: Optional[List[str]] = defaults.PATHS,
+    paths_file: str = defaults.PATHS_FILE,
+    blacklist: Optional[List[str]] = defaults.BLACKLIST,
+    blacklist_file: str = defaults.BLACKLIST_FILE,
+    url: str = defaults.URL,
+    timeout: int = defaults.TIMEOUT,
+    retries: int = defaults.RETRIES,
+    basic_only: bool = defaults.BASIC_ONLY,
+    patch: bool = defaults.PATCH,
+    iceprodv2_rc_token: str = defaults.ICEPRODV2_RC_TOKEN,
+    iceprodv1_db_pass: str = defaults.ICEPRODV1_DB_PASS,
+    dryrun: bool = defaults.DRYRUN,
+    non_recursive: bool = defaults.NON_RECURSIVE,
+    processes: int = defaults.PROCESSES,
 ) -> None:
     """Traverse paths, recursively, and index."""
 
