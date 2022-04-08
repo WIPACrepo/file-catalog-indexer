@@ -1,11 +1,43 @@
 # file-catalog-indexer
-Indexing scripts for the file catalog
+Indexing package and scripts for the File Catalog
 
-[![CircleCI](https://circleci.com/gh/WIPACrepo/file-catalog-indexer/tree/master.svg?style=shield)](https://circleci.com/gh/WIPACrepo/file-catalog-indexer/tree/master) <sup>(master branch)</sup>
+## How To
+
+### As an Imported Package
+#### `from indexer.index import index`
+- The flagship indexing function
+- Find files rooted at given path(s), compute their metadata, and upload it to File Catalog.
+- Notes: symbolic links are never followed.
+- Configurable for multi-processing, multi-threading, recursive file-traversing
+
+#### `from indexer.metadata_manager import MetadataManager`
+- The internal brain of the Indexer. This has minimal guardrails, does not communicate to File Catalog, and does not traverse file tree.
+- Metadata is produced for an individual file, at a time.
+- Ex:
+```python
+manager = MetadataManager(...)  # caches connections & directory info, manages metadata collection
+metadata_file = manager.new_file(filepath)  # returns an instance
+metadata = metadata_file.generate()  # returns a dict
+ ```
+
+### Scripts
+##### `python -m indexer.index`
+- A command-line alternative to using `from indexer.index import index`
+- Use with `-h` to see usage.
+
+##### `python -m indexer.generate`
+- Like `indexer.index`, but print (using `pprint`) the metadata instead of posting to File Catalog.
+- Simply, uses file-traversing logic around calls to `indexer.metadata_manager.MetadataManager`
+
+##### `python -m indexer.delocate`
+- Find files rooted at given path(s); for each, remove the matching location entry from its File Catalog record.
+- Notes: symbolic links are never followed.
+
 
 ## Metadata Schema
 see: [Google Doc](https://docs.google.com/document/d/14SanUWiYEbgarElt0YXSn_2We-rwT-ePO5Fg7rrM9lw/edit?usp=sharing)
 also: [File Catalog Types]https://github.com/WIPACrepo/file_catalog/blob/master/file_catalog/schema/types.py
+
 
 ## Warnings
 
