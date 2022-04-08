@@ -6,16 +6,12 @@
 """
 
 import os
-import sys
 from datetime import datetime as dt
 from unittest.mock import Mock, patch
 
-# local imports
+from indexer import metadata_manager
+
 import exp_data as data
-
-sys.path.append(".")
-from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
-
 
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 

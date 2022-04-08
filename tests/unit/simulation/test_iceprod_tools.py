@@ -2,16 +2,11 @@
 
 # pylint: disable=W0212
 
-import sys
 from typing import Dict, List, Union
 from unittest.mock import ANY
 
 import pytest
-
-sys.path.append(".")
-from indexer.metadata.simulation import (  # isort:skip # noqa # pylint: disable=C0413
-    iceprod_tools,
-)
+from indexer.metadata.simulation import iceprod_tools
 
 
 def test_get_iceprod_querier_good() -> None:  # pylint: disable=C0103

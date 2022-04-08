@@ -6,17 +6,13 @@
 """
 
 import json
-import sys
 from datetime import date
 from os import listdir, path
 from unittest.mock import ANY, AsyncMock, Mock, PropertyMock, patch
 
-# local imports
+from indexer import metadata_manager
+
 import sim_data as data
-
-sys.path.append(".")
-from indexer import metadata_manager  # isort:skip # noqa # pylint: disable=C0413
-
 
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 
