@@ -1,28 +1,24 @@
 version: 2.1
 
 jobs:
+
   unit:
     docker:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run:
-          command: |
-            pip install -r requirements.txt
-            pytest tests/unit -vvvvv --ignore=src
+      - run: |
+          pip install --user tox
+          tox tests/unit -vv
 
   integration:
     docker:
       - image: circleci/python:3.8
     steps:
       - checkout
-      - run:
-          command: |
-            pip install -r requirements.txt
-            cp ./resources/path_collector/traverser.py ./traverser.py
-            cp ./resources/path_collector/common_args.py ./common_args.py
-            pytest tests/integration -vvvvv
-            rm -f ./traverser.py ./common_args.py
+      - run: |
+          pip install --user tox
+          tox tests/integration -vv
 
 workflows:
   build_and_test:
