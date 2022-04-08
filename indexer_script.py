@@ -132,5 +132,5 @@ if __name__ == "__main__":
         iceprodv1_db_pass=args.iceprodv1_db_pass,
         dryrun=args.dryrun,
         non_recursive=args.non_recursive,
-        processes=args.processes,
+        n_processes=args.processes,
     )
