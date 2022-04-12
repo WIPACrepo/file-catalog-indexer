@@ -9,6 +9,17 @@ Indexing package and scripts for the File Catalog
 - Find files rooted at given path(s), compute their metadata, and upload it to File Catalog.
 - Notes: Symbolic links are never followed.
 - Configurable for multi-processing, multi-threading, recursive file-traversing
+- Note: `index()` runs the current event loop (`asyncio.get_event_loop().run_until_complete()`)
+- Ex:
+```python
+index(
+	fc_token,
+    'WIPAC',
+    paths=['/data/exp/IceCube/2018/filtered/level2/0820', '/data/exp/IceCube/2018/filtered/level2/0825'],
+    blacklist=['/data/exp/IceCube/2018/filtered/level2/0820/Run00131410_74'],
+	n_processes=4,
+)
+ ```
 
 #### `from indexer.metadata_manager import MetadataManager`
 - The internal brain of the Indexer. This has minimal guardrails, does not communicate to File Catalog, and does not traverse file directory tree.
