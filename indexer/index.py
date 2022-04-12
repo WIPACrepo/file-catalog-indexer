@@ -60,8 +60,8 @@ ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
 async def post_metadata(
     fc_rc: RestClient,
     metadata: types.Metadata,
-    patch: bool = False,
-    dryrun: bool = False,
+    patch: bool = defaults.PATCH,
+    dryrun: bool = defaults.DRYRUN,
 ) -> RestClient:
     """POST metadata, and PATCH if file is already in the file catalog."""
     if dryrun:
@@ -104,8 +104,8 @@ async def index_file(
     filepath: str,
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool,
-    dryrun: bool,
+    patch: bool = defaults.PATCH,
+    dryrun: bool = defaults.DRYRUN,
 ) -> None:
     """Gather and POST metadata for a file."""
     if not patch and await file_exists_in_fc(fc_rc, filepath):
@@ -135,8 +135,8 @@ async def index_paths(
     paths: List[str],
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool,
-    dryrun: bool,
+    patch: bool = defaults.PATCH,
+    dryrun: bool = defaults.DRYRUN,
 ) -> List[str]:
     """POST metadata of files given by paths, and return all child paths."""
     child_paths: List[str] = []
