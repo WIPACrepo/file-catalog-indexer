@@ -57,7 +57,7 @@ ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
 # Indexing Functions -------------------------------------------------------------------
 
 
-async def post_metadata(
+async def _post_metadata(
     fc_rc: RestClient,
     metadata: types.Metadata,
     patch: bool = defaults.PATCH,
@@ -128,7 +128,7 @@ async def index_file(
 
     logging.debug(f"{filepath} gathered.")
     logging.debug(metadata)
-    await post_metadata(fc_rc, metadata, patch, dryrun)
+    await _post_metadata(fc_rc, metadata, patch, dryrun)
 
 
 async def index_paths(
