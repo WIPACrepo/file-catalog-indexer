@@ -21,7 +21,7 @@ index(
 )
  ```
 
-### `from indexer.index import index_file`
+#### `from indexer.index import index_file`
 - Compute metadata of a single file, and upload it to File Catalog, i.e. index one file
 - Single-processed, single-threaded
 ```python
@@ -32,7 +32,7 @@ await index_file(
 )
 ```
 
-### `from indexer.index import index_paths`
+#### `from indexer.index import index_paths`
 - A wrapper around `index_file()` which indexes multiple files, and returns any nested sub-directories
 - Single-processed, single-threaded
 - Note: Symbolic links are never followed.
