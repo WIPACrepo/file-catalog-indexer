@@ -13,11 +13,11 @@ Indexing package and scripts for the File Catalog
 - Ex:
 ```python
 index(
-	fc_token,
+    fc_token,
     'WIPAC',
     paths=['/data/exp/IceCube/2018/filtered/level2/0820', '/data/exp/IceCube/2018/filtered/level2/0825'],
     blacklist=['/data/exp/IceCube/2018/filtered/level2/0820/Run00131410_74'],
-	n_processes=4,
+    n_processes=4,
 )
  ```
 
