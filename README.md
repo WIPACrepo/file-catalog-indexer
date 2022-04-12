@@ -6,8 +6,9 @@ Indexing package and scripts for the File Catalog
 ### As an Imported Package
 #### `from indexer.index import index`
 - The flagship indexing function
-- Find files rooted at given path(s), compute their metadata, and upload it to File Catalog.
-- Configurable for multi-processing, multi-threading, recursive file-traversing
+- Find files rooted at given path(s), compute their metadata, and upload it to File Catalog
+- Configurable for multi-processing (default: 1 process) and recursive file-traversing (default: on)
+- Internally communicates asynchronously with File Catalog
 - Note: Symbolic links are never followed.
 - Note: `index()` runs the current event loop (`asyncio.get_event_loop().run_until_complete()`)
 - Ex:
@@ -50,8 +51,8 @@ sub_dirs = await index_paths(
 - Ex:
 ```python
 manager = MetadataManager(...)  # caches connections & directory info, manages metadata collection
-metadata_file = manager.new_file(filepath)  # returns an instance
-metadata = metadata_file.generate()  # returns a dict
+metadata_file = manager.new_file(filepath)  # returns an instance (computationally light)
+metadata = metadata_file.generate()  # returns a dict (computationally intense)
  ```
 
 ### Scripts
