@@ -7,8 +7,8 @@ Indexing package and scripts for the File Catalog
 #### `from indexer.index import index`
 - The flagship indexing function
 - Find files rooted at given path(s), compute their metadata, and upload it to File Catalog.
-- Notes: Symbolic links are never followed.
 - Configurable for multi-processing, multi-threading, recursive file-traversing
+- Note: Symbolic links are never followed.
 - Note: `index()` runs the current event loop (`asyncio.get_event_loop().run_until_complete()`)
 - Ex:
 ```python
@@ -20,6 +20,29 @@ index(
     n_processes=4,
 )
  ```
+
+### `from indexer.index import index_file`
+- Compute metadata of a single file, and upload it to File Catalog, i.e. index one file
+- Single-processed, single-threaded
+```python
+await index_file(
+    filepath='/data/exp/IceCube/2018/filtered/level2/0820/Run00131410_74/Level2_IC86.2018_data_Run00131410_Subrun00000000_00000172.i3.zst',
+    manager=MetadataManager(...),
+    fc_rc=RestClient(...),
+)
+```
+
+### `from indexer.index import index_paths`
+- A wrapper around `index_file()` which indexes multiple files, and returns any nested sub-directories
+- Single-processed, single-threaded
+- Note: Symbolic links are never followed.
+```python
+sub_dirs = await index_paths(
+    paths=['/data/exp/IceCube/2018/filtered/level2/0820', '/data/exp/IceCube/2018/filtered/level2/0825'],
+    manager=MetadataManager(...),
+    fc_rc=RestClient(...),
+)
+```
 
 #### `from indexer.metadata_manager import MetadataManager`
 - The internal brain of the Indexer. This has minimal guardrails, does not communicate to File Catalog, and does not traverse file directory tree.
@@ -35,16 +58,16 @@ metadata = metadata_file.generate()  # returns a dict
 ##### `python -m indexer.index`
 - A command-line alternative to using `from indexer.index import index`
 - Use with `-h` to see usage.
-- Notes: Symbolic links are never followed.
+- Note: Symbolic links are never followed.
 
 ##### `python -m indexer.generate`
 - Like `python -m indexer.index`, but prints (using `pprint`) the metadata instead of posting to File Catalog.
 - Simply, uses file-traversing logic around calls to `indexer.metadata_manager.MetadataManager`
-- Notes: Symbolic links are never followed.
+- Note: Symbolic links are never followed.
 
 ##### `python -m indexer.delocate`
 - Find files rooted at given path(s); for each, remove the matching location entry from its File Catalog record.
-- Notes: Symbolic links are never followed.
+- Note: Symbolic links are never followed.
 
 
 ## Metadata Schema
