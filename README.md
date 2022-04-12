@@ -1,3 +1,6 @@
+<!--- Top of README Badges (automated) --->
+[![CircleCI](https://img.shields.io/circleci/build/github/WIPACrepo/file-catalog-indexer)](https://app.circleci.com/pipelines/github/WIPACrepo/file-catalog-indexer?branch=master&filter=all) [![PyPI](https://img.shields.io/pypi/v/wipac-file-catalog-indexer)](https://pypi.org/project/wipac-file-catalog-indexer/) [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/WIPACrepo/file-catalog-indexer?include_prereleases)](https://github.com/WIPACrepo/file-catalog-indexer/) [![PyPI - License](https://img.shields.io/pypi/l/wipac-file-catalog-indexer)](https://github.com/WIPACrepo/file-catalog-indexer/blob/master/LICENSE) [![Lines of code](https://img.shields.io/tokei/lines/github/WIPACrepo/file-catalog-indexer)](https://github.com/WIPACrepo/file-catalog-indexer/) [![GitHub issues](https://img.shields.io/github/issues/WIPACrepo/file-catalog-indexer)](https://github.com/WIPACrepo/file-catalog-indexer/issues?q=is%3Aissue+sort%3Aupdated-desc+is%3Aopen) [![GitHub pull requests](https://img.shields.io/github/issues-pr/WIPACrepo/file-catalog-indexer)](https://github.com/WIPACrepo/file-catalog-indexer/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Aopen) 
+<!--- End of README Badges (automated) --->
 # file-catalog-indexer
 Indexing package and scripts for the File Catalog
 
