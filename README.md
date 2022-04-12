@@ -3,7 +3,7 @@ Indexing package and scripts for the File Catalog
 
 ## How To
 
-### As an Imported Package
+### API
 #### `from indexer.index import index`
 - The flagship indexing function
 - Find files rooted at given path(s), compute their metadata, and upload it to File Catalog
@@ -69,6 +69,34 @@ metadata = metadata_file.generate()  # returns a dict (computationally intense)
 ##### `python -m indexer.delocate`
 - Find files rooted at given path(s); for each, remove the matching location entry from its File Catalog record.
 - Note: Symbolic links are never followed.
+
+## .i3 File Processing-Level Detection and Embedded Filename-Metadata Extraction
+Regex is used heavily to detect the processing level of a `.i3` file, and extract any embedded metadata in the filename. The exact process depends on the type of data:
+
+### Real Data (`/data/exp/*`)
+This is a two-stage process (see `MetadataManager._new_file_real()`):
+1. Processing-Level Detection (Base Pattern Screening)
+	- The filename is applied to multiple generic patterns to detect if it is L2, PFFilt, PFDST, or PFRaw
+	- If the filename does not trigger a match, *only basic metadata is collected* (`logical_name`, `checksum`, `file_size`, `locations`, and `create_date`)
+2. Embedded Filename-Metadata Extraction
+	- After the processing level is known, the filename is parsed using one of (possibly) several tokenizing regex patterns for the best match (greedy matching)
+	- If the filename does not trigger a match, *the function will raise an exception (script will exit).* This probably indicates that a new pattern needs to be added to the list.
+		+ see `indexer.metadata.real.filename_patterns`
+
+### Simulation Data (`/data/sim/*`)
+This is a three-stage process (see `MetadataManager._new_file_simulation()`):
+1. Base Pattern Screening
+	- The filename is checked for `.i3` file extensions: `.i3`, `.i3.gz`, `.i3.bz2`, `.i3.zst`
+	- If the filename does not trigger a match, *only basic metadata is collected* (`logical_name`, `checksum`, `file_size`, `locations`, and `create_date`)
+		+ there are a couple hard-coded "anti-patterns" used for rejecting known false-positives (see code)
+2. Embedded Filename-Metadata Extraction
+	- The filename is parsed using one of MANY (around a thousand) tokenizing regex patterns for the best match (greedy matching)
+	- If the filename does not trigger a match, *the function will raise an exception (script will exit).* This probably indicates that a new pattern needs to be added to the list.
+		+ see `indexer.metadata.sim.filename_patterns`
+3. Processing-Level Detection
+	- The filename is parsed for substrings corresponding to a processing level
+		+ see `DataSimI3FileMetadata.figure_processing_level()`
+	- If there is no match, `processing_level` will be set to `None`, since the processing level is less important for simulation data.
 
 
 ## Metadata Schema
