@@ -9,7 +9,7 @@ import math
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import coloredlogs  # type: ignore[import]
 import requests
@@ -70,13 +70,13 @@ async def _post_metadata(
         return fc_rc
 
     try:
-        _ = await fc_rc.request("POST", "/api/files", metadata)
+        await fc_rc.request("POST", "/api/files", cast(Dict[str, Any], metadata))
         logging.debug("POSTed.")
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 409:
             if patch:
                 patch_path = e.response.json()["file"]  # /api/files/{uuid}
-                _ = await fc_rc.request("PATCH", patch_path, metadata)
+                await fc_rc.request("PATCH", patch_path, cast(Dict[str, Any], metadata))
                 logging.debug("PATCHed.")
             else:
                 logging.debug("File (file-version) already exists, not patching entry.")
