@@ -1,5 +1,8 @@
 """Script for finding filename patterns."""
 
+# TODO: remove "mypy: ignore-errors" this file is ever updated
+# mypy: ignore-errors
+
 import argparse
 import logging
 import os

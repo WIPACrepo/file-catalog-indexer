@@ -3,6 +3,8 @@
 Use with: grep -P `python filename_pattern_regexer.py <string>` <file>
 """
 
+# TODO: remove "mypy: ignore-errors" this file is ever updated
+# mypy: ignore-errors
 
 import logging
 import re

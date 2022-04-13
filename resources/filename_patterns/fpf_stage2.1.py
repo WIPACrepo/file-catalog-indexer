@@ -1,5 +1,8 @@
 """Group (stage 2) filename patterns by endings."""
 
+# TODO: remove "mypy: ignore-errors" this file is ever updated
+# mypy: ignore-errors
+
 import logging
 import re
 import sys
