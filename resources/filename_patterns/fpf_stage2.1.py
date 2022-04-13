@@ -24,7 +24,7 @@ yaml_file = sys.argv[1]
 if ".counts.yaml" not in yaml_file:
     raise RuntimeError("Enter a *.counts.yaml file")
 with open(yaml_file, "r") as f:
-    fpats_cts = yaml.load(f)
+    fpats_cts = yaml.safe_load(f)
 
 
 class _HashEndings(TypedDict):
