@@ -197,7 +197,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         # Populate metadata
         sim_meta: types.SimulationMetadata = {}
         for metakey, paramkey in key_maps.items():
-            sim_meta[metakey] = steering_parameters[paramkey]  # type: ignore[misc]
+            sim_meta[metakey] = steering_parameters[paramkey]  # type: ignore[literal-required]
 
         # Format
         if "power_law_index" in sim_meta:
@@ -216,7 +216,7 @@ class DataSimI3FileMetadata(I3FileMetadata):
         for key, val in list(sim_meta.items()):
             type_ = types.simulation_metadata_types[key]
             try:
-                sim_meta[key] = type_(val)  # type: ignore[misc]
+                sim_meta[key] = type_(val)  # type: ignore[literal-required]
             except (ValueError, TypeError):
                 logging.debug(
                     f'Wrong data type stored for "simulation" key, ({key}:{val}) '

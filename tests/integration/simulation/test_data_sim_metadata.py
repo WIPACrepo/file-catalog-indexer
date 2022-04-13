@@ -91,4 +91,4 @@ def test_1(
             if field in SKIP_FIELDS:
                 continue
             print(field)
-            assert metadata[field] == generated_metadata[field]
+            assert metadata[field] == generated_metadata[field]  # type: ignore[literal-required]
