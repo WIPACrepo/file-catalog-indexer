@@ -1,6 +1,7 @@
 coloredlogs
 flake8
 mypy
+natsort
 pytest
 pytest-asyncio
 pytest-mock

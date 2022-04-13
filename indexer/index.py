@@ -9,7 +9,7 @@ import math
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import coloredlogs  # type: ignore[import]
 import requests
@@ -57,11 +57,11 @@ ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
 # Indexing Functions -------------------------------------------------------------------
 
 
-async def post_metadata(
+async def _post_metadata(
     fc_rc: RestClient,
     metadata: types.Metadata,
-    patch: bool = False,
-    dryrun: bool = False,
+    patch: bool = defaults.PATCH,
+    dryrun: bool = defaults.DRYRUN,
 ) -> RestClient:
     """POST metadata, and PATCH if file is already in the file catalog."""
     if dryrun:
@@ -70,13 +70,13 @@ async def post_metadata(
         return fc_rc
 
     try:
-        _ = await fc_rc.request("POST", "/api/files", metadata)
+        await fc_rc.request("POST", "/api/files", cast(Dict[str, Any], metadata))
         logging.debug("POSTed.")
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 409:
             if patch:
                 patch_path = e.response.json()["file"]  # /api/files/{uuid}
-                _ = await fc_rc.request("PATCH", patch_path, metadata)
+                await fc_rc.request("PATCH", patch_path, cast(Dict[str, Any], metadata))
                 logging.debug("PATCHed.")
             else:
                 logging.debug("File (file-version) already exists, not patching entry.")
@@ -104,8 +104,8 @@ async def index_file(
     filepath: str,
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool,
-    dryrun: bool,
+    patch: bool = defaults.PATCH,
+    dryrun: bool = defaults.DRYRUN,
 ) -> None:
     """Gather and POST metadata for a file."""
     if not patch and await file_exists_in_fc(fc_rc, filepath):
@@ -128,15 +128,15 @@ async def index_file(
 
     logging.debug(f"{filepath} gathered.")
     logging.debug(metadata)
-    await post_metadata(fc_rc, metadata, patch, dryrun)
+    await _post_metadata(fc_rc, metadata, patch, dryrun)
 
 
 async def index_paths(
     paths: List[str],
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool,
-    dryrun: bool,
+    patch: bool = defaults.PATCH,
+    dryrun: bool = defaults.DRYRUN,
 ) -> List[str]:
     """POST metadata of files given by paths, and return all child paths."""
     child_paths: List[str] = []

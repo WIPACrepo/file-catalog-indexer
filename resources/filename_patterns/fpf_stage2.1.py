@@ -1,5 +1,8 @@
 """Group (stage 2) filename patterns by endings."""
 
+# TODO: remove "mypy: ignore-errors" this file is ever updated
+# mypy: ignore-errors
+
 import logging
 import re
 import sys
@@ -21,7 +24,7 @@ yaml_file = sys.argv[1]
 if ".counts.yaml" not in yaml_file:
     raise RuntimeError("Enter a *.counts.yaml file")
 with open(yaml_file, "r") as f:
-    fpats_cts = yaml.load(f)
+    fpats_cts = yaml.safe_load(f)
 
 
 class _HashEndings(TypedDict):

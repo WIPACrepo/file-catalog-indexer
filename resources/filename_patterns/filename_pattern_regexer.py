@@ -3,6 +3,8 @@
 Use with: grep -P `python filename_pattern_regexer.py <string>` <file>
 """
 
+# TODO: remove "mypy: ignore-errors" this file is ever updated
+# mypy: ignore-errors
 
 import logging
 import re
@@ -27,7 +29,7 @@ strings: List[str] = []
 
 if sys.argv[1].endswith(".yaml"):
     with open(sys.argv[1], "r") as f:
-        in_yaml = yaml.load(f)
+        in_yaml = yaml.safe_load(f)
     if isinstance(in_yaml, dict):
         strings = list(in_yaml.keys())
     elif isinstance(in_yaml, list):
