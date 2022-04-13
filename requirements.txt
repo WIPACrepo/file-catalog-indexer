@@ -42,7 +42,7 @@ grpcio==1.44.0
     # via opentelemetry-exporter-jaeger-proto-grpc
 humanfriendly==10.0
     # via coloredlogs
-iceprod==2.5.12
+iceprod==2.5.13
     # via wipac-file-catalog-indexer (setup.py)
 idna==3.3
     # via requests
