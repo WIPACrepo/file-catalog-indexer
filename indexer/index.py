@@ -528,7 +528,7 @@ if __name__ == "__main__":
         blacklist=args.blacklist,
         blacklist_file=args.blacklist_file,
         url=args.url,
-        timeout=args.token,
+        timeout=args.timeout,
         retries=args.retries,
         basic_only=args.basic_only,
         patch=args.patch,
