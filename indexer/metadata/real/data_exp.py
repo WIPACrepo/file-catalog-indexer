@@ -181,7 +181,7 @@ class DataExpI3FileMetadata(I3FileMetadata):
         if entry_type is list:
             for project in entry:
                 software_list.append(parse_project(project))
-        elif entry_type is collections.OrderedDict:
+        elif entry_type in [collections.OrderedDict, dict]:
             software_list = [parse_project(entry)]
         else:
             raise Exception(
