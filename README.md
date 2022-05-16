@@ -103,8 +103,9 @@ This is a three-stage process (see `MetadataManager._new_file_simulation()`):
 
 
 ## Metadata Schema
-see: [Google Doc](https://docs.google.com/document/d/14SanUWiYEbgarElt0YXSn_2We-rwT-ePO5Fg7rrM9lw/edit?usp=sharing)
-also: [File Catalog Types]https://github.com/WIPACrepo/file_catalog/blob/master/file_catalog/schema/types.py
+See:
+- [Google Doc](https://docs.google.com/document/d/14SanUWiYEbgarElt0YXSn_2We-rwT-ePO5Fg7rrM9lw/edit?usp=sharing)
+- [File Catalog Types](https://github.com/WIPACrepo/file_catalog/blob/master/file_catalog/schema/types.py)
 
 
 ## Warnings
