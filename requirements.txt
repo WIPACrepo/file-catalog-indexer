@@ -16,7 +16,7 @@ botocore==1.26.1
     #   s3transfer
 cachetools==5.1.0
     # via iceprod
-certifi==2021.10.8
+certifi==2022.12.7
     # via
     #   iceprod
     #   requests
