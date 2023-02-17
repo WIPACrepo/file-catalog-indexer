@@ -73,10 +73,48 @@ jobs:
           pip install --upgrade pip wheel setuptools
           pip install .
 
+  unit:
+    needs: [py-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.py3 }}
+      - name: Pytest
+        run: |
+          pip install --upgrade pip wheel setuptools pytest
+          pip install .
+          pytest -vvvv tests/unit
+
+  integration:
+    needs: [py-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.py3 }}
+      - name: Pytest
+        run: |
+          cp ./resources/path_collector/traverser.py ./traverser.py  # fixes relative paths
+          cp ./resources/path_collector/common_args.py ./common_args.py  # fixes relative paths
+          pip install --upgrade pip wheel setuptools pytest
+          pip install .
+          pytest -vvvv tests/integration
+
   release:
     # only run on main/master/default
     if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
-    needs: [py-setup, tests]
+    needs: [py-setup, unit, integration]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
