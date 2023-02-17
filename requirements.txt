@@ -28,7 +28,7 @@ coloredlogs==15.0.1
     # via
     #   wipac-file-catalog
     #   wipac-telemetry
-cryptography==37.0.2
+cryptography==39.0.1
     # via
     #   iceprod
     #   pyopenssl
