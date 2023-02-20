@@ -9,13 +9,15 @@ import tarfile
 import xml
 import zlib
 from datetime import date
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import xmltodict  # type: ignore[import]
 from file_catalog.schema import types
 
 from ...utils import utils
 from ..i3 import I3FileMetadata
+
+StrDict = Dict[str, Any]
 
 
 class DataExpI3FileMetadata(I3FileMetadata):
@@ -33,7 +35,7 @@ class DataExpI3FileMetadata(I3FileMetadata):
             raise TypeError(
                 "Processing level cannot be None for DataExpI3FileMetadata and derived instances."
             )
-        self.meta_xml: Dict[str, Any] = {}
+        self.meta_xml: StrDict = {}
         try:
             (
                 self.season_year,
@@ -200,7 +202,10 @@ class DataExpI3FileMetadata(I3FileMetadata):
             with tarfile.open(self.file.path) as tar:
                 for tar_obj in tar:
                     if ".meta.xml" in tar_obj.name:
-                        self.meta_xml = xmltodict.parse(tar.extractfile(tar_obj))
+                        self.meta_xml = cast(
+                            StrDict,
+                            xmltodict.parse(tar.extractfile(tar_obj)),
+                        )
         except (
             xml.parsers.expat.ExpatError,
             tarfile.ReadError,

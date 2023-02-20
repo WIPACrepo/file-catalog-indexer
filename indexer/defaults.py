@@ -1,9 +1,6 @@
 """Default values for starting the indexer."""
 
-try:
-    from typing import Final
-except ImportError:
-    from typing_extensions import Final  # type: ignore[misc]
+from typing import Final
 
 _AGGREGATE_LATENCY_MINUTES: Final[int] = 30  # minutes
 

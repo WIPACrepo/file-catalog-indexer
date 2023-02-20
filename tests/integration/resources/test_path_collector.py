@@ -11,17 +11,11 @@ import stat
 import subprocess
 import sys
 import time
-from typing import Any, List, Tuple
+from typing import Any, Final, List, Tuple
 
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]
 import pytest
-
-try:
-    from typing import Final
-except ImportError:
-    from typing_extensions import Final  # type: ignore[misc]
-
 
 sys.path.append("./resources/path_collector")
 import path_collector  # type: ignore[import]  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
@@ -212,7 +206,7 @@ def test_chunk_size() -> None:
         logging.warning(f"Using invocation function: {func}")
         now = str(time.time())
 
-        for kibs in [0] + [10 ** i for i in range(0, 8)]:
+        for kibs in [0] + [10**i for i in range(0, 8)]:
             print("~ " * 60)
             chunk_size = int(bitmath.parse_string(f"{kibs}KiB").to_Byte())
             logging.warning(

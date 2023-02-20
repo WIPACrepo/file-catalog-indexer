@@ -6,15 +6,9 @@
 import logging
 import re
 import sys
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 
 import yaml
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
-
 
 raise Exception(
     "Deprecated since introducing num-sequences in filename_pattern_finder.py"

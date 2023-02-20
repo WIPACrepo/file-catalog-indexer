@@ -2,16 +2,11 @@
 
 
 import re
-from typing import List
+from typing import Final, List
 
 from ...utils import utils
 from . import filename_patterns
 from .data_exp import DataExpI3FileMetadata
-
-try:
-    from typing import Final
-except ImportError:
-    from typing_extensions import Final  # type: ignore[misc]
 
 
 class PFFiltFileMetadata(DataExpI3FileMetadata):
