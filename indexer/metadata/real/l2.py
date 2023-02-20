@@ -35,9 +35,8 @@ class L2FileMetadata(DataExpI3FileMetadata):
     @staticmethod
     def _i3time_to_datetime(year: int, daq_time: int) -> datetime.datetime:
         """Convert `I3Time` to `datetime.datetime`."""
-        from icecube import (
-            dataclasses,  # type: ignore[import]  # pylint: disable=E0401,C0415
-        )
+        # pylint: disable=C0415
+        from icecube import dataclasses  # type: ignore[import]  # pylint: disable=E0401
 
         i3_dt = dataclasses.I3Time(year, daq_time).date_time
         return cast(datetime.datetime, i3_dt)
