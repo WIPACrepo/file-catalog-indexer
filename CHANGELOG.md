@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.5 (2023-02-28)
+### Other
+* CI Updates ([#54](https://github.com/WIPACrepo/file-catalog-indexer/issues/54)) ([`2a6aab7`](https://github.com/WIPACrepo/file-catalog-indexer/commit/2a6aab70f5190a98cf3471f89314ed87826f9fe6))
+
 ## v1.0.4 (2022-05-16)
 
 
