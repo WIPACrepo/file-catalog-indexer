@@ -9,16 +9,10 @@ import os
 import re
 import subprocess
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 
 import coloredlogs  # type: ignore[import]
 import yaml
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
-
 
 coloredlogs.install(level="DEBUG")
 
@@ -448,7 +442,9 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--file", help="file that contains a filepath on each line", type=get_full_path,
+        "--file",
+        help="file that contains a filepath on each line",
+        type=get_full_path,
     )
     args = parser.parse_args()
 

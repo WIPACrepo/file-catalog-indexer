@@ -9,7 +9,7 @@ import math
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, TypedDict, cast
 
 import coloredlogs  # type: ignore[import]
 import requests
@@ -19,12 +19,6 @@ from rest_tools.client import RestClient
 from . import defaults
 from .metadata_manager import MetadataManager
 from .utils import file_utils
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
-
 
 # Types --------------------------------------------------------------------------------
 

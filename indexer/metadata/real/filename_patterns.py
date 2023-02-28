@@ -1,12 +1,7 @@
 """Regex collections for filename patterns."""
 
 
-from typing import List
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
+from typing import List, TypedDict
 
 
 class _Patterns(TypedDict):

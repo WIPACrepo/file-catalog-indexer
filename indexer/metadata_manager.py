@@ -16,6 +16,8 @@ from .metadata.simulation.data_sim import DataSimI3FileMetadata
 from .metadata.simulation.iceprod_tools import IceProdConnection
 from .utils import utils
 
+StrDict = Dict[str, Any]
+
 
 class MetadataManager:  # pylint: disable=R0903
     """Commander class for handling metadata for different file types."""
@@ -30,7 +32,7 @@ class MetadataManager:  # pylint: disable=R0903
         self.dir_path = ""
         self.site = site
         self.basic_only = basic_only
-        self.real_l2_dir_metadata: Dict[str, Dict[str, Any]] = {}
+        self.real_l2_dir_metadata: Dict[str, StrDict] = {}
         self.sim_regexes: List[Pattern[str]] = []
         if not iceprodv1_db_pass and not iceprodv2_rc_token:
             self.iceprod_conn: Optional[IceProdConnection] = None
@@ -66,8 +68,9 @@ class MetadataManager:  # pylint: disable=R0903
                     )
                 try:
                     with open(dir_entry.path, "r") as xml_file:
-                        dir_meta_xml = xmltodict.parse(xml_file.read())
-                        dir_meta_xml = typing.cast(Dict[str, Any], dir_meta_xml)
+                        dir_meta_xml = typing.cast(
+                            StrDict, xmltodict.parse(xml_file.read())
+                        )
                     logging.debug(f"Grabbed level2*meta.xml file, {dir_entry.name}.")
                 except xml.parsers.expat.ExpatError:
                     pass

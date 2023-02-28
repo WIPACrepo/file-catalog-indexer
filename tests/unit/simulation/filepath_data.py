@@ -1,14 +1,9 @@
 """Example /data/sim i3 filepaths."""
 
 
-from typing import Dict, Optional
+from typing import Dict, Optional, TypedDict
 
 from indexer.utils import utils
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
 
 
 class _FilepathValues(TypedDict, total=False):

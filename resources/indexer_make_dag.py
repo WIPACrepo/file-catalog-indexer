@@ -8,16 +8,10 @@ import os
 import re
 import subprocess
 import sys
-from typing import List, Optional, Tuple, cast
+from typing import Final, List, Optional, Tuple, TypedDict, cast
 
 import coloredlogs  # type: ignore[import]
 import natsort
-
-try:
-    from typing import Final, TypedDict
-except ImportError:
-    from typing_extensions import Final, TypedDict  # type: ignore[misc]
-
 
 MAX_DAG_JOBS: Final[int] = 2000
 

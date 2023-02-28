@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime as dt
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, TypedDict, Union
 
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]
@@ -25,11 +25,6 @@ from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0
     get_parser_w_common_args,
     get_full_path,
 )
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
 
 
 def check_call_and_log(
@@ -109,7 +104,8 @@ def _get_unique_lines(traverse_staging_dir: str, prev_traverse: str, fname: str)
     if prev_traverse:
         msg = ""
         check_call_and_log(
-            f"comm -1 -3 {prev_traverse} {fname} > {traverse_unique_tmp}", shell=True,
+            f"comm -1 -3 {prev_traverse} {fname} > {traverse_unique_tmp}",
+            shell=True,
         )
         # mark as finished
         os.rename(traverse_unique_tmp, traverse_unique)

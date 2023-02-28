@@ -7,7 +7,7 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 
 import functools
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
 import pymysql
 from file_catalog.schema import types
@@ -15,12 +15,6 @@ from iceprod.core import dataclasses  # type: ignore[import]
 from iceprod.core.parser import ExpParser  # type: ignore[import]
 from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[import]
 from rest_tools.client import RestClient  # type: ignore[import]
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
-
 
 # --------------------------------------------------------------------------------------
 # Constants
@@ -375,7 +369,10 @@ class _IceProdV2Querier(_IceProdQuerier):
             raise TaskNotFound()
 
     def _get_outfile_info(
-        self, dataset_id: str, job_index: Optional[int], jobs_submitted: int,
+        self,
+        dataset_id: str,
+        job_index: Optional[int],
+        jobs_submitted: int,
     ) -> Tuple[Optional[int], Optional[str], SteeringParameters]:
         """Get `task`, `job`, and steering parameters."""
         if job_index is not None:  # do we already know what job to look at?
@@ -384,7 +381,10 @@ class _IceProdV2Querier(_IceProdQuerier):
             job_search = list(range(jobs_submitted))
 
         logging.debug(f"Grabbing dataset job config ({self.filepath})...")
-        job_config = _get_iceprod2_dataset_job_config(self.iceprod_conn, dataset_id,)
+        job_config = _get_iceprod2_dataset_job_config(
+            self.iceprod_conn,
+            dataset_id,
+        )
         job_config["options"].update(
             {
                 "dataset": self.dataset_num,
@@ -445,7 +445,9 @@ class _IceProdV2Querier(_IceProdQuerier):
 
 
 def _get_iceprod_querier(
-    dataset_num: int, iceprod_conn: IceProdConnection, filepath: str,
+    dataset_num: int,
+    iceprod_conn: IceProdConnection,
+    filepath: str,
 ) -> _IceProdQuerier:
     if dataset_num in _ICEPROD_V1_DATASET_RANGE:
         return _IceProdV1Querier(dataset_num, iceprod_conn, filepath)
