@@ -11,7 +11,7 @@ import zlib
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-import xmltodict  # type: ignore[import]
+import xmltodict
 from file_catalog.schema import types
 
 from ...utils import utils

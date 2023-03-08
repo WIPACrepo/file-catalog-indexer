@@ -47,7 +47,7 @@ def get_subpaths(filepath: str) -> List[str]:
     Don't add symbolic links.
     """
 
-    def is_a_symlink(dir_entry: os.DirEntry) -> bool:  # type: ignore[type-arg]
+    def is_a_symlink(dir_entry: os.DirEntry) -> bool:
         is_sym = dir_entry.is_symlink()
         if is_sym:
             logging.warning(

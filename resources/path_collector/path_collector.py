@@ -342,7 +342,7 @@ def _try_log_setup(args: Any) -> None:
         coloredlogs.install(level="DEBUG")
         # also log to a file -- use the formatter (and level) from coloredlogs
         fhandler = logging.FileHandler(_get_path_collector_log(traverse_staging_dir))
-        fhandler.setFormatter(logging.getLogger().handlers[0].formatter)  # type: ignore[arg-type]
+        fhandler.setFormatter(logging.getLogger().handlers[0].formatter)
         logging.getLogger().addHandler(fhandler)
         # log args
         for arg, val in vars(args).items():
