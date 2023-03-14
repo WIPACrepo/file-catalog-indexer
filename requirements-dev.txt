@@ -89,6 +89,8 @@ markupsafe==2.1.2
     # via jinja2
 mccabe==0.7.0
     # via flake8
+more-itertools==9.1.0
+    # via wipac-file-catalog-indexer (setup.py)
 motor==3.1.1
     # via
     #   iceprod
