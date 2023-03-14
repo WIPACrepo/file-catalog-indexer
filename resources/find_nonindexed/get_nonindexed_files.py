@@ -8,7 +8,7 @@ import logging
 from typing import List
 
 import coloredlogs  # type: ignore[import]
-import more_itertools as mit  # type: ignore[import]
+import more_itertools as mit
 from rest_tools.client import RestClient
 
 

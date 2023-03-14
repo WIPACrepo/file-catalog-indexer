@@ -42,7 +42,10 @@ function lint {
 
 function lint_cicd {
     flake8 --exclude env --ignore=E203,E226,E228,E231,E501,W503,W504 .
-    mypy --exclude env --install-types --namespace-packages --non-interactive .
+
+    FLAGS="--namespace-packages --exclude build --exclude env"
+    IT_FLAGS="--install-types --non-interactive"
+    (mypy $IT_FLAGS $FLAGS . 2>/dev/null) || (echo "no type-packages to install" && mypy $FLAGS .)
 }
 
 function outdated {
