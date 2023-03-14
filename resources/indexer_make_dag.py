@@ -171,7 +171,7 @@ def make_dag_file(scratch: str, dir_of_paths_files: str) -> str:
                 return f"jobs{subdag_chunk[0][0]}to{subdag_chunk[-1][0]}"
 
             subdag_chunks: List[List[Tuple[int, str]]] = [
-                list(enumerate(paths[i : i + MAX_DAG_JOBS], start=start + i))
+                list(enumerate(paths[i:(i + MAX_DAG_JOBS)], start=start + i))
                 for i in range(0, len(paths), MAX_DAG_JOBS)
             ]
 

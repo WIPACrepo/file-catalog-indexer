@@ -12,7 +12,7 @@ from unittest.mock import ANY, AsyncMock, Mock, PropertyMock, patch
 
 from indexer import metadata_manager
 
-import sim_data as data
+import tests.integration.simulation.sim_data as data
 
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 

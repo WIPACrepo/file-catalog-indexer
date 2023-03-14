@@ -20,8 +20,7 @@ from typing import Any, List, Optional, TypedDict, Union
 import bitmath  # type: ignore[import]
 import coloredlogs  # type: ignore[import]
 
-sys.path.append(".")
-from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+from resources.path_collector.common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     get_parser_w_common_args,
     get_full_path,
 )
@@ -56,11 +55,11 @@ def _call_traverser(
         os.rename(traverser_log, dst)
 
     # traverse
-    exculdes_args = "--exclude " + " ".join(excluded_paths) if excluded_paths else ""
+    excludes_args = "--exclude " + " ".join(excluded_paths) if excluded_paths else ""
     check_call_and_log(
-        f"python traverser.py {traverse_root} "
+        f"python3 -m resources.path_collector.traverser {traverse_root} "
         f"--workers {workers}"
-        f" {exculdes_args} > {traverse_raw_tmp} 2> {traverser_log}",
+        f" {excludes_args} > {traverse_raw_tmp} 2> {traverser_log}",
         shell=True,
     )
 

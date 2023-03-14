@@ -13,8 +13,7 @@ from typing import List
 
 import yaml
 
-sys.path.append(".")
-from filename_pattern_finder import (  # isort:skip  # noqa # pylint: disable=C0413
+from resources.filename_patterns.filename_pattern_finder import (  # isort:skip  # noqa # pylint: disable=C0413
     I3_EXT_TOKEN,
     I3_EXTENSIONS,
     SPECIAL_NUM_STRINGS,

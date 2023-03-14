@@ -3,15 +3,13 @@
 import logging
 import os
 import stat
-import sys
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import List, Tuple
 
 import coloredlogs  # type: ignore[import]
 
-sys.path.append(".")
-from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+from resources.path_collector.common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     get_parser_w_common_args,
     get_full_path,
 )
@@ -52,10 +50,10 @@ def scan_directory(path: str, excluded_paths: List[str]) -> Tuple[List[str], Lis
             mode = os.lstat(dir_entry.path).st_mode
             if (
                 stat.S_ISLNK(mode)
-                or stat.S_ISSOCK(mode)
-                or stat.S_ISFIFO(mode)
-                or stat.S_ISBLK(mode)
-                or stat.S_ISCHR(mode)
+                or stat.S_ISSOCK(mode)  # noqa: W503
+                or stat.S_ISFIFO(mode)  # noqa: W503
+                or stat.S_ISBLK(mode)  # noqa: W503
+                or stat.S_ISCHR(mode)  # noqa: W503
             ):
                 logging.info(f"Non-processable file: {dir_entry.path}")
                 continue

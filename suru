@@ -4,14 +4,11 @@ export BROWSER=${BROWSER:="firefox"}  # use 'firefox' if BROWSER isn't set
 
 export CI_TEST_ENV=${CI_TEST_ENV:="TRUE"}  # disable keycloak_role_auth in testing
 
-function check {
-    python3 -m resources.check_requirements
-}
-
 function clean {
     rm -fr .coverage
     rm -fr .mypy_cache
     rm -fr .pytest_cache
+    rm -fr .ruff_cache
     rm -fr build
     rm -fr dist
     rm -fr htmlcov
@@ -36,11 +33,18 @@ function dist {
 
 function lint {
     flake8 indexer
+    ruff check indexer
     mypy --strict --allow-subclassing-any --namespace-packages indexer
     flake8 resources
-    mypy --strict --allow-subclassing-any resources
+    ruff check resources
+    mypy --strict --allow-subclassing-any --namespace-packages resources
     flake8 tests
-    mypy --strict --allow-subclassing-any tests
+    ruff check tests
+    mypy --strict --allow-subclassing-any --namespace-packages tests
+}
+
+function outdated {
+    python3 -m resources.check_requirements
 }
 
 function rebuild {
@@ -61,15 +65,15 @@ function test {
 }
 
 case "$1" in
-    check)    check         ;;
     clean)    clean         ;;
     coverage) coverage "$@" ;;  # pass all command line args to coverage function
     dist)     dist          ;;
     lint)     lint          ;;
+    outdated) outdated      ;;
     rebuild)  rebuild       ;;
     test)     test "$@"     ;;  # pass all command line args to test function
     *)
-        echo "Usage: $0 {check|clean|coverage|dist|lint|rebuild|test}"
+        echo "Usage: $0 {clean|coverage|dist|lint|outdated|rebuild|test}"
         exit 1
 esac
 

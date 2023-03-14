@@ -10,7 +10,7 @@ from unittest.mock import ANY
 from _pytest.logging import LogCaptureFixture
 from indexer.metadata.simulation import data_sim
 
-import steering_param_data as data
+import tests.unit.simulation.steering_param_data as data
 
 
 def test_good() -> None:

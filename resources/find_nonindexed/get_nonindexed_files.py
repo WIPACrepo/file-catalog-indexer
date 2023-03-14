@@ -8,7 +8,7 @@ import logging
 from typing import List
 
 import coloredlogs  # type: ignore[import]
-import more_itertools as mit
+import more_itertools as mit  # type: ignore[import]
 from rest_tools.client import RestClient
 
 
@@ -87,7 +87,7 @@ def main() -> None:
     fpath_chunks = _split_up_infile(args.traverse_file, args.threads)
 
     # spawn threads
-    workers: List[concurrent.futures.Future] = []
+    workers: List[concurrent.futures.Future[List[str]]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as pool:
         logging.warning(f"Spinning off thread jobs ({args.threads})")
         workers.extend(

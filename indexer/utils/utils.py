@@ -15,7 +15,9 @@ class FileInfo:  # pylint: disable=R0903
     def __init__(self, filepath: str):
         self.path = filepath
         self.name = os.path.basename(self.path)
-        self.stat = lambda: os.stat(self.path)
+
+    def stat(self) -> os.stat_result:
+        return os.stat(self.path)
 
 
 class IceCubeSeasonException(Exception):

@@ -9,7 +9,7 @@ import pytest
 from indexer.metadata.simulation import data_sim, filename_patterns
 from indexer.utils import utils
 
-import filepath_data as data
+import tests.unit.simulation.filepath_data as data
 
 
 @pytest.fixture

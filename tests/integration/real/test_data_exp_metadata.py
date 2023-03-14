@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 from indexer import metadata_manager
 
-import exp_data as data
+import tests.integration.real.exp_data as data
 
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 

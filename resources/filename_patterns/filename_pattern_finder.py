@@ -333,8 +333,8 @@ for sn_strs in [SPECIAL_NUM_STRINGS, NUM_SEQUENCES]:
         for s2 in sn_strs:
             assert (
                 s["token"] == s2["token"]
-                and s["hash_regex"] == s2["hash_regex"]
-                and s["normal_regex"] == s2["normal_regex"]
+                and s["hash_regex"] == s2["hash_regex"]  # noqa: W503
+                and s["normal_regex"] == s2["normal_regex"]  # noqa: W503
             ) or s["token"] not in s2["token"]
 
 
