@@ -11,7 +11,7 @@ import zlib
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-import xmltodict  # type: ignore[import]
+import xmltodict
 from file_catalog.schema import types
 
 from ...utils import utils
@@ -204,7 +204,7 @@ class DataExpI3FileMetadata(I3FileMetadata):
                     if ".meta.xml" in tar_obj.name:
                         self.meta_xml = cast(
                             StrDict,
-                            xmltodict.parse(tar.extractfile(tar_obj)),
+                            xmltodict.parse(tar.extractfile(tar_obj)),  # type: ignore[arg-type]
                         )
         except (
             xml.parsers.expat.ExpatError,

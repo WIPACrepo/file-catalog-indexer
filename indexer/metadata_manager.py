@@ -8,7 +8,7 @@ import typing
 import xml
 from typing import Any, Dict, List, Optional, Pattern
 
-import xmltodict  # type: ignore[import]
+import xmltodict
 import yaml
 
 from .metadata import basic, real, simulation
