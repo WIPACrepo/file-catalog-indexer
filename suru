@@ -32,15 +32,17 @@ function dist {
 }
 
 function lint {
-    flake8 indexer
     ruff check indexer
-    mypy --strict --allow-subclassing-any --namespace-packages indexer
-    flake8 resources
+    mypy --strict --namespace-packages indexer
     ruff check resources
-    mypy --strict --allow-subclassing-any --namespace-packages resources
-    flake8 tests
+    mypy --strict --namespace-packages resources
     ruff check tests
-    mypy --strict --allow-subclassing-any --namespace-packages tests
+    mypy --strict --namespace-packages tests
+}
+
+function lint_cicd {
+    flake8 --exclude env --ignore=E203,E226,E228,E231,E501,W503,W504 .
+    mypy --exclude env --install-types --namespace-packages --non-interactive .
 }
 
 function outdated {
@@ -65,15 +67,16 @@ function test {
 }
 
 case "$1" in
-    clean)    clean         ;;
-    coverage) coverage "$@" ;;  # pass all command line args to coverage function
-    dist)     dist          ;;
-    lint)     lint          ;;
-    outdated) outdated      ;;
-    rebuild)  rebuild       ;;
-    test)     test "$@"     ;;  # pass all command line args to test function
+    clean)     clean         ;;
+    coverage)  coverage "$@" ;;  # pass all command line args to coverage function
+    dist)      dist          ;;
+    lint)      lint          ;;
+    lint-cicd) lint_cicd     ;;
+    outdated)  outdated      ;;
+    rebuild)   rebuild       ;;
+    test)      test "$@"     ;;  # pass all command line args to test function
     *)
-        echo "Usage: $0 {clean|coverage|dist|lint|outdated|rebuild|test}"
+        echo "Usage: $0 {clean|coverage|dist|lint|lint-cicd|outdated|rebuild|test}"
         exit 1
 esac
 

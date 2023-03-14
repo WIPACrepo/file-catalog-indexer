@@ -80,7 +80,7 @@ def _remove_all(*args: Any) -> None:
             os.remove(f)
 
 
-def _get_archive_file(stage: str) -> os.DirEntry:  # type: ignore[type-arg]
+def _get_archive_file(stage: str) -> os.DirEntry:
     return [d for d in os.scandir(stage) if stat.S_ISREG(os.lstat(d.path).st_mode)][0]
 
 
@@ -119,7 +119,7 @@ def _assert_out_files(
     assert set(os.listdir(stage_dirs[0])) == set(expected_files)
 
 
-def _get_traverse_staging_dir(stage: str) -> os.DirEntry:  # type: ignore[type-arg]
+def _get_traverse_staging_dir(stage: str) -> os.DirEntry:
     return [d for d in os.scandir(stage) if stat.S_ISDIR(os.lstat(d.path).st_mode)][0]
 
 
@@ -131,7 +131,7 @@ def _get_chunks_dir(stage: str) -> str:
     return os.path.join(_get_traverse_staging_dir(stage).path, "traverse-chunks")
 
 
-def _get_chunk_0(stage: str) -> os.DirEntry:  # type: ignore[type-arg]
+def _get_chunk_0(stage: str) -> os.DirEntry:
     return list(os.scandir(_get_chunks_dir(stage)))[0]
 
 

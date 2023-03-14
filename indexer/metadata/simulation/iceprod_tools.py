@@ -77,7 +77,7 @@ class IceProdConnection:
             "https://iceprod2-api.icecube.wisc.edu", iceprodv2_token
         )
 
-    def get_iceprodv1_db(self) -> pymysql.connections.Connection:  # type: ignore[type-arg]
+    def get_iceprodv1_db(self) -> pymysql.connections.Connection:
         """Get a pymsql connection instance for querying the IceProd v1 DB."""
         return pymysql.connect(
             host="vm-i3simprod.icecube.wisc.edu",
