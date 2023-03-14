@@ -62,6 +62,8 @@ ldap3==2.9.1
     # via
     #   iceprod
     #   wipac-file-catalog
+more-itertools==9.1.0
+    # via wipac-file-catalog-indexer (setup.py)
 motor==3.1.1
     # via
     #   iceprod
