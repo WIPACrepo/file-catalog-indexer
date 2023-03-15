@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, cast
 
 import coloredlogs  # type: ignore[import]
 import requests
-from rest_tools.client import RestClient
+from rest_tools.client import ClientCredentialsAuth, RestClient
 
 from indexer.utils import file_utils
 
@@ -118,7 +118,10 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "paths", metavar="PATHS", nargs="*", help="filepath(s) to de-locate"
+        "paths",
+        metavar="PATHS",
+        nargs="*",
+        help="filepath(s) to de-locate",
     )
     parser.add_argument(
         "-f",
@@ -128,10 +131,17 @@ def main() -> None:
         "(use this option for a large number of paths)",
     )
     parser.add_argument(
-        "-s", "--site", required=True, help='site value of the "locations" object'
+        "-s",
+        "--site",
+        required=True,
+        help='site value of the "locations" object',
     )
     parser.add_argument(
-        "-t", "--token", required=True, help="REST token for File Catalog"
+        "-t",
+        "--client-secret",
+        "--token",
+        required=True,
+        help="client secret for File Catalog",
     )
     parser.add_argument(
         "--skip-missing-locations",
@@ -139,7 +149,12 @@ def main() -> None:
         action="store_true",
         help="don't exit when a filepath already isn't in the File Catalog",
     )
-    parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
+    parser.add_argument(
+        "-l",
+        "--log",
+        default="INFO",
+        help="the output logging level",
+    )
 
     # grab args
     args = parser.parse_args()
@@ -155,7 +170,12 @@ def main() -> None:
         file_does_not_exist(fpath)
 
     # de-locate
-    rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
+    rc = ClientCredentialsAuth(
+        address="https://file-catalog.icecube.wisc.edu/",
+        token_url="https://keycloak.icecube.wisc.edu/auth/realms/IceCube",
+        client_id="file-catalog",
+        client_secret=args.client_secret
+    )
     delocated, skipped, already_deleted = asyncio.get_event_loop().run_until_complete(
         delocate_filepaths(paths, rc, args.site, args.skip_missing_locations)
     )

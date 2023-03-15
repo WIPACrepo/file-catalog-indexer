@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
+# get_nonindexed_files.py
 """Utility to get files that have not been indexed from a traverse file."""
-
 
 import argparse
 import concurrent.futures
@@ -9,14 +10,16 @@ from typing import List
 
 import coloredlogs  # type: ignore[import]
 import more_itertools as mit
-from rest_tools.client import RestClient
+from rest_tools.client import ClientCredentialsAuth
 
 
-def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> List[str]:
+def _check_fpaths(fpaths: List[str], client_secret: str, thread_id: int) -> List[str]:
     # setup
-    rc = RestClient(
-        "https://file-catalog.icecube.wisc.edu/",
-        token=token,
+    rc = ClientCredentialsAuth(
+        address="https://file-catalog.icecube.wisc.edu/",
+        token_url="https://keycloak.icecube.wisc.edu/auth/realms/IceCube",
+        client_id="file-catalog",
+        client_secret=client_secret,
         timeout=60 * 60,  # 1 hour
         retries=24,  # 1 day
     )
@@ -70,15 +73,25 @@ def main() -> None:
         required=True,
         help="traverse file containing superset of filepaths",
     )
-    parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     parser.add_argument(
-        "-t", "--token", required=True, help="REST token for File Catalog"
+        "-l", "--log",
+        default="DEBUG",
+        help="the output logging level"
     )
-    parser.add_argument("--threads", required=True, type=int, help="# of threads")
+    parser.add_argument(
+        "--client-secret",
+        required=True,
+        help="client secret for File Catalog"
+    )
+    parser.add_argument(
+        "--threads",
+        required=True,
+        type=int,
+        help="# of threads"
+    )
     args = parser.parse_args()
 
     # logging
-    args = parser.parse_args()
     coloredlogs.install(level=args.log.upper())
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
@@ -91,7 +104,7 @@ def main() -> None:
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as pool:
         logging.warning(f"Spinning off thread jobs ({args.threads})")
         workers.extend(
-            pool.submit(_check_fpaths, c, args.token, i)
+            pool.submit(_check_fpaths, c, args.client_secret, i)
             for i, c in enumerate(fpath_chunks)
         )
 

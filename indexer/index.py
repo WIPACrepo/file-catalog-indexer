@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, TypedDict, cast
 import coloredlogs  # type: ignore[import]
 import requests
 from file_catalog.schema import types
-from rest_tools.client import RestClient
+from rest_tools.client import ClientCredentialsAuth, RestClient
 
 from . import defaults
 from .metadata_manager import MetadataManager
@@ -23,11 +23,13 @@ from .utils import file_utils
 # Types --------------------------------------------------------------------------------
 
 
-class RestClientArgs(TypedDict):
-    """TypedDict for RestClient parameters."""
+class ClientCredentialsAuthArgs(TypedDict):
+    """TypedDict for ClientCredentialsAuth parameters."""
 
-    url: str
-    token: str
+    address: str
+    token_url: str
+    client_id: str
+    client_secret: str
     timeout: int
     retries: int
 
@@ -56,12 +58,11 @@ async def _post_metadata(
     metadata: types.Metadata,
     patch: bool = defaults.PATCH,
     dryrun: bool = defaults.DRYRUN,
-) -> RestClient:
+) -> None:
     """POST metadata, and PATCH if file is already in the file catalog."""
     if dryrun:
         logging.warning(f"Dry-Run Enabled: Not POSTing to File Catalog! {metadata}")
         sleep(0.1)
-        return fc_rc
 
     try:
         await fc_rc.request("POST", "/api/files", cast(Dict[str, Any], metadata))
@@ -76,7 +77,6 @@ async def _post_metadata(
                 logging.debug("File (file-version) already exists, not patching entry.")
         else:
             raise
-    return fc_rc
 
 
 async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
@@ -174,7 +174,7 @@ def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
 def _index(
     paths: List[str],
     blacklist: List[str],
-    rest_client_args: RestClientArgs,
+    client_credentials_auth_args: ClientCredentialsAuthArgs,
     site: str,
     indexer_flags: IndexerFlags,
 ) -> List[str]:
@@ -192,11 +192,13 @@ def _index(
     paths = [p for p in paths if not path_in_blacklist(p, blacklist)]
 
     # Prep
-    fc_rc = RestClient(
-        rest_client_args["url"],
-        token=rest_client_args["token"],
-        timeout=rest_client_args["timeout"],
-        retries=rest_client_args["retries"],
+    fc_rc = ClientCredentialsAuth(
+        address=client_credentials_auth_args["address"],
+        token_url=client_credentials_auth_args["token_url"],
+        client_id=client_credentials_auth_args["client_id"],
+        client_secret=client_credentials_auth_args["client_secret"],
+        timeout=client_credentials_auth_args["timeout"],
+        retries=client_credentials_auth_args["retries"],
     )
     manager = MetadataManager(
         site,
@@ -219,7 +221,7 @@ def _index(
 def _recursively_index_multiprocessed(  # pylint: disable=R0913
     starting_paths: List[str],
     blacklist: List[str],
-    rest_client_args: RestClientArgs,
+    client_credentials_auth_args: ClientCredentialsAuthArgs,
     site: str,
     indexer_flags: IndexerFlags,
     n_processes: int,
@@ -248,7 +250,7 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
                             _index,
                             paths,
                             blacklist,
-                            rest_client_args,
+                            client_credentials_auth_args,
                             site,
                             indexer_flags,
                         )
@@ -269,7 +271,7 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
 def _recursively_index(  # pylint: disable=R0913
     starting_paths: List[str],
     blacklist: List[str],
-    rest_client_args: RestClientArgs,
+    client_credentials_auth_args: ClientCredentialsAuthArgs,
     site: str,
     indexer_flags: IndexerFlags,
     n_processes: int,
@@ -279,7 +281,7 @@ def _recursively_index(  # pylint: disable=R0913
         _recursively_index_multiprocessed(
             starting_paths,
             blacklist,
-            rest_client_args,
+            client_credentials_auth_args,
             site,
             indexer_flags,
             n_processes,
@@ -289,7 +291,7 @@ def _recursively_index(  # pylint: disable=R0913
         i = 0
         while queue:
             logging.debug(f"Queue Iteration #{i}")
-            queue = _index(queue, blacklist, rest_client_args, site, indexer_flags)
+            queue = _index(queue, blacklist, client_credentials_auth_args, site, indexer_flags)
             i += 1
 
 
@@ -307,13 +309,13 @@ def validate_path(path: str) -> None:
 
 
 def index(
-    token: str,
+    client_secret: str,
     site: str,
     paths: Optional[List[str]] = defaults.PATHS,
     paths_file: str = defaults.PATHS_FILE,
     blacklist: Optional[List[str]] = defaults.BLACKLIST,
     blacklist_file: str = defaults.BLACKLIST_FILE,
-    url: str = defaults.URL,
+    address: str = defaults.ADDRESS,
     timeout: int = defaults.TIMEOUT,
     retries: int = defaults.RETRIES,
     basic_only: bool = defaults.BASIC_ONLY,
@@ -323,12 +325,14 @@ def index(
     dryrun: bool = defaults.DRYRUN,
     non_recursive: bool = defaults.NON_RECURSIVE,
     n_processes: int = defaults.N_PROCESSES,
+    token_url: str = defaults.TOKEN_URL,
+    client_id: str = defaults.CLIENT_ID,
 ) -> None:
     """Traverse paths and index.
 
     Arguments:
-        `token`:
-            REST token for File Catalog
+        `client_secret`:
+            client secret for File Catalog
         `site`:
             site value of the "locations" object (WIPAC, NERSC, etc.)
 
@@ -341,7 +345,7 @@ def index(
             list of blacklisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*
         `blacklist_file`:
             a file containing blacklisted filepaths on each line (this is a useful alternative to `--blacklist` when there's many blacklisted paths); Ex: /foo/bar/ will skip /foo/bar/*
-        `url`:
+        `address`:
             File Catalog URL
         `timeout`:
             timeout duration (seconds) for File Catalog REST requests
@@ -361,6 +365,10 @@ def index(
             do not recursively index / do not descend into sub-directories
         `n_processes`:
             number of processes for multi-processing (ignored if `non_recursive=True`)
+        `token_url`:
+            Keycloak Auth URL
+        `client_id`:
+            Keycloak ID for File Catalog client
     """
 
     logging.info(
@@ -382,9 +390,11 @@ def index(
     )
 
     # Grab and pack args
-    rest_client_args: RestClientArgs = {
-        "url": url,
-        "token": token,
+    rest_client_args: ClientCredentialsAuthArgs = {
+        "address": address,
+        "token_url": token_url,
+        "client_id": client_id,
+        "client_secret": client_secret,
         "timeout": timeout,
         "retries": retries,
     }
@@ -413,7 +423,10 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "paths", metavar="PATHS", nargs="*", help="path(s) to scan for files."
+        "paths",
+        metavar="PATHS",
+        nargs="*",
+        help="path(s) to scan for files.",
     )
     parser.add_argument(
         "-f",
@@ -438,15 +451,23 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-u",
+        "--address",
         "--url",
-        default=defaults.URL,
+        default=defaults.ADDRESS,
         help="File Catalog URL",
     )
     parser.add_argument(
-        "-s", "--site", required=True, help='site value of the "locations" object'
+        "-s",
+        "--site",
+        required=True,
+        help='site value of the "locations" object',
     )
     parser.add_argument(
-        "-t", "--token", required=True, help="REST token for File Catalog"
+        "-t",
+        "--client-secret",
+        "--token",
+        required=True,
+        help="client secret for File Catalog"
     )
     parser.add_argument(
         "--timeout",
@@ -508,20 +529,29 @@ if __name__ == "__main__":
         action="store_true",
         help="do everything except POSTing/PATCHing to the File Catalog",
     )
-
+    parser.add_argument(
+        "--token-url",
+        default=defaults.TOKEN_URL,
+        help="Keycloak Auth URL",
+    )
+    parser.add_argument(
+        "--client-id",
+        default=defaults.CLIENT_ID,
+        help="Keycloak ID for File Catalog client",
+    )
     args = parser.parse_args()
     coloredlogs.install(level=args.log.upper())
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
     index(
-        token=args.token,
+        client_secret=args.client_secret,
         site=args.site,
         paths=args.paths,
         paths_file=args.paths_file,
         blacklist=args.blacklist,
         blacklist_file=args.blacklist_file,
-        url=args.url,
+        address=args.address,
         timeout=args.timeout,
         retries=args.retries,
         basic_only=args.basic_only,
@@ -531,4 +561,6 @@ if __name__ == "__main__":
         dryrun=args.dryrun,
         non_recursive=args.non_recursive,
         n_processes=args.processes,
+        token_url=args.token_url,
+        client_id=args.client_id,
     )
