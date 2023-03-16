@@ -5,6 +5,7 @@
 3. metadata = metadata_file.generate()
 """
 
+from argparse import Namespace
 import json
 from datetime import date
 from os import listdir, path
@@ -78,11 +79,17 @@ def test_1(
             raise Exception("Missing testing data")
 
         # run
-        manager = metadata_manager.MetadataManager(
-            "WIPAC",
-            iceprodv2_rc_token=ANY,
-            iceprodv1_db_pass=ANY,
-        )
+        args = Namespace()
+        args.basic_only = False
+        args.iceprod_rest_url = ""
+        args.iceprodv1_db_pass = ANY
+        args.oauth_client_id = "file-catalog-indexer"
+        args.oauth_client_secret = "hunter2"
+        args.oauth_url = ""
+        args.rest_timeout = 60
+        args.rest_retries = 10
+        args.site = "WIPAC"
+        manager = metadata_manager.MetadataManager(args)
         metadata_file = manager.new_file(fullpath)
         generated_metadata = metadata_file.generate()
 

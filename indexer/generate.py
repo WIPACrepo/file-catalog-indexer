@@ -41,12 +41,7 @@ def main() -> None:
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    manager = MetadataManager(
-        args.site,
-        basic_only=args.basic_only,
-        iceprodv2_rc_token=args.iceprodv2_rc_token,
-        iceprodv1_db_pass=args.iceprodv1_db_pass,
-    )
+    manager = MetadataManager(args)
 
     filepath_queue = [os.path.abspath(p) for p in args.paths]
 

@@ -1,12 +1,14 @@
+# metadata_manager.py
 """Class for managing metadata collection / interfacing with indexer.py."""
 
+from argparse import Namespace
 import logging
 import os
 import re
 import tarfile
 import typing
 import xml
-from typing import Any, Dict, List, Optional, Pattern
+from typing import Any, Dict, List, Pattern
 
 import xmltodict
 import yaml
@@ -22,22 +24,14 @@ StrDict = Dict[str, Any]
 class MetadataManager:  # pylint: disable=R0903
     """Commander class for handling metadata for different file types."""
 
-    def __init__(  # pylint: disable=R0913
-        self,
-        site: str,
-        basic_only: bool = False,
-        iceprodv2_rc_token: str = "",
-        iceprodv1_db_pass: str = "",
-    ):
+    def __init__(self, args: Namespace):
+        """Initialize a MetadataManager for handling different file types."""
         self.dir_path = ""
-        self.site = site
-        self.basic_only = basic_only
+        self.site = args.site
+        self.basic_only = args.basic_only
         self.real_l2_dir_metadata: Dict[str, StrDict] = {}
         self.sim_regexes: List[Pattern[str]] = []
-        if not iceprodv1_db_pass and not iceprodv2_rc_token:
-            self.iceprod_conn: Optional[IceProdConnection] = None
-        else:
-            self.iceprod_conn = IceProdConnection(iceprodv1_db_pass, iceprodv2_rc_token)
+        self.iceprod_conn = IceProdConnection(args)
 
     def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
         """Return basic metadata-file object for files.

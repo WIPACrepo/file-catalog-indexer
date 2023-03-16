@@ -24,7 +24,7 @@ class IndexerArgs(TypedDict):
     """Arguments for indexer_script.py."""
 
     path_to_indexer: str
-    blacklist: str
+    denylist: str
     token: str
     timeout: Optional[int]
     retries: Optional[int]
@@ -92,10 +92,10 @@ def make_condor_file(
         with open(condorpath, "w") as file:
             # configure transfer_input_files
             transfer_input_files = []
-            blacklist_arg = ""
-            if indexer_args["blacklist"]:
-                blacklist_arg = f"--blacklist {indexer_args['blacklist']}"
-                transfer_input_files.append(indexer_args["blacklist"])
+            denylist_arg = ""
+            if indexer_args["denylist"]:
+                denylist_arg = f"--denylist {indexer_args['denylist']}"
+                transfer_input_files.append(indexer_args["denylist"])
 
             # /data/sim/-type arguments
             if indexer_args["iceprodv1_db_pass"] and indexer_args["iceprodv2_rc_token"]:
@@ -119,7 +119,7 @@ def make_condor_file(
             # write
             file.write(
                 f"""executable = {os.path.abspath(executable)}
-arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC --paths-file $(PATHS_FILE) -t {indexer_args['token']} {timeout_retries_args} {blacklist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} {dryrun}
+arguments = python {os.path.abspath(indexer_args['path_to_indexer'])} -s WIPAC --paths-file $(PATHS_FILE) -t {indexer_args['token']} {timeout_retries_args} {denylist_arg} --log INFO --processes {indexer_args['cpus']} {sim_args} {dryrun}
 output = {scratch}/$(JOBNUM).out
 error = {scratch}/$(JOBNUM).err
 log = {scratch}/$(JOBNUM).log
@@ -279,9 +279,9 @@ def main() -> None:
         "filepaths to index by a single job. Ex: /data/user/eevans/pre-index-data-exp/paths/",
     )
     parser.add_argument(
-        "--blacklist",
+        "--denylist",
         type=get_full_path,
-        help="blacklist file containing all filepaths/directories to skip",
+        help="denylist file containing all filepaths/directories to skip",
     )
     parser.add_argument(
         "--dryrun",
@@ -322,7 +322,7 @@ def main() -> None:
     # make condor file
     indexer_args: IndexerArgs = {
         "path_to_indexer": args.path_to_indexer,
-        "blacklist": args.blacklist,
+        "denylist": args.denylist,
         "token": args.token,
         "timeout": args.timeout,
         "retries": args.retries,

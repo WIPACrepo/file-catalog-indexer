@@ -10,20 +10,12 @@ from typing import List
 
 import coloredlogs  # type: ignore[import]
 import more_itertools as mit
-from rest_tools.client import ClientCredentialsAuth
+from rest_tools.client import RestClient
+
+from indexer.client_auth import add_auth_to_argparse, create_file_catalog_rest_client
 
 
-def _check_fpaths(fpaths: List[str], client_secret: str, thread_id: int) -> List[str]:
-    # setup
-    rc = ClientCredentialsAuth(
-        address="https://file-catalog.icecube.wisc.edu/",
-        token_url="https://keycloak.icecube.wisc.edu/auth/realms/IceCube",
-        client_id="file-catalog",
-        client_secret=client_secret,
-        timeout=60 * 60,  # 1 hour
-        retries=24,  # 1 day
-    )
-
+def _check_fpaths(fpaths: List[str], rc: RestClient, thread_id: int) -> List[str]:
     # scan
     nonindexed_fpaths: List[str] = []
     for i, fpath in enumerate(fpaths, start=1):
@@ -79,17 +71,16 @@ def main() -> None:
         help="the output logging level"
     )
     parser.add_argument(
-        "--client-secret",
-        required=True,
-        help="client secret for File Catalog"
-    )
-    parser.add_argument(
         "--threads",
         required=True,
         type=int,
         help="# of threads"
     )
+    add_auth_to_argparse(parser)
     args = parser.parse_args()
+
+    # rest client
+    rc: RestClient = create_file_catalog_rest_client(args)
 
     # logging
     coloredlogs.install(level=args.log.upper())
@@ -104,7 +95,7 @@ def main() -> None:
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as pool:
         logging.warning(f"Spinning off thread jobs ({args.threads})")
         workers.extend(
-            pool.submit(_check_fpaths, c, args.client_secret, i)
+            pool.submit(_check_fpaths, c, rc, i)
             for i, c in enumerate(fpath_chunks)
         )
 

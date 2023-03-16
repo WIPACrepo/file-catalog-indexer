@@ -5,6 +5,7 @@
 3. metadata = metadata_file.generate()
 """
 
+from argparse import Namespace
 import os
 from datetime import datetime as dt
 from unittest.mock import Mock, patch
@@ -66,7 +67,17 @@ def test_1(
             )
 
         # run
-        manager = metadata_manager.MetadataManager("WIPAC")
+        args = Namespace()
+        args.basic_only = False
+        args.iceprod_rest_url = ""
+        args.iceprodv1_db_pass = "hunter2"
+        args.oauth_client_id = "file-catalog-indexer"
+        args.oauth_client_secret = "hunter2"
+        args.oauth_url = ""
+        args.rest_timeout = 60
+        args.rest_retries = 10
+        args.site = "WIPAC"
+        manager = metadata_manager.MetadataManager(args)
         metadata_file = manager.new_file(fullpath)
         generated_metadata = metadata_file.generate()
 
