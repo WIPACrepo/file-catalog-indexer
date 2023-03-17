@@ -6,7 +6,6 @@ Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_inf
 
 # pylint: disable=R0903
 
-from argparse import Namespace
 import functools
 import logging
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
@@ -19,6 +18,7 @@ from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[impor
 from rest_tools.client import RestClient
 
 from indexer.client_auth import create_iceprod_rest_client
+from indexer.index import IndexerConfiguration, OAuthConfiguration, RestConfiguration
 
 # --------------------------------------------------------------------------------------
 # Constants
@@ -70,9 +70,12 @@ class TaskNotFound(Exception):
 class IceProdConnection:
     """Interface for connecting to IceProd v1 and v2."""
 
-    def __init__(self, args: Namespace):
-        self._iceprodv1_pass = args.iceprodv1_db_pass
-        self._iceprodv2_rc = create_iceprod_rest_client(args)
+    def __init__(self,
+                 index_config: IndexerConfiguration,
+                 oauth_config: OAuthConfiguration,
+                 rest_config: RestConfiguration):
+        self._iceprodv1_pass = index_config["iceprodv1_db_pass"]
+        self._iceprodv2_rc = create_iceprod_rest_client(oauth_config, rest_config)
 
     def get_iceprodv1_db(self) -> pymysql.connections.Connection:
         """Get a pymsql connection instance for querying the IceProd v1 DB."""

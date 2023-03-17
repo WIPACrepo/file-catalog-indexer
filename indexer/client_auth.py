@@ -8,7 +8,7 @@ from rest_tools.client import ClientCredentialsAuth, RestClient, SavedDeviceGran
 from wipac_dev_tools import from_environment
 
 from indexer import defaults
-
+from indexer.config import OAuthConfiguration, RestConfiguration
 
 LOG = logging.getLogger(__name__)
 
@@ -63,63 +63,70 @@ def add_auth_to_argparse(parser: ArgumentParser) -> None:
                              help='The OAuth client secret, to enable client credential mode')
 
 
-def create_file_catalog_rest_client(args: Namespace) -> RestClient:
+def create_oauth_config(args: Namespace) -> OAuthConfiguration:
+    """Create an OAuthConfiguration object from parsed command-line arguments."""
+    return {
+        "oauth_url": args.oauth_url,
+        "oauth_client_id": args.oauth_client_id,
+        "oauth_client_secret": args.oauth_client_secret,
+    }
+
+
+def create_rest_config(args: Namespace) -> RestConfiguration:
+    """Create a RestConfiguration object from parsed command-line arguments."""
+    return {
+        "file_catalog_rest_url": args.file_catalog_rest_url,
+        "iceprod_rest_url": args.iceprod_rest_url,
+        "rest_timeout": args.rest_timeout,
+        "rest_retries": args.rest_retries,
+    }
+
+
+def create_file_catalog_rest_client(oauth_config: OAuthConfiguration,
+                                    rest_config: RestConfiguration) -> RestClient:
     """Create a RestClient from argparse args."""
-    if args.oauth_client_secret:
+    if oauth_config["oauth_client_secret"]:
         LOG.debug('Using client credentials to authenticate with the File Catalog')
         return ClientCredentialsAuth(
-            address=args.file_catalog_rest_url,
-            token_url=args.oauth_url,
-            client_id=args.oauth_client_id,
-            client_secret=args.oauth_client_secret,
-            timeout=args.rest_timeout,
-            retries=args.rest_retries,
+            address=rest_config["file_catalog_rest_url"],
+            token_url=oauth_config["oauth_url"],
+            client_id=oauth_config["oauth_client_id"],
+            client_secret=oauth_config["oauth_client_secret"],
+            timeout=rest_config["rest_timeout"],
+            retries=rest_config["rest_retries"],
         )
     else:
-        # raise an error if we can't honor the user's request
-        if args.rest_retries != defaults.REST_RETRIES:
-            raise ValueError("user credentials do not support custom REST_RETRIES or --rest-retries")
-        if args.rest_timeout != defaults.REST_TIMEOUT:
-            raise ValueError("user credentials do not support custom REST_TIMEOUT or --rest-timeout")
-
-        # otherwise, let's make that RestClient
         LOG.debug('Using user credentials to authenticate with the File Catalog')
-        if args.oauth_client_id == 'file-catalog-indexer':
-            args.oauth_client_id = 'file-catalog-indexer-public'
         return SavedDeviceGrantAuth(
-            address=args.file_catalog_rest_url,
-            filename='.file-catalog-auth',
-            token_url=args.oauth_url,
-            client_id=args.oauth_client_id,
+            address=rest_config["file_catalog_rest_url"],
+            filename='.file-catalog-indexer-auth',
+            token_url=oauth_config["oauth_url"],
+            client_id=oauth_config["oauth_client_id"],
+            timeout=rest_config["rest_timeout"],
+            retries=rest_config["rest_retries"],
         )
 
 
-def create_iceprod_rest_client(args: Namespace) -> RestClient:
+def create_iceprod_rest_client(oauth_config: OAuthConfiguration,
+                               rest_config: RestConfiguration) -> RestClient:
     """Create a RestClient from argparse args."""
-    if args.oauth_client_secret:
+    if oauth_config["oauth_client_secret"]:
         LOG.debug('Using client credentials to authenticate with IceProd')
         return ClientCredentialsAuth(
-            address=args.iceprod_rest_url,
-            token_url=args.oauth_url,
-            client_id=args.oauth_client_id,
-            client_secret=args.oauth_client_secret,
-            timeout=args.rest_timeout,
-            retries=args.rest_retries,
+            address=rest_config["file_catalog_rest_url"],
+            token_url=oauth_config["oauth_url"],
+            client_id=oauth_config["oauth_client_id"],
+            client_secret=oauth_config["oauth_client_secret"],
+            timeout=rest_config["rest_timeout"],
+            retries=rest_config["rest_retries"],
         )
     else:
-        # raise an error if we can't honor the user's request
-        if args.rest_retries != defaults.REST_RETRIES:
-            raise ValueError("user credentials do not support custom REST_RETRIES or --rest-retries")
-        if args.rest_timeout != defaults.REST_TIMEOUT:
-            raise ValueError("user credentials do not support custom REST_TIMEOUT or --rest-timeout")
-
-        # otherwise, let's make that RestClient
         LOG.debug('Using user credentials to authenticate with IceProd')
-        if args.oauth_client_id == 'file-catalog-indexer':
-            args.oauth_client_id = 'file-catalog-indexer-public'
         return SavedDeviceGrantAuth(
-            address=args.iceprod_rest_url,
-            filename='.iceprod-auth',
-            token_url=args.oauth_url,
-            client_id=args.oauth_client_id,
+            address=rest_config["iceprod_rest_url"],
+            filename='.file-catalog-indexer-auth',
+            token_url=oauth_config["oauth_url"],
+            client_id=oauth_config["oauth_client_id"],
+            timeout=rest_config["rest_timeout"],
+            retries=rest_config["rest_retries"],
         )

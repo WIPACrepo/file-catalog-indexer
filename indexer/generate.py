@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
+# generate.py
 """Generate metadata for file(s) (no communication with File Catalog)."""
-
 
 import argparse
 import logging
@@ -8,6 +9,13 @@ import pprint
 
 import coloredlogs  # type: ignore[import]
 
+from indexer import defaults
+from indexer.client_auth import (
+    add_auth_to_argparse,
+    create_oauth_config,
+    create_rest_config,
+)
+from indexer.config import IndexerConfiguration
 from indexer.metadata_manager import MetadataManager
 from indexer.utils import file_utils
 
@@ -20,28 +28,34 @@ def main() -> None:
         epilog="Notes: (1) symbolic links are never followed.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "paths", metavar="PATHS", nargs="+", help="path(s) to scan for files."
-    )
-    parser.add_argument(
-        "-s", "--site", required=True, help='site value of the "locations" object'
-    )
-    parser.add_argument(
-        "--basic-only",
-        default=False,
-        action="store_true",
-        help="only collect basic metadata",
-    )
-    parser.add_argument("--iceprodv2-rc-token", default="", help="IceProd2 REST token")
+    parser.add_argument("paths", metavar="PATHS", nargs="+", help="path(s) to scan for files.")
+    parser.add_argument("--basic-only", default=False, action="store_true", help="only collect basic metadata")
     parser.add_argument("--iceprodv1-db-pass", default="", help="IceProd1 SQL password")
     parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
-
+    parser.add_argument("-s", "--site", required=True, help='site value of the "locations" object')
+    add_auth_to_argparse(parser)
     args = parser.parse_args()
-    coloredlogs.install(level=args.log)
+
+    coloredlogs.install(level=args.log.upper())
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    manager = MetadataManager(args)
+    index_config: IndexerConfiguration = {
+        "basic_only": args.basic_only,
+        "denylist": defaults.DENYLIST,
+        "denylist_file": defaults.DENYLIST_FILE,
+        "dryrun": False,
+        "iceprodv1_db_pass": args.iceprodv1_db_pass,
+        "n_processes": defaults.N_PROCESSES,
+        "non_recursive": False,
+        "patch": False,
+        "paths": args.paths,
+        "paths_file": defaults.PATHS_FILE,
+        "site": args.site,
+    }
+    oauth_config = create_oauth_config(args)
+    rest_config = create_rest_config(args)
+    manager = MetadataManager(index_config, oauth_config, rest_config)
 
     filepath_queue = [os.path.abspath(p) for p in args.paths]
 

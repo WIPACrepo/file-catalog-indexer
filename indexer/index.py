@@ -3,7 +3,6 @@
 """Data-indexing script for File Catalog."""
 
 import argparse
-from argparse import Namespace
 import asyncio
 import json
 import logging
@@ -11,26 +10,33 @@ import math
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import Any, Dict, List, TypedDict, cast
+from typing import Any, cast, Dict, List, TypedDict
 
 import coloredlogs  # type: ignore[import]
 import requests
 from file_catalog.schema import types
 from rest_tools.client import RestClient
 
-from . import defaults
-from .client_auth import add_auth_to_argparse, create_file_catalog_rest_client
-from .metadata_manager import MetadataManager
-from .utils import file_utils
+from indexer import defaults
+from indexer.client_auth import (
+    add_auth_to_argparse,
+    create_file_catalog_rest_client,
+    create_oauth_config,
+    create_rest_config,
+)
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
+from indexer.metadata_manager import MetadataManager
+from indexer.utils import file_utils
 
 # Types --------------------------------------------------------------------------------
 
 
 class IndexerFlags(TypedDict):
-    """TypedDict for Indexer bool parameters."""
-
+    # only post basic metadata
     basic_only: bool
+    # do everything except POSTing/PATCHing to the File Catalog
     dryrun: bool
+    # replace/overwrite any existing File-Catalog entries (aka PATCH)
     patch: bool
 
 
@@ -46,8 +52,8 @@ ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
 async def _post_metadata(
     fc_rc: RestClient,
     metadata: types.Metadata,
-    patch: bool = defaults.PATCH,
-    dryrun: bool = defaults.DRYRUN,
+    patch: bool,
+    dryrun: bool,
 ) -> None:
     """POST metadata, and PATCH if file is already in the file catalog."""
     if dryrun:
@@ -88,8 +94,8 @@ async def index_file(
     filepath: str,
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool = defaults.PATCH,
-    dryrun: bool = defaults.DRYRUN,
+    patch: bool,
+    dryrun: bool,
 ) -> None:
     """Gather and POST metadata for a file."""
     if not patch and await file_exists_in_fc(fc_rc, filepath):
@@ -119,8 +125,8 @@ async def index_paths(
     paths: List[str],
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool = defaults.PATCH,
-    dryrun: bool = defaults.DRYRUN,
+    patch: bool,
+    dryrun: bool,
 ) -> List[str]:
     """POST metadata of files given by paths, and return all child paths."""
     child_paths: List[str] = []
@@ -282,60 +288,19 @@ def validate_path(path: str) -> None:
     raise Exception(f"Invalid path ({message}).")
 
 
-def index(args: Namespace) -> None:
-    """Traverse paths and index.
-
-    Indexer Configuration Arguments:
-        `basic_only`:
-            only post basic metadata
-        `denylist`:
-            list of denylisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*
-        `denylist_file`:
-            a file containing denylisted filepaths on each line (this is a useful alternative to `--denylist` when there's many denylisted paths); Ex: /foo/bar/ will skip /foo/bar/*
-        `dryrun`:
-            do everything except POSTing/PATCHing to the File Catalog
-        `iceprodv1_db_pass`:
-            IceProd1 SQL password
-        `n_processes`:
-            number of processes for multi-processing (ignored if `non_recursive=True`)
-        `non_recursive`:
-            do not recursively index / do not descend into sub-directories
-        `patch`:
-            replace/overwrite any existing File-Catalog entries (aka PATCH)
-        `paths`:
-            path(s) to scan for files
-        `paths_file`:
-            new-line-delimited text file containing path(s) to scan for files
-        `site`:
-            site value of the "locations" object (WIPAC, NERSC, etc.)
-
-    External REST API Configuration Arguments:
-        `file_catalog_rest_url`:
-            URL for File Catalog REST API
-        `iceprod_rest_url`:
-            URL for IceProd REST API
-        `rest_timeout`:
-            request timeout
-        `rest_retries`:
-            number of retries to attempt
-
-    Keycloak OAUTH Configuration Arguments:
-        `oauth_url`:
-            The OAuth server URL for OpenID discovery
-        `oauth_client_id`:
-            The OAuth client id
-        `oauth_client_secret`:
-            The OAuth client secret, to enable client credential mode
-    """
-    basic_only = args.basic_only
-    denylist = args.denylist
-    denylist_file = args.denylist_file
-    dryrun = args.dryrun
-    n_processes = args.processes
-    non_recursive = args.non_recursive
-    patch = args.patch
-    paths = args.paths
-    paths_file = args.paths_file
+def index(index_config: IndexerConfiguration,
+          oauth_config: OAuthConfiguration,
+          rest_config: RestConfiguration) -> None:
+    """Traverse paths and index."""
+    basic_only = index_config["basic_only"]
+    denylist = index_config["denylist"]
+    denylist_file = index_config["denylist_file"]
+    dryrun = index_config["dryrun"]
+    n_processes = index_config["n_processes"]
+    non_recursive = index_config["non_recursive"]
+    patch = index_config["patch"]
+    paths = index_config["paths"]
+    paths_file = index_config["paths_file"]
 
     logging.info(
         f"Collecting metadata from {paths} and those in file (at {paths_file})..."
@@ -363,10 +328,10 @@ def index(args: Namespace) -> None:
     }
 
     # get a rest client to talk to the file catalog
-    fc_rc = create_file_catalog_rest_client(args)
+    fc_rc = create_file_catalog_rest_client(oauth_config, rest_config)
 
     # create an IceProd metadata manager
-    manager = MetadataManager(args)
+    manager = MetadataManager(index_config, oauth_config, rest_config)
 
     # Go!
     if non_recursive:
@@ -392,43 +357,10 @@ if __name__ == "__main__":
         help="path(s) to scan for files.",
     )
     parser.add_argument(
-        "-f",
-        "--paths-file",
-        default=defaults.PATHS_FILE,
-        help="new-line-delimited text file containing path(s) to scan for files. "
-        "(use this option for a large number of paths)",
-    )
-    parser.add_argument(
-        "-n",
-        "--non-recursive",
-        default=defaults.NON_RECURSIVE,
-        action="store_true",
-        help="do not recursively index / do not descend into subdirectories",
-    )
-    parser.add_argument(
-        "--processes",
-        type=int,
-        default=defaults.N_PROCESSES,
-        help="number of processes for multi-processing "
-        "(ignored if using --non-recursive)",
-    )
-    parser.add_argument(
-        "-s",
-        "--site",
-        required=True,
-        help='site value of the "locations" object',
-    )
-    parser.add_argument(
         "--basic-only",
-        default=defaults.BASIC_ONLY,
         action="store_true",
+        default=False,
         help="only collect basic metadata",
-    )
-    parser.add_argument(
-        "--patch",
-        default=defaults.PATCH,
-        action="store_true",
-        help="replace/overwrite any existing File-Catalog entries (aka patch)",
     )
     parser.add_argument(
         "--denylist",
@@ -445,10 +377,10 @@ if __name__ == "__main__":
         "Ex: /foo/bar/ will skip /foo/bar/*",
     )
     parser.add_argument(
-        "-l",
-        "--log",
-        default=defaults.LOG_LEVEL,
-        help="the output logging level",
+        "--dryrun",
+        action="store_true",
+        default=False,
+        help="do everything except POSTing/PATCHing to the File Catalog",
     )
     parser.add_argument(
         "--iceprodv1-db-pass",
@@ -456,15 +388,65 @@ if __name__ == "__main__":
         help="IceProd1 SQL password",
     )
     parser.add_argument(
-        "--dryrun",
-        default=defaults.DRYRUN,
+        "-l",
+        "--log",
+        default=defaults.LOG_LEVEL,
+        help="the output logging level",
+    )
+    parser.add_argument(
+        "--processes",
+        type=int,
+        default=defaults.N_PROCESSES,
+        help="number of processes for multi-processing "
+        "(ignored if using --non-recursive)",
+    )
+    parser.add_argument(
+        "-n",
+        "--non-recursive",
         action="store_true",
-        help="do everything except POSTing/PATCHing to the File Catalog",
+        default=False,
+        help="do not recursively index / do not descend into subdirectories",
+    )
+    parser.add_argument(
+        "--patch",
+        action="store_true",
+        default=False,
+        help="replace/overwrite any existing File-Catalog entries (aka patch)",
+    )
+    parser.add_argument(
+        "-f",
+        "--paths-file",
+        default=defaults.PATHS_FILE,
+        help="new-line-delimited text file containing path(s) to scan for files. "
+        "(use this option for a large number of paths)",
+    )
+    parser.add_argument(
+        "-s",
+        "--site",
+        required=True,
+        help='site value of the "locations" object',
     )
     add_auth_to_argparse(parser)
     args = parser.parse_args()
+
     coloredlogs.install(level=args.log.upper())
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
 
-    index(args)
+    index_config: IndexerConfiguration = {
+        "basic_only": args.basic_only,
+        "denylist": args.denylist,
+        "denylist_file": args.denylist_file,
+        "dryrun": args.dryrun,
+        "iceprodv1_db_pass": args.iceprodv1_db_pass,
+        "n_processes": args.processes,
+        "non_recursive": args.non_recursive,
+        "patch": args.patch,
+        "paths": args.paths,
+        "paths_file": args.paths_file,
+        "site": args.site,
+    }
+    oauth_config = create_oauth_config(args)
+    rest_config = create_rest_config(args)
+
+    index(index_config, oauth_config, rest_config)

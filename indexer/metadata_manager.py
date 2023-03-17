@@ -1,7 +1,6 @@
 # metadata_manager.py
 """Class for managing metadata collection / interfacing with indexer.py."""
 
-from argparse import Namespace
 import logging
 import os
 import re
@@ -13,10 +12,11 @@ from typing import Any, Dict, List, Pattern
 import xmltodict
 import yaml
 
-from .metadata import basic, real, simulation
-from .metadata.simulation.data_sim import DataSimI3FileMetadata
-from .metadata.simulation.iceprod_tools import IceProdConnection
-from .utils import utils
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
+from indexer.metadata import basic, real, simulation
+from indexer.metadata.simulation.data_sim import DataSimI3FileMetadata
+from indexer.metadata.simulation.iceprod_tools import IceProdConnection
+from indexer.utils import utils
 
 StrDict = Dict[str, Any]
 
@@ -24,14 +24,17 @@ StrDict = Dict[str, Any]
 class MetadataManager:  # pylint: disable=R0903
     """Commander class for handling metadata for different file types."""
 
-    def __init__(self, args: Namespace):
+    def __init__(self,
+                 index_config: IndexerConfiguration,
+                 oauth_config: OAuthConfiguration,
+                 rest_config: RestConfiguration):
         """Initialize a MetadataManager for handling different file types."""
         self.dir_path = ""
-        self.site = args.site
-        self.basic_only = args.basic_only
+        self.site = index_config["site"]
+        self.basic_only = index_config["basic_only"]
         self.real_l2_dir_metadata: Dict[str, StrDict] = {}
         self.sim_regexes: List[Pattern[str]] = []
-        self.iceprod_conn = IceProdConnection(args)
+        self.iceprod_conn = IceProdConnection(index_config, oauth_config, rest_config)
 
     def _new_file_basic_only(self, filepath: str) -> basic.BasicFileMetadata:
         """Return basic metadata-file object for files.

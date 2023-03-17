@@ -12,7 +12,12 @@ import coloredlogs  # type: ignore[import]
 import more_itertools as mit
 from rest_tools.client import RestClient
 
-from indexer.client_auth import add_auth_to_argparse, create_file_catalog_rest_client
+from indexer.client_auth import (
+    add_auth_to_argparse,
+    create_file_catalog_rest_client,
+    create_oauth_config,
+    create_rest_config,
+)
 
 
 def _check_fpaths(fpaths: List[str], rc: RestClient, thread_id: int) -> List[str]:
@@ -80,7 +85,9 @@ def main() -> None:
     args = parser.parse_args()
 
     # rest client
-    rc: RestClient = create_file_catalog_rest_client(args)
+    oauth_config = create_oauth_config(args)
+    rest_config = create_rest_config(args)
+    rc: RestClient = create_file_catalog_rest_client(oauth_config, rest_config)
 
     # logging
     coloredlogs.install(level=args.log.upper())
