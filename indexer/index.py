@@ -12,10 +12,10 @@ from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import Any, cast, Dict, List, TypedDict
 
-import coloredlogs  # type: ignore[import]
 import requests
 from file_catalog.schema import types
 from rest_tools.client import RestClient
+from wipac_dev_tools import logging_tools
 
 from indexer import defaults
 from indexer.client_auth import (
@@ -429,9 +429,9 @@ if __name__ == "__main__":
     add_auth_to_argparse(parser)
     args = parser.parse_args()
 
-    coloredlogs.install(level=args.log.upper())
-    for arg, val in vars(args).items():
-        logging.warning(f"{arg}: {val}")
+    # do some logging
+    logging_tools.set_level(args.log, use_coloredlogs=True)
+    logging_tools.log_argparse_args(args)
 
     index_config: IndexerConfiguration = {
         "basic_only": args.basic_only,

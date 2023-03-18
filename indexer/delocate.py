@@ -8,10 +8,16 @@ import logging
 import os
 from typing import Dict, List, Tuple, cast
 
-import coloredlogs  # type: ignore[import]
 import requests
-from rest_tools.client import ClientCredentialsAuth, RestClient
+from rest_tools.client import RestClient
+from wipac_dev_tools import logging_tools
 
+from indexer.client_auth import (
+    add_auth_to_argparse,
+    create_file_catalog_rest_client,
+    create_oauth_config,
+    create_rest_config,
+)
 from indexer.utils import file_utils
 
 
@@ -155,12 +161,12 @@ def main() -> None:
         default="INFO",
         help="the output logging level",
     )
-
-    # grab args
+    add_auth_to_argparse(parser)
     args = parser.parse_args()
-    coloredlogs.install(level=args.log)
-    for arg, val in vars(args).items():
-        logging.warning(f"{arg}: {val}")
+
+    # do some logging
+    logging_tools.set_level(args.log, use_coloredlogs=True)
+    logging_tools.log_argparse_args(args)
 
     # aggregate filepaths & make sure none exist
     paths = file_utils.sorted_unique_filepaths(
@@ -170,12 +176,9 @@ def main() -> None:
         file_does_not_exist(fpath)
 
     # de-locate
-    rc = ClientCredentialsAuth(
-        address="https://file-catalog.icecube.wisc.edu/",
-        token_url="https://keycloak.icecube.wisc.edu/auth/realms/IceCube",
-        client_id="file-catalog",
-        client_secret=args.client_secret
-    )
+    oauth_config = create_oauth_config(args)
+    rest_config = create_rest_config(args)
+    rc = create_file_catalog_rest_client(oauth_config, rest_config)
     delocated, skipped, already_deleted = asyncio.get_event_loop().run_until_complete(
         delocate_filepaths(paths, rc, args.site, args.skip_missing_locations)
     )
