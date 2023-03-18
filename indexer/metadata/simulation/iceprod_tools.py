@@ -18,7 +18,7 @@ from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[impor
 from rest_tools.client import RestClient
 
 from indexer.client_auth import create_iceprod_rest_client
-from indexer.index import IndexerConfiguration, OAuthConfiguration, RestConfiguration
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
 
 # --------------------------------------------------------------------------------------
 # Constants

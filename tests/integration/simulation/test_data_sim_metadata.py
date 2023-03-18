@@ -11,7 +11,7 @@ from os import listdir, path
 from unittest.mock import ANY, AsyncMock, Mock, PropertyMock, patch
 
 from indexer import defaults
-from indexer.index import IndexerConfiguration, OAuthConfiguration, RestConfiguration
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
 from indexer.metadata_manager import MetadataManager
 
 import tests.integration.simulation.sim_data as data

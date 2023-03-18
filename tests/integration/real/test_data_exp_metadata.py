@@ -10,7 +10,7 @@ import os
 from unittest.mock import Mock, patch
 
 from indexer import defaults
-from indexer.index import IndexerConfiguration, OAuthConfiguration, RestConfiguration
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
 from indexer.metadata_manager import MetadataManager
 
 import tests.integration.real.exp_data as data
