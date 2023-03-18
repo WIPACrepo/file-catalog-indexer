@@ -36,7 +36,7 @@ class OAuthConfiguration(TypedDict):
     # The OAuth client id
     oauth_client_id: str
     # The OAuth client secret, to enable client credential mode
-    oauth_client_secret: str
+    oauth_client_secret: Optional[str]
 
 
 class RestConfiguration(TypedDict):

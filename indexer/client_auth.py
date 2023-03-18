@@ -65,6 +65,9 @@ def add_auth_to_argparse(parser: ArgumentParser) -> None:
 
 def create_oauth_config(args: Namespace) -> OAuthConfiguration:
     """Create an OAuthConfiguration object from parsed command-line arguments."""
+    if not args.oauth_client_secret:
+        if args.oauth_client_id == 'file-catalog-indexer':
+            args.oauth_client_id = 'file-catalog-indexer-public'
     return {
         "oauth_url": args.oauth_url,
         "oauth_client_id": args.oauth_client_id,
@@ -113,7 +116,7 @@ def create_iceprod_rest_client(oauth_config: OAuthConfiguration,
     if oauth_config["oauth_client_secret"]:
         LOG.debug('Using client credentials to authenticate with IceProd')
         return ClientCredentialsAuth(
-            address=rest_config["file_catalog_rest_url"],
+            address=rest_config["iceprod_rest_url"],
             token_url=oauth_config["oauth_url"],
             client_id=oauth_config["oauth_client_id"],
             client_secret=oauth_config["oauth_client_secret"],
