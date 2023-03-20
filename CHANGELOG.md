@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.0 (2023-03-20)
+### Breaking
+* * Fix up mypy errors indentified in CI/CD * Talk to File Catalog with new keycloak auth * New auth including IceProd * Retool programmatic configuration * Fix oauth_client_id and copypasta bugs * Use logging_tools from wipac-dev-tools * Update README.md ([`ca57ea1`](https://github.com/WIPACrepo/file-catalog-indexer/commit/ca57ea1a09d160c75e3fb1cdbed5e595c4bff859))
+
 ## v1.0.5 (2023-02-28)
 ### Other
 * CI Updates ([#54](https://github.com/WIPACrepo/file-catalog-indexer/issues/54)) ([`2a6aab7`](https://github.com/WIPACrepo/file-catalog-indexer/commit/2a6aab70f5190a98cf3471f89314ed87826f9fe6))
