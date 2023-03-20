@@ -12,9 +12,9 @@ backoff==2.2.1
     # via opentelemetry-exporter-otlp-proto-http
 bitmath==1.3.3.1
     # via wipac-file-catalog-indexer (setup.py)
-boto3==1.26.94
+boto3==1.26.95
     # via iceprod
-botocore==1.29.94
+botocore==1.29.95
     # via
     #   boto3
     #   s3transfer
@@ -167,7 +167,7 @@ pytest==7.2.2
     #   pytest-cov
     #   pytest-mock
     #   wipac-file-catalog-indexer (setup.py)
-pytest-asyncio==0.20.3
+pytest-asyncio==0.21.0
     # via wipac-file-catalog-indexer (setup.py)
 pytest-cov==4.0.0
     # via wipac-file-catalog-indexer (setup.py)
@@ -205,7 +205,7 @@ requests-toolbelt==0.10.1
     #   iceprod
     #   wipac-file-catalog
     #   wipac-file-catalog-indexer (setup.py)
-ruff==0.0.256
+ruff==0.0.257
     # via wipac-file-catalog-indexer (setup.py)
 s3transfer==0.6.0
     # via boto3
@@ -264,7 +264,7 @@ wipac-dev-tools==1.6.13
     #   wipac-telemetry
 wipac-file-catalog==1.9.3
     # via wipac-file-catalog-indexer (setup.py)
-wipac-rest-tools[telemetry]==1.4.15
+wipac-rest-tools[telemetry]==1.4.16
     # via
     #   iceprod
     #   wipac-file-catalog
