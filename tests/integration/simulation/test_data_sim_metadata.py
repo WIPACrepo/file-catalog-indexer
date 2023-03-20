@@ -5,14 +5,16 @@
 3. metadata = metadata_file.generate()
 """
 
-import json
 from datetime import date
+import json
 from os import listdir, path
 from unittest.mock import ANY, AsyncMock, Mock, PropertyMock, patch
 
-from indexer import metadata_manager
+from indexer import defaults
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
+from indexer.metadata_manager import MetadataManager
 
-import sim_data as data
+import tests.integration.simulation.sim_data as data
 
 SKIP_FIELDS = ["_links", "meta_modify_date", "uuid"]
 
@@ -78,11 +80,32 @@ def test_1(
             raise Exception("Missing testing data")
 
         # run
-        manager = metadata_manager.MetadataManager(
-            "WIPAC",
-            iceprodv2_rc_token=ANY,
-            iceprodv1_db_pass=ANY,
-        )
+        index_config: IndexerConfiguration = {
+            "basic_only": False,
+            "denylist": defaults.DENYLIST,
+            "denylist_file": defaults.DENYLIST_FILE,
+            "dryrun": False,
+            "iceprodv1_db_pass": ANY,
+            "n_processes": defaults.N_PROCESSES,
+            "non_recursive": False,
+            "patch": False,
+            "paths": defaults.PATHS,
+            "paths_file": defaults.PATHS_FILE,
+            "site": "WIPAC",
+        }
+
+        oauth_config: OAuthConfiguration = {
+            "oauth_client_id": "file-catalog-indexer",
+            "oauth_client_secret": "hunter2",
+            "oauth_url": "",
+        }
+        rest_config: RestConfiguration = {
+            "file_catalog_rest_url": "",
+            "iceprod_rest_url": "",
+            "rest_timeout": 60,
+            "rest_retries": 10,
+        }
+        manager = MetadataManager(index_config, oauth_config, rest_config)
         metadata_file = manager.new_file(fullpath)
         generated_metadata = metadata_file.generate()
 

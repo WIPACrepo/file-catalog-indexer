@@ -105,8 +105,6 @@ jobs:
           python-version: ${{ matrix.py3 }}
       - name: Pytest
         run: |
-          cp ./resources/path_collector/traverser.py ./traverser.py  # fixes relative paths
-          cp ./resources/path_collector/common_args.py ./common_args.py  # fixes relative paths
           pip install --upgrade pip wheel setuptools pytest
           pip install .
           pytest -vvvv tests/integration

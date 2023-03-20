@@ -118,11 +118,14 @@ src/
 tableout/
 test-traverse*
 
-# copied to root for testing
-common_args.py
-traverser.py
-
+# others 2
 resources/filename_patterns/*.yaml
 *.token
 *.pass
 indexer_env.sh
+
+# ruff is flake8 re-written in Rust for speed
+.ruff_cache
+
+# Patrick development ergonomics
+/suru

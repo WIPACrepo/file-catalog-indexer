@@ -8,10 +8,16 @@ import logging
 import os
 from typing import Dict, List, Tuple, cast
 
-import coloredlogs  # type: ignore[import]
 import requests
 from rest_tools.client import RestClient
+from wipac_dev_tools import logging_tools
 
+from indexer.client_auth import (
+    add_auth_to_argparse,
+    create_file_catalog_rest_client,
+    create_oauth_config,
+    create_rest_config,
+)
 from indexer.utils import file_utils
 
 
@@ -118,7 +124,10 @@ def main() -> None:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "paths", metavar="PATHS", nargs="*", help="filepath(s) to de-locate"
+        "paths",
+        metavar="PATHS",
+        nargs="*",
+        help="filepath(s) to de-locate",
     )
     parser.add_argument(
         "-f",
@@ -128,10 +137,17 @@ def main() -> None:
         "(use this option for a large number of paths)",
     )
     parser.add_argument(
-        "-s", "--site", required=True, help='site value of the "locations" object'
+        "-s",
+        "--site",
+        required=True,
+        help='site value of the "locations" object',
     )
     parser.add_argument(
-        "-t", "--token", required=True, help="REST token for File Catalog"
+        "-t",
+        "--client-secret",
+        "--token",
+        required=True,
+        help="client secret for File Catalog",
     )
     parser.add_argument(
         "--skip-missing-locations",
@@ -139,13 +155,18 @@ def main() -> None:
         action="store_true",
         help="don't exit when a filepath already isn't in the File Catalog",
     )
-    parser.add_argument("-l", "--log", default="INFO", help="the output logging level")
-
-    # grab args
+    parser.add_argument(
+        "-l",
+        "--log",
+        default="INFO",
+        help="the output logging level",
+    )
+    add_auth_to_argparse(parser)
     args = parser.parse_args()
-    coloredlogs.install(level=args.log)
-    for arg, val in vars(args).items():
-        logging.warning(f"{arg}: {val}")
+
+    # do some logging
+    logging_tools.set_level(args.log, use_coloredlogs=True)
+    logging_tools.log_argparse_args(args)
 
     # aggregate filepaths & make sure none exist
     paths = file_utils.sorted_unique_filepaths(
@@ -155,7 +176,9 @@ def main() -> None:
         file_does_not_exist(fpath)
 
     # de-locate
-    rc = RestClient("https://file-catalog.icecube.wisc.edu/", token=args.token)
+    oauth_config = create_oauth_config(args)
+    rest_config = create_rest_config(args)
+    rc = create_file_catalog_rest_client(oauth_config, rest_config)
     delocated, skipped, already_deleted = asyncio.get_event_loop().run_until_complete(
         delocate_filepaths(paths, rc, args.site, args.skip_missing_locations)
     )

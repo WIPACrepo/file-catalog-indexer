@@ -4,7 +4,7 @@ import logging
 import os
 import stat
 import string
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 def commonpath(paths: List[str]) -> str:
@@ -28,10 +28,10 @@ def is_processable_path(path: str) -> bool:
     mode = os.lstat(path).st_mode
     ok = not (
         stat.S_ISLNK(mode)
-        or stat.S_ISSOCK(mode)
-        or stat.S_ISFIFO(mode)
-        or stat.S_ISBLK(mode)
-        or stat.S_ISCHR(mode)
+        or stat.S_ISSOCK(mode)  # noqa: W503
+        or stat.S_ISFIFO(mode)  # noqa: W503
+        or stat.S_ISBLK(mode)  # noqa: W503
+        or stat.S_ISCHR(mode)  # noqa: W503
     )
     if not ok:
         logging.warning(
@@ -47,7 +47,7 @@ def get_subpaths(filepath: str) -> List[str]:
     Don't add symbolic links.
     """
 
-    def is_a_symlink(dir_entry: os.DirEntry) -> bool:  # type: ignore[type-arg]
+    def is_a_symlink(dir_entry: os.DirEntry[Any]) -> bool:
         is_sym = dir_entry.is_symlink()
         if is_sym:
             logging.warning(

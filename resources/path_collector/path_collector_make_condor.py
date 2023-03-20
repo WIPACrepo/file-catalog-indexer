@@ -4,13 +4,11 @@ import getpass
 import logging
 import os
 import subprocess
-import sys
 from typing import List
 
 import coloredlogs  # type: ignore[import]
 
-sys.path.append(".")
-from common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
+from resources.path_collector.common_args import (  # isort:skip  # noqa # pylint: disable=E0401,C0413,C0411
     get_parser_w_common_args,
     get_full_path,
 )

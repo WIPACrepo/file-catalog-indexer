@@ -1,6 +1,4 @@
+#!/usr/bin/env python3
 """Setup."""
-
-
-from setuptools import setup  # type: ignore[import] # mypy error in GH Action
-
+from setuptools import setup
 setup()

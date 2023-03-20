@@ -17,13 +17,11 @@ Indexing package and scripts for the File Catalog
 - Ex:
 ```python
 index(
-    fc_token,
-    'WIPAC',
-    paths=['/data/exp/IceCube/2018/filtered/level2/0820', '/data/exp/IceCube/2018/filtered/level2/0825'],
-    blacklist=['/data/exp/IceCube/2018/filtered/level2/0820/Run00131410_74'],
-    n_processes=4,
+	index_config,  # see config.py for a description of the fields in these typed dictionaries
+	oauth_config,
+	rest_config
 )
- ```
+```
 
 #### `from indexer.index import index_file`
 - Compute metadata of a single file, and upload it to File Catalog, i.e. index one file

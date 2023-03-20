@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
+# index.py
 """Data-indexing script for File Catalog."""
-
 
 import argparse
 import asyncio
@@ -9,37 +10,34 @@ import math
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
-from typing import Any, Dict, List, Optional, TypedDict, cast
+from typing import Any, cast, Dict, List, TypedDict
 
-import coloredlogs  # type: ignore[import]
 import requests
 from file_catalog.schema import types
 from rest_tools.client import RestClient
+from wipac_dev_tools import logging_tools
 
-from . import defaults
-from .metadata_manager import MetadataManager
-from .utils import file_utils
+from indexer import defaults
+from indexer.client_auth import (
+    add_auth_to_argparse,
+    create_file_catalog_rest_client,
+    create_oauth_config,
+    create_rest_config,
+)
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
+from indexer.metadata_manager import MetadataManager
+from indexer.utils import file_utils
 
 # Types --------------------------------------------------------------------------------
 
 
-class RestClientArgs(TypedDict):
-    """TypedDict for RestClient parameters."""
-
-    url: str
-    token: str
-    timeout: int
-    retries: int
-
-
 class IndexerFlags(TypedDict):
-    """TypedDict for Indexer bool parameters."""
-
+    # only post basic metadata
     basic_only: bool
-    patch: bool
-    iceprodv2_rc_token: str
-    iceprodv1_db_pass: str
+    # do everything except POSTing/PATCHing to the File Catalog
     dryrun: bool
+    # replace/overwrite any existing File-Catalog entries (aka PATCH)
+    patch: bool
 
 
 # Constants ----------------------------------------------------------------------------
@@ -54,14 +52,13 @@ ACCEPTED_ROOTS = ["/data"]  # don't include trailing slash
 async def _post_metadata(
     fc_rc: RestClient,
     metadata: types.Metadata,
-    patch: bool = defaults.PATCH,
-    dryrun: bool = defaults.DRYRUN,
-) -> RestClient:
+    patch: bool,
+    dryrun: bool,
+) -> None:
     """POST metadata, and PATCH if file is already in the file catalog."""
     if dryrun:
         logging.warning(f"Dry-Run Enabled: Not POSTing to File Catalog! {metadata}")
         sleep(0.1)
-        return fc_rc
 
     try:
         await fc_rc.request("POST", "/api/files", cast(Dict[str, Any], metadata))
@@ -76,7 +73,6 @@ async def _post_metadata(
                 logging.debug("File (file-version) already exists, not patching entry.")
         else:
             raise
-    return fc_rc
 
 
 async def file_exists_in_fc(fc_rc: RestClient, filepath: str) -> bool:
@@ -98,8 +94,8 @@ async def index_file(
     filepath: str,
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool = defaults.PATCH,
-    dryrun: bool = defaults.DRYRUN,
+    patch: bool,
+    dryrun: bool,
 ) -> None:
     """Gather and POST metadata for a file."""
     if not patch and await file_exists_in_fc(fc_rc, filepath):
@@ -129,8 +125,8 @@ async def index_paths(
     paths: List[str],
     manager: MetadataManager,
     fc_rc: RestClient,
-    patch: bool = defaults.PATCH,
-    dryrun: bool = defaults.DRYRUN,
+    patch: bool,
+    dryrun: bool,
 ) -> List[str]:
     """POST metadata of files given by paths, and return all child paths."""
     child_paths: List[str] = []
@@ -152,17 +148,17 @@ async def index_paths(
     return child_paths
 
 
-def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
-    """Return `True` if `path` is blacklisted.
+def path_in_denylist(path: str, denylist: List[str]) -> bool:
+    """Return `True` if `path` is denylisted.
 
     Either:
-    - `path` is in `blacklist`, or
-    - `path` has a parent path in `blacklist`.
+    - `path` is in `denylist`, or
+    - `path` has a parent path in `denylist`.
     """
-    for bad_path in blacklist:
+    for bad_path in denylist:
         if bad_path == file_utils.commonpath([path, bad_path]):
             logging.debug(
-                f"Skipping {path}, file and/or directory path is blacklisted ({bad_path})."
+                f"Skipping {path}, file and/or directory path is denylisted ({bad_path})."
             )
             return True
     return False
@@ -173,12 +169,12 @@ def path_in_blacklist(path: str, blacklist: List[str]) -> bool:
 
 def _index(
     paths: List[str],
-    blacklist: List[str],
-    rest_client_args: RestClientArgs,
-    site: str,
+    denylist: List[str],
+    fc_rc: RestClient,
+    manager: MetadataManager,
     indexer_flags: IndexerFlags,
 ) -> List[str]:
-    """Index paths, excluding any matching the blacklist.
+    """Index paths, excluding any matching the denylist.
 
     Return all child paths nested under any directories.
     """
@@ -189,21 +185,7 @@ def _index(
 
     # Filter
     paths = file_utils.sorted_unique_filepaths(list_of_filepaths=paths)
-    paths = [p for p in paths if not path_in_blacklist(p, blacklist)]
-
-    # Prep
-    fc_rc = RestClient(
-        rest_client_args["url"],
-        token=rest_client_args["token"],
-        timeout=rest_client_args["timeout"],
-        retries=rest_client_args["retries"],
-    )
-    manager = MetadataManager(
-        site,
-        basic_only=indexer_flags["basic_only"],
-        iceprodv2_rc_token=indexer_flags["iceprodv2_rc_token"],
-        iceprodv1_db_pass=indexer_flags["iceprodv1_db_pass"],
-    )
+    paths = [p for p in paths if not path_in_denylist(p, denylist)]
 
     # Index
     child_paths = asyncio.get_event_loop().run_until_complete(
@@ -218,9 +200,9 @@ def _index(
 
 def _recursively_index_multiprocessed(  # pylint: disable=R0913
     starting_paths: List[str],
-    blacklist: List[str],
-    rest_client_args: RestClientArgs,
-    site: str,
+    denylist: List[str],
+    fc_rc: RestClient,
+    manager: MetadataManager,
     indexer_flags: IndexerFlags,
     n_processes: int,
 ) -> None:
@@ -229,7 +211,7 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
     Do this multi-processed.
     """
     # Traverse paths and process files
-    futures: List[Future] = []  # type: ignore[type-arg]
+    futures: List[Future[List[str]]] = []
     with ProcessPoolExecutor() as pool:
         queue = starting_paths
         split = math.ceil(len(queue) / n_processes)
@@ -247,9 +229,9 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
                         pool.submit(
                             _index,
                             paths,
-                            blacklist,
-                            rest_client_args,
-                            site,
+                            denylist,
+                            fc_rc,
+                            manager,
                             indexer_flags,
                         )
                     )
@@ -268,9 +250,9 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
 
 def _recursively_index(  # pylint: disable=R0913
     starting_paths: List[str],
-    blacklist: List[str],
-    rest_client_args: RestClientArgs,
-    site: str,
+    denylist: List[str],
+    fc_rc: RestClient,
+    manager: MetadataManager,
     indexer_flags: IndexerFlags,
     n_processes: int,
 ) -> None:
@@ -278,9 +260,9 @@ def _recursively_index(  # pylint: disable=R0913
     if n_processes > 1:
         _recursively_index_multiprocessed(
             starting_paths,
-            blacklist,
-            rest_client_args,
-            site,
+            denylist,
+            fc_rc,
+            manager,
             indexer_flags,
             n_processes,
         )
@@ -289,7 +271,7 @@ def _recursively_index(  # pylint: disable=R0913
         i = 0
         while queue:
             logging.debug(f"Queue Iteration #{i}")
-            queue = _index(queue, blacklist, rest_client_args, site, indexer_flags)
+            queue = _index(queue, denylist, fc_rc, manager, indexer_flags)
             i += 1
 
 
@@ -306,62 +288,19 @@ def validate_path(path: str) -> None:
     raise Exception(f"Invalid path ({message}).")
 
 
-def index(
-    token: str,
-    site: str,
-    paths: Optional[List[str]] = defaults.PATHS,
-    paths_file: str = defaults.PATHS_FILE,
-    blacklist: Optional[List[str]] = defaults.BLACKLIST,
-    blacklist_file: str = defaults.BLACKLIST_FILE,
-    url: str = defaults.URL,
-    timeout: int = defaults.TIMEOUT,
-    retries: int = defaults.RETRIES,
-    basic_only: bool = defaults.BASIC_ONLY,
-    patch: bool = defaults.PATCH,
-    iceprodv2_rc_token: str = defaults.ICEPRODV2_RC_TOKEN,
-    iceprodv1_db_pass: str = defaults.ICEPRODV1_DB_PASS,
-    dryrun: bool = defaults.DRYRUN,
-    non_recursive: bool = defaults.NON_RECURSIVE,
-    n_processes: int = defaults.N_PROCESSES,
-) -> None:
-    """Traverse paths and index.
-
-    Arguments:
-        `token`:
-            REST token for File Catalog
-        `site`:
-            site value of the "locations" object (WIPAC, NERSC, etc.)
-
-    Keyword Arguments:
-        `paths`:
-            path(s) to scan for files
-        `paths_file`:
-            new-line-delimited text file containing path(s) to scan for files
-        `blacklist`:
-            list of blacklisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*
-        `blacklist_file`:
-            a file containing blacklisted filepaths on each line (this is a useful alternative to `--blacklist` when there's many blacklisted paths); Ex: /foo/bar/ will skip /foo/bar/*
-        `url`:
-            File Catalog URL
-        `timeout`:
-            timeout duration (seconds) for File Catalog REST requests
-        `retries`:
-            number of retries for File Catalog REST requests
-        `basic_only`:
-            only post basic metadata
-        `patch`:
-            replace/overwrite any existing File-Catalog entries (aka patch)
-        `iceprodv2_rc_token`:
-            IceProd2 REST token
-        `iceprodv1_db_pass`:
-            IceProd1 SQL password
-        `dryrun`:
-            do everything except POSTing/PATCHing to the File Catalog
-        `non_recursive`:
-            do not recursively index / do not descend into sub-directories
-        `n_processes`:
-            number of processes for multi-processing (ignored if `non_recursive=True`)
-    """
+def index(index_config: IndexerConfiguration,
+          oauth_config: OAuthConfiguration,
+          rest_config: RestConfiguration) -> None:
+    """Traverse paths and index."""
+    basic_only = index_config["basic_only"]
+    denylist = index_config["denylist"]
+    denylist_file = index_config["denylist_file"]
+    dryrun = index_config["dryrun"]
+    n_processes = index_config["n_processes"]
+    non_recursive = index_config["non_recursive"]
+    patch = index_config["patch"]
+    paths = index_config["paths"]
+    paths_file = index_config["paths_file"]
 
     logging.info(
         f"Collecting metadata from {paths} and those in file (at {paths_file})..."
@@ -374,34 +313,32 @@ def index(
     for p in paths:  # pylint: disable=C0103
         validate_path(p)
 
-    # Aggregate & sort blacklisted paths
-    blacklist = file_utils.sorted_unique_filepaths(
-        file_of_filepaths=blacklist_file,
-        list_of_filepaths=blacklist,
+    # Aggregate & sort denylisted paths
+    denylist = file_utils.sorted_unique_filepaths(
+        file_of_filepaths=denylist_file,
+        list_of_filepaths=denylist,
         abspaths=True,
     )
 
     # Grab and pack args
-    rest_client_args: RestClientArgs = {
-        "url": url,
-        "token": token,
-        "timeout": timeout,
-        "retries": retries,
-    }
     indexer_flags: IndexerFlags = {
         "basic_only": basic_only,
-        "patch": patch,
-        "iceprodv2_rc_token": iceprodv2_rc_token,
-        "iceprodv1_db_pass": iceprodv1_db_pass,
         "dryrun": dryrun,
+        "patch": patch,
     }
+
+    # get a rest client to talk to the file catalog
+    fc_rc = create_file_catalog_rest_client(oauth_config, rest_config)
+
+    # create an IceProd metadata manager
+    manager = MetadataManager(index_config, oauth_config, rest_config)
 
     # Go!
     if non_recursive:
-        _index(paths, blacklist, rest_client_args, site, indexer_flags)
+        _index(paths, denylist, fc_rc, manager, indexer_flags)
     else:
         _recursively_index(
-            paths, blacklist, rest_client_args, site, indexer_flags, n_processes
+            paths, denylist, fc_rc, manager, indexer_flags, n_processes
         )
 
 
@@ -413,21 +350,48 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "paths", metavar="PATHS", nargs="*", help="path(s) to scan for files."
+        "paths",
+        default=defaults.PATHS,
+        metavar="PATHS",
+        nargs="*",
+        help="path(s) to scan for files.",
     )
     parser.add_argument(
-        "-f",
-        "--paths-file",
-        default=defaults.PATHS_FILE,
-        help="new-line-delimited text file containing path(s) to scan for files. "
-        "(use this option for a large number of paths)",
-    )
-    parser.add_argument(
-        "-n",
-        "--non-recursive",
-        default=False,
+        "--basic-only",
         action="store_true",
-        help="do not recursively index / do not descend into subdirectories",
+        default=False,
+        help="only collect basic metadata",
+    )
+    parser.add_argument(
+        "--denylist",
+        metavar="DENYPATH",
+        nargs="+",
+        default=defaults.DENYLIST,
+        help="list of denylisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*",
+    )
+    parser.add_argument(
+        "--denylist-file",
+        default=defaults.DENYLIST_FILE,
+        help="a file containing denylisted filepaths on each line "
+        "(this is a useful alternative to `--denylist` when there's many denylisted paths); "
+        "Ex: /foo/bar/ will skip /foo/bar/*",
+    )
+    parser.add_argument(
+        "--dryrun",
+        action="store_true",
+        default=False,
+        help="do everything except POSTing/PATCHing to the File Catalog",
+    )
+    parser.add_argument(
+        "--iceprodv1-db-pass",
+        default=defaults.ICEPRODV1_DB_PASS,
+        help="IceProd1 SQL password",
+    )
+    parser.add_argument(
+        "-l",
+        "--log",
+        default=defaults.LOG_LEVEL,
+        help="the output logging level",
     )
     parser.add_argument(
         "--processes",
@@ -437,98 +401,52 @@ if __name__ == "__main__":
         "(ignored if using --non-recursive)",
     )
     parser.add_argument(
-        "-u",
-        "--url",
-        default=defaults.URL,
-        help="File Catalog URL",
-    )
-    parser.add_argument(
-        "-s", "--site", required=True, help='site value of the "locations" object'
-    )
-    parser.add_argument(
-        "-t", "--token", required=True, help="REST token for File Catalog"
-    )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=defaults.TIMEOUT,
-        help="timeout duration (seconds) for File Catalog REST requests",
-    )
-    parser.add_argument(
-        "--retries",
-        type=int,
-        default=defaults.RETRIES,
-        help="number of retries for File Catalog REST requests",
-    )
-    parser.add_argument(
-        "--basic-only",
-        default=False,
+        "-n",
+        "--non-recursive",
         action="store_true",
-        help="only collect basic metadata",
+        default=False,
+        help="do not recursively index / do not descend into subdirectories",
     )
     parser.add_argument(
         "--patch",
-        default=False,
         action="store_true",
+        default=False,
         help="replace/overwrite any existing File-Catalog entries (aka patch)",
     )
     parser.add_argument(
-        "--blacklist",
-        metavar="BLACKPATH",
-        nargs="+",
-        default=defaults.BLACKLIST,
-        help="list of blacklisted filepaths; Ex: /foo/bar/ will skip /foo/bar/*",
+        "-f",
+        "--paths-file",
+        default=defaults.PATHS_FILE,
+        help="new-line-delimited text file containing path(s) to scan for files. "
+        "(use this option for a large number of paths)",
     )
     parser.add_argument(
-        "--blacklist-file",
-        default=defaults.BLACKLIST_FILE,
-        help="a file containing blacklisted filepaths on each line "
-        "(this is a useful alternative to `--blacklist` when there's many blacklisted paths); "
-        "Ex: /foo/bar/ will skip /foo/bar/*",
+        "-s",
+        "--site",
+        required=True,
+        help='site value of the "locations" object',
     )
-    parser.add_argument(
-        "-l",
-        "--log",
-        default="INFO",
-        help="the output logging level",
-    )
-    parser.add_argument(
-        "--iceprodv2-rc-token",
-        default=defaults.ICEPRODV2_RC_TOKEN,
-        help="IceProd2 REST token",
-    )
-    parser.add_argument(
-        "--iceprodv1-db-pass",
-        default=defaults.ICEPRODV1_DB_PASS,
-        help="IceProd1 SQL password",
-    )
-    parser.add_argument(
-        "--dryrun",
-        default=False,
-        action="store_true",
-        help="do everything except POSTing/PATCHing to the File Catalog",
-    )
-
+    add_auth_to_argparse(parser)
     args = parser.parse_args()
-    coloredlogs.install(level=args.log.upper())
-    for arg, val in vars(args).items():
-        logging.warning(f"{arg}: {val}")
 
-    index(
-        token=args.token,
-        site=args.site,
-        paths=args.paths,
-        paths_file=args.paths_file,
-        blacklist=args.blacklist,
-        blacklist_file=args.blacklist_file,
-        url=args.url,
-        timeout=args.timeout,
-        retries=args.retries,
-        basic_only=args.basic_only,
-        patch=args.patch,
-        iceprodv2_rc_token=args.iceprodv2_rc_token,
-        iceprodv1_db_pass=args.iceprodv1_db_pass,
-        dryrun=args.dryrun,
-        non_recursive=args.non_recursive,
-        n_processes=args.processes,
-    )
+    # do some logging
+    logging_tools.set_level(args.log, use_coloredlogs=True)
+    logging_tools.log_argparse_args(args)
+
+    index_config: IndexerConfiguration = {
+        "basic_only": args.basic_only,
+        "denylist": args.denylist,
+        "denylist_file": args.denylist_file,
+        "dryrun": args.dryrun,
+        "iceprodv1_db_pass": args.iceprodv1_db_pass,
+        "n_processes": args.processes,
+        "non_recursive": args.non_recursive,
+        "patch": args.patch,
+        "paths": args.paths,
+        "paths_file": args.paths_file,
+        "site": args.site,
+    }
+    oauth_config = create_oauth_config(args)
+    rest_config = create_rest_config(args)
+
+    index(index_config, oauth_config, rest_config)

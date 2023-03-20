@@ -4,7 +4,6 @@
 import hashlib
 import os
 from datetime import date
-from typing import cast
 
 from file_catalog.schema import types
 
@@ -27,7 +26,7 @@ class BasicFileMetadata:
         metadata: types.Metadata = {}
         metadata["logical_name"] = self.file.path
         metadata["checksum"] = {"sha512": self.sha512sum()}
-        metadata["file_size"] = cast(int, self.file.stat().st_size)  # type: ignore[no-untyped-call]
+        metadata["file_size"] = self.file.stat().st_size
         metadata["locations"] = [{"site": self.site, "path": self.file.path}]
         iso_date = date.fromtimestamp(os.path.getctime(self.file.path)).isoformat()
         metadata["create_date"] = iso_date

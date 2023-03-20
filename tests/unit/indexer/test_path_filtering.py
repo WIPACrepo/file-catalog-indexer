@@ -4,7 +4,7 @@ import pathlib
 
 import pytest
 
-from indexer.index import ACCEPTED_ROOTS, path_in_blacklist, validate_path
+from indexer.index import ACCEPTED_ROOTS, path_in_denylist, validate_path
 from indexer.utils.file_utils import sorted_unique_filepaths
 
 
@@ -30,17 +30,17 @@ def test_check_path() -> None:
         validate_path("data/")
 
 
-def test_blacklist() -> None:
-    """Test filepath black-listing."""
-    blacklist = ["/foo/bar", "/foo/baz"]
+def test_denylist() -> None:
+    """Test filepath deny-listing."""
+    denylist = ["/foo/bar", "/foo/baz"]
 
-    assert path_in_blacklist("/foo/bar", blacklist)
-    assert path_in_blacklist("/foo/baz", blacklist)
-    assert path_in_blacklist("/foo/baz/foobar", blacklist)
+    assert path_in_denylist("/foo/bar", denylist)
+    assert path_in_denylist("/foo/baz", denylist)
+    assert path_in_denylist("/foo/baz/foobar", denylist)
 
-    assert not path_in_blacklist("/foo/baz2", blacklist)
-    assert not path_in_blacklist("/foo/baz2/foobar", blacklist)
-    assert not path_in_blacklist("/foo", blacklist)
+    assert not path_in_denylist("/foo/baz2", denylist)
+    assert not path_in_denylist("/foo/baz2/foobar", denylist)
+    assert not path_in_denylist("/foo", denylist)
 
 
 def test_sorted_unique_filepaths() -> None:

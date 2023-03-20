@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
+# get_nonindexed_files.py
 """Utility to get files that have not been indexed from a traverse file."""
-
 
 import argparse
 import concurrent.futures
@@ -8,19 +9,18 @@ import logging
 from typing import List
 
 import coloredlogs  # type: ignore[import]
-import more_itertools as mit  # type: ignore[import]
-from rest_tools.client import RestClient  # type: ignore[import]
+import more_itertools as mit
+from rest_tools.client import RestClient
+
+from indexer.client_auth import (
+    add_auth_to_argparse,
+    create_file_catalog_rest_client,
+    create_oauth_config,
+    create_rest_config,
+)
 
 
-def _check_fpaths(fpaths: List[str], token: str, thread_id: int) -> List[str]:
-    # setup
-    rc = RestClient(
-        "https://file-catalog.icecube.wisc.edu/",
-        token=token,
-        timeout=60 * 60,  # 1 hour
-        retries=24,  # 1 day
-    )
-
+def _check_fpaths(fpaths: List[str], rc: RestClient, thread_id: int) -> List[str]:
     # scan
     nonindexed_fpaths: List[str] = []
     for i, fpath in enumerate(fpaths, start=1):
@@ -70,15 +70,26 @@ def main() -> None:
         required=True,
         help="traverse file containing superset of filepaths",
     )
-    parser.add_argument("-l", "--log", default="DEBUG", help="the output logging level")
     parser.add_argument(
-        "-t", "--token", required=True, help="REST token for File Catalog"
+        "-l", "--log",
+        default="DEBUG",
+        help="the output logging level"
     )
-    parser.add_argument("--threads", required=True, type=int, help="# of threads")
+    parser.add_argument(
+        "--threads",
+        required=True,
+        type=int,
+        help="# of threads"
+    )
+    add_auth_to_argparse(parser)
     args = parser.parse_args()
 
+    # rest client
+    oauth_config = create_oauth_config(args)
+    rest_config = create_rest_config(args)
+    rc: RestClient = create_file_catalog_rest_client(oauth_config, rest_config)
+
     # logging
-    args = parser.parse_args()
     coloredlogs.install(level=args.log.upper())
     for arg, val in vars(args).items():
         logging.warning(f"{arg}: {val}")
@@ -87,11 +98,11 @@ def main() -> None:
     fpath_chunks = _split_up_infile(args.traverse_file, args.threads)
 
     # spawn threads
-    workers: List[concurrent.futures.Future] = []  # type: ignore[type-arg]
+    workers: List[concurrent.futures.Future[List[str]]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as pool:
         logging.warning(f"Spinning off thread jobs ({args.threads})")
         workers.extend(
-            pool.submit(_check_fpaths, c, args.token, i)
+            pool.submit(_check_fpaths, c, rc, i)
             for i, c in enumerate(fpath_chunks)
         )
 

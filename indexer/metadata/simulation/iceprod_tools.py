@@ -1,3 +1,4 @@
+# iceprod_tools.py
 """Interface with IceProd REST interface.
 
 Based on https://github.com/WIPACrepo/iceprod/blob/master/resources/get_file_info.py.
@@ -14,7 +15,10 @@ from file_catalog.schema import types
 from iceprod.core import dataclasses  # type: ignore[import]
 from iceprod.core.parser import ExpParser  # type: ignore[import]
 from iceprod.core.serialization import dict_to_dataclasses  # type: ignore[import]
-from rest_tools.client import RestClient  # type: ignore[import]
+from rest_tools.client import RestClient
+
+from indexer.client_auth import create_iceprod_rest_client
+from indexer.config import IndexerConfiguration, OAuthConfiguration, RestConfiguration
 
 # --------------------------------------------------------------------------------------
 # Constants
@@ -66,16 +70,12 @@ class TaskNotFound(Exception):
 class IceProdConnection:
     """Interface for connecting to IceProd v1 and v2."""
 
-    def __init__(self, iceprodv1_pass: str, iceprodv2_token: str):
-        if not iceprodv1_pass:
-            raise RuntimeError("Missing IceProd v1 DB password")
-        elif not iceprodv2_token:
-            raise RuntimeError("Missing IceProd v2 REST token")
-
-        self._iceprodv1_pass = iceprodv1_pass
-        self._iceprodv2_rc = RestClient(
-            "https://iceprod2-api.icecube.wisc.edu", iceprodv2_token
-        )
+    def __init__(self,
+                 index_config: IndexerConfiguration,
+                 oauth_config: OAuthConfiguration,
+                 rest_config: RestConfiguration):
+        self._iceprodv1_pass = index_config["iceprodv1_db_pass"]
+        self._iceprodv2_rc = create_iceprod_rest_client(oauth_config, rest_config)
 
     def get_iceprodv1_db(self) -> pymysql.connections.Connection:
         """Get a pymsql connection instance for querying the IceProd v1 DB."""
