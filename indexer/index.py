@@ -4,11 +4,12 @@
 
 import argparse
 import asyncio
+from concurrent.futures import Future, ProcessPoolExecutor
+from functools import partial
 import json
 import logging
 import math
 import os
-from concurrent.futures import Future, ProcessPoolExecutor
 from time import sleep
 from typing import Any, cast, Dict, List, TypedDict
 
@@ -170,8 +171,8 @@ def path_in_denylist(path: str, denylist: List[str]) -> bool:
 def _index(
     paths: List[str],
     denylist: List[str],
-    fc_rc: RestClient,
-    manager: MetadataManager,
+    fc_rc_creator: Callable[..., RestClient],
+    manager_creator: Callable[..., MetadataManager],
     indexer_flags: IndexerFlags,
 ) -> List[str]:
     """Index paths, excluding any matching the denylist.
@@ -182,6 +183,10 @@ def _index(
         raise TypeError(f"`paths` object is not list {paths}")
     if not paths:
         return []
+
+    # Make FC Rest Client and IceProd Manager
+    fc_rc = fc_rc_creator()
+    manager = manager_creator()
 
     # Filter
     paths = file_utils.sorted_unique_filepaths(list_of_filepaths=paths)
@@ -201,8 +206,8 @@ def _index(
 def _recursively_index_multiprocessed(  # pylint: disable=R0913
     starting_paths: List[str],
     denylist: List[str],
-    fc_rc: RestClient,
-    manager: MetadataManager,
+    fc_rc_creator: Callable[..., RestClient],
+    manager_creator: Callable[..., MetadataManager],
     indexer_flags: IndexerFlags,
     n_processes: int,
 ) -> None:
@@ -230,8 +235,8 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
                             _index,
                             paths,
                             denylist,
-                            fc_rc,
-                            manager,
+                            fc_rc_creator,
+                            manager_creator,
                             indexer_flags,
                         )
                     )
@@ -251,8 +256,8 @@ def _recursively_index_multiprocessed(  # pylint: disable=R0913
 def _recursively_index(  # pylint: disable=R0913
     starting_paths: List[str],
     denylist: List[str],
-    fc_rc: RestClient,
-    manager: MetadataManager,
+    fc_rc_creator: Callable[..., RestClient],
+    manager_creator: Callable[..., MetadataManager],
     indexer_flags: IndexerFlags,
     n_processes: int,
 ) -> None:
@@ -261,8 +266,8 @@ def _recursively_index(  # pylint: disable=R0913
         _recursively_index_multiprocessed(
             starting_paths,
             denylist,
-            fc_rc,
-            manager,
+            fc_rc_creator,
+            manager_creator,
             indexer_flags,
             n_processes,
         )
@@ -271,7 +276,7 @@ def _recursively_index(  # pylint: disable=R0913
         i = 0
         while queue:
             logging.debug(f"Queue Iteration #{i}")
-            queue = _index(queue, denylist, fc_rc, manager, indexer_flags)
+            queue = _index(queue, denylist, fc_rc_creator, manager_creator, indexer_flags)
             i += 1
 
 
@@ -328,17 +333,17 @@ def index(index_config: IndexerConfiguration,
     }
 
     # get a rest client to talk to the file catalog
-    fc_rc = create_file_catalog_rest_client(oauth_config, rest_config)
+    fc_rc_creator = partial(create_file_catalog_rest_client, oauth_config, rest_config)
 
     # create an IceProd metadata manager
-    manager = MetadataManager(index_config, oauth_config, rest_config)
+    manager_creator = partial(MetadataManager, index_config, oauth_config, rest_config)
 
     # Go!
     if non_recursive:
-        _index(paths, denylist, fc_rc, manager, indexer_flags)
+        _index(paths, denylist, fc_rc_creator, manager_creator, indexer_flags)
     else:
         _recursively_index(
-            paths, denylist, fc_rc, manager, indexer_flags, n_processes
+            paths, denylist, fc_rc_creator, manager_creator, indexer_flags, n_processes
         )
 
 
