@@ -11,7 +11,7 @@ import logging
 import math
 import os
 from time import sleep
-from typing import Any, cast, Dict, List, TypedDict
+from typing import Any, Callable, cast, Dict, List, TypedDict
 
 import requests
 from file_catalog.schema import types
