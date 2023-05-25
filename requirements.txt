@@ -176,7 +176,7 @@ statsd==4.0.1
     # via iceprod
 thrift==0.16.0
     # via opentelemetry-exporter-jaeger-thrift
-tornado==6.3.1
+tornado==6.3.2
     # via
     #   iceprod
     #   wipac-file-catalog
