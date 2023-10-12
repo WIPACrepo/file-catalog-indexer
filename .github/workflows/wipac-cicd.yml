@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
+      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
 
   py-setup:
     runs-on: ubuntu-latest
