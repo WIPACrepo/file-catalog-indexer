@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.2 (2023-05-30)
+### Other
+
+* Bump py-versions CI release v2.1 ([#69](https://github.com/WIPACrepo/file-catalog-indexer/issues/69)) ([`128d0b2`](https://github.com/WIPACrepo/file-catalog-indexer/commit/128d0b2b13ea3135eb057405f4f58bfba885c7af))
+
+## v2.0.1 (2023-05-05)
+### Other
+* We can't pickle the new RC that uses RS secrets, so only create them … ([#63](https://github.com/WIPACrepo/file-catalog-indexer/issues/63)) ([`d7b08c7`](https://github.com/WIPACrepo/file-catalog-indexer/commit/d7b08c79b531086c831538e94ad859d3122191d9))
+
 ## v2.0.0 (2023-03-20)
 ### Breaking
 * * Fix up mypy errors indentified in CI/CD * Talk to File Catalog with new keycloak auth * New auth including IceProd * Retool programmatic configuration * Fix oauth_client_id and copypasta bugs * Use logging_tools from wipac-dev-tools * Update README.md ([`ca57ea1`](https://github.com/WIPACrepo/file-catalog-indexer/commit/ca57ea1a09d160c75e3fb1cdbed5e595c4bff859))
