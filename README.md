@@ -117,3 +117,8 @@ See:
 		3. file was brought back to WIPAC
 		4. now is being re-indexed at WIPAC
 		5. CONFLICT -> has the same `logical_name`+`checksum.sha512` but differing `locations`
+
+## Tools
+There is a script to help determine if a file tree contains softlinks.
+
+	python3 -m resources.softlink /path/to/indexing/root
