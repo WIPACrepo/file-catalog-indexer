@@ -4,6 +4,7 @@
 import os
 import sys
 
+
 def find_soft_links(root: str) -> None:
     """Walk the provided tree and print out softlinks."""
     for foldername, subfolders, filenames in os.walk(root):
@@ -20,6 +21,7 @@ def find_soft_links(root: str) -> None:
             if os.path.islink(path):
                 target = os.readlink(path)
                 print(f"{path} -> {target}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
