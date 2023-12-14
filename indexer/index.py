@@ -60,6 +60,7 @@ async def _post_metadata(
     if dryrun:
         logging.warning(f"Dry-Run Enabled: Not POSTing to File Catalog! {metadata}")
         sleep(0.1)
+        return
 
     try:
         await fc_rc.request("POST", "/api/files", cast(Dict[str, Any], metadata))
